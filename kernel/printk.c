@@ -999,13 +999,15 @@ asmlinkage int vprintk(const char *fmt, va_list args)
 				char tbuf[50], *tp;
 				unsigned tlen;
 				unsigned long long t;
-				unsigned long nanosec_rem;
+				struct timespec ts;
 
 				t = cpu_clock(printk_cpu);
-				nanosec_rem = do_div(t, 1000000000);
+				ts.tv_nsec = do_div(t, 1000000000);
+				ts.tv_sec = t;
+				monotonic_to_bootbased(&ts);
+
 				tlen = sprintf(tbuf, "[%5lu.%06lu] ",
-						(unsigned long) t,
-						nanosec_rem / 1000);
+						ts.tv_sec, ts.tv_nsec / 1000);
 
 				for (tp = tbuf; tp < tbuf + tlen; tp++)
 					emit_log_char(*tp);
