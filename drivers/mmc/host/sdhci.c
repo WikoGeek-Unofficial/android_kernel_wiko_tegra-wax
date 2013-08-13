@@ -2069,6 +2069,13 @@ int sdhci_enable(struct mmc_host *mmc)
 		if (ret)
 			dev_err(&pdev->dev, "Unable to set SD_EDP_HIGH state\n");
 	}
+#ifdef CONFIG_MMC_FREQ_SCALING
+	if (mmc->df) {
+		mmc->dev_stats->busy_time = 0;
+		schedule_delayed_work(&mmc->dfs_work,
+			msecs_to_jiffies(10));
+	}
+#endif
 
 	return 0;
 }
@@ -2128,6 +2135,19 @@ int sdhci_disable(struct mmc_host *mmc)
 	}
 
 	mmc_host_clk_gate(host);
+
+	/*
+	 * Cancel any pending DFS work if clocks are turned off.
+	 */
+#ifdef CONFIG_MMC_FREQ_SCALING
+	if (mmc->df) {
+		cancel_delayed_work_sync(&mmc->dfs_work);
+		mutex_lock(&mmc->df->lock);
+		mmc->df->previous_freq = mmc->actual_clock;
+		mutex_unlock(&mmc->df->lock);
+
+	}
+#endif
 
 	return 0;
 }
