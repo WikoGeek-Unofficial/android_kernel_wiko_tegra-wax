@@ -123,6 +123,7 @@
 
 /* maximum valid value for latency allowance */
 #define T14X_MC_LA_MAX_VALUE		255
+#define T14x_SHRINK_LA_FIFO		1
 
 #define T14X_MC_RA(r) \
 	((u32)IO_ADDRESS(TEGRA_MC_BASE) + (T14X_MC_##r))
@@ -515,7 +516,15 @@ static int t14x_set_la(enum tegra_la_id id, unsigned int bw_mbps)
 		cs->disp_bw_array[id - TEGRA_LA_DISPLAY_0A] = bw_mbps;
 		t14x_update_display_ptsa_rate(cs->disp_bw_array);
 	}
-
+#if T14x_SHRINK_LA_FIFO
+	/* Bug 1323454 */
+	/* Similarly for VI pretend there's a smaller FIFO to make up
+	* for the additional latency in case there's a clock
+	* frequency change in VI/EMC.
+	*/
+	if (id >= TEGRA_LA_VI_WSB && id <= TEGRA_LA_VI_WY)
+		fifo_size_in_atoms >>= 1;
+#endif
 	if (bw_mbps == 0) {
 		la_to_set = cs->la_max_value;
 	} else {
