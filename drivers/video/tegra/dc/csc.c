@@ -1,7 +1,7 @@
 /*
  * drivers/video/tegra/dc/csc.c
  *
- * Copyright (c) 2010-2013, NVIDIA CORPORATION, All rights reserved.
+ * Copyright (c) 2010-2014, NVIDIA CORPORATION, All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -23,13 +23,13 @@
 
 void tegra_dc_init_csc_defaults(struct tegra_dc_csc *csc)
 {
-	csc->yof   = 0x00f0;
-	csc->kyrgb = 0x012a;
+	csc->yof   = 0x0000;
+	csc->kyrgb = 0x0100;
 	csc->kur   = 0x0000;
-	csc->kvr   = 0x0198;
-	csc->kug   = 0x039b;
-	csc->kvg   = 0x032f;
-	csc->kub   = 0x0204;
+	csc->kvr   = 0x0167;
+	csc->kug   = 0x03a8;
+	csc->kvg   = 0x0349;
+	csc->kub   = 0x01c6;
 	csc->kvb   = 0x0000;
 }
 
