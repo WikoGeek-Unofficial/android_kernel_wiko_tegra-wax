@@ -16,6 +16,7 @@
 #include <linux/backing-dev.h>
 #include <linux/bio.h>
 #include <linux/blkdev.h>
+#include <linux/threads.h>
 #include <linux/highmem.h>
 #include <linux/mm.h>
 #include <linux/kernel_stat.h>
@@ -1387,9 +1388,17 @@ get_rq:
 	 */
 	init_request_from_bio(req, bio);
 
-	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags))
-		req->cpu = raw_smp_processor_id();
+	if (test_bit(QUEUE_FLAG_SAME_COMP, &q->queue_flags)) {
 
+#ifdef CONFIG_AHCI_READ_COPY_PATH
+		static unsigned int cpu;
+		unsigned int num_cores = num_possible_cpus();
+		req->cpu = cpu % num_cores;
+		cpu++;
+#else
+		req->cpu = raw_smp_processor_id();
+#endif
+	}
 	plug = current->plug;
 	if (plug) {
 		/*
