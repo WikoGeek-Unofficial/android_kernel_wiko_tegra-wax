@@ -114,8 +114,11 @@ static int nct1008_write_reg(struct i2c_client *client, u8 reg, u16 value)
 	int ret = 0;
 	struct nct1008_data *data = i2c_get_clientdata(client);
 
+	if (data == NULL)
+		return -ENODEV;
+
 	mutex_lock(&data->mutex);
-	if (data && data->nct_disabled) {
+	if (data->nct_disabled) {
 		mutex_unlock(&data->mutex);
 		return -ENODEV;
 	}
@@ -133,8 +136,12 @@ static int nct1008_read_reg(struct i2c_client *client, u8 reg)
 {
 	int ret = 0;
 	struct nct1008_data *data = i2c_get_clientdata(client);
+
+	if (data == NULL)
+		return -ENODEV;
+
 	mutex_lock(&data->mutex);
-	if (data && data->nct_disabled) {
+	if (data->nct_disabled) {
 		mutex_unlock(&data->mutex);
 		return -ENODEV;
 	}
@@ -151,20 +158,31 @@ static int nct1008_read_reg(struct i2c_client *client, u8 reg)
 static int nct1008_get_temp(struct device *dev, long *etemp, long *itemp)
 {
 	struct i2c_client *client = to_i2c_client(dev);
+	struct nct1008_data *data = i2c_get_clientdata(client);
 	struct nct1008_platform_data *pdata = client->dev.platform_data;
 	s16 temp_local;
 	u8 temp_ext_lo;
 	s16 temp_ext_hi;
 	long temp_ext_milli;
 	long temp_local_milli;
-	u8 value;
+	int value = -ENODEV;
+
+	if (data == NULL)
+		goto error;
+
+	mutex_lock(&data->mutex);
+	if (data->stop_workqueue) {
+		mutex_unlock(&data->mutex);
+		goto error;
+	}
+	mutex_unlock(&data->mutex);
 
 	/* Read Local Temp */
 	if (itemp) {
 		value = nct1008_read_reg(client, LOCAL_TEMP_RD);
 		if (value < 0)
 			goto error;
-		temp_local = value_to_temperature(pdata->ext_range, value);
+		temp_local = value_to_temperature(pdata->ext_range, (u8)value);
 		temp_local_milli = CELSIUS_TO_MILLICELSIUS(temp_local);
 
 		*itemp = temp_local_milli;
@@ -175,12 +193,12 @@ static int nct1008_get_temp(struct device *dev, long *etemp, long *itemp)
 		value = nct1008_read_reg(client, EXT_TEMP_RD_LO);
 		if (value < 0)
 			goto error;
-		temp_ext_lo = (value >> 6);
+		temp_ext_lo = (u8)(value >> 6);
 
 		value = nct1008_read_reg(client, EXT_TEMP_RD_HI);
 		if (value < 0)
 			goto error;
-		temp_ext_hi = value_to_temperature(pdata->ext_range, value);
+		temp_ext_hi = value_to_temperature(pdata->ext_range, (u8)value);
 
 		temp_ext_milli = CELSIUS_TO_MILLICELSIUS(temp_ext_hi) +
 					temp_ext_lo * 250;
@@ -526,21 +544,31 @@ static int nct1008_ext_get_temp(struct thermal_zone_device *thz,
 	s16 temp_ext_hi;
 	s16 temp_ext_lo;
 	long temp_ext_milli;
-	u8 value;
+	int value;
+
+	if (data == NULL)
+		return -1;
+
+	mutex_lock(&data->mutex);
+	if (data->stop_workqueue) {
+		mutex_unlock(&data->mutex);
+		return -1;
+	}
+	mutex_unlock(&data->mutex);
 
 	/* Read External Temp */
 	value = nct1008_read_reg(client, EXT_TEMP_RD_LO);
 	if (value < 0)
 		return -1;
-	temp_ext_lo = (value >> 6);
+	temp_ext_lo = (s16)(value >> 6);
 
 	value = nct1008_read_reg(client, EXT_TEMP_RD_HI);
 	if (value < 0)
 		return -1;
-	temp_ext_hi = value_to_temperature(pdata->ext_range, value);
-
+	temp_ext_hi = value_to_temperature(pdata->ext_range, (u8)value);
 	temp_ext_milli = CELSIUS_TO_MILLICELSIUS(temp_ext_hi) +
 			 temp_ext_lo * 250;
+
 	*temp = temp_ext_milli;
 	data->etemp = temp_ext_milli;
 
@@ -659,15 +687,25 @@ static int nct1008_int_get_temp(struct thermal_zone_device *thz,
 	struct nct1008_data *data = thz->devdata;
 	struct i2c_client *client = data->client;
 	struct nct1008_platform_data *pdata = client->dev.platform_data;
-	s16 temp_local;
+	int value;
 	long temp_local_milli;
-	u8 value;
+	s16 temp_local;
+
+	if (data == NULL)
+		return -1;
+
+	mutex_lock(&data->mutex);
+	if (data->stop_workqueue) {
+		mutex_unlock(&data->mutex);
+		return -1;
+	}
+	mutex_unlock(&data->mutex);
 
 	/* Read Local Temp */
 	value = nct1008_read_reg(client, LOCAL_TEMP_RD);
 	if (value < 0)
 		return -1;
-	temp_local = value_to_temperature(pdata->ext_range, value);
+	temp_local = value_to_temperature(pdata->ext_range, (u8)value);
 
 	temp_local_milli = CELSIUS_TO_MILLICELSIUS(temp_local);
 	*temp = temp_local_milli;
@@ -850,6 +888,9 @@ static void nct1008_work_func(struct work_struct *work)
 						work);
 	int err;
 	struct timespec ts;
+
+	if (data == NULL)
+		return;
 
 	mutex_lock(&data->mutex);
 	if (data->stop_workqueue) {
@@ -1247,7 +1288,6 @@ static int nct1008_suspend_wakeup(struct device *dev)
 	if (err)
 		dev_err(&client->dev, "Error: %s, error=%d. failed to enable NCT "
 				"wakeup\n", __func__, err);
-
 
 	return err;
 
