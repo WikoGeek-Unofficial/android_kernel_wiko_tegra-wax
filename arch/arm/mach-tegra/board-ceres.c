@@ -841,7 +841,6 @@ static __initdata struct tegra_clk_init_table ceres_clk_init_table[] = {
 };
 
 static struct platform_device *ceres_uart_devices[] __initdata = {
-	&tegra_uarta_device,
 	&tegra_uartb_device,
 	&tegra_uartc_device,
 	&tegra_uartd_device,
@@ -864,7 +863,11 @@ static void __init uart_debug_init(void)
 	debug_port_id = uart_console_debug_init(3);
 	if (debug_port_id < 0)
 		return;
-	ceres_uart_devices[debug_port_id] = uart_console_debug_device;
+#ifdef CONFIG_TEGRA_FIQ_DEBUGGER
+	tegra_serial_debug_init(TEGRA_UARTA_BASE, INT_UARTA, NULL, -1, -1);
+#else
+	platform_device_register(uart_console_debug_device);
+#endif
 }
 
 static void __init ceres_uart_init(void)
@@ -1179,7 +1182,6 @@ static void __init tegra_ceres_late_init(void)
 	ceres_sdhci_init();
 	platform_add_devices(ceres_devices, ARRAY_SIZE(ceres_devices));
 	tegra_ram_console_debug_init();
-	tegra_serial_debug_init(TEGRA_UARTA_BASE, INT_WDT_CPU, NULL, -1, -1);
 	ceres_emc_init();
 	ceres_edp_init();
 	isomgr_init();

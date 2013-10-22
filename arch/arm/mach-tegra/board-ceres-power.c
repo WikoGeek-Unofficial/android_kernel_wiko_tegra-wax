@@ -680,7 +680,11 @@ static struct max77660_platform_data max77660_pdata = {
 
 	.flags	= 0x00,
 	.use_power_off	= true,
+#if !defined(CONFIG_TEGRA_FIQ_DEBUGGER)
 	.system_watchdog_timeout = 32,
+#else
+	.system_watchdog_timeout = 0,
+#endif
 	.system_watchdog_reset_timeout = 20,
 	.dvfs_pd = {
 		.en_pwm = true,
