@@ -1059,7 +1059,7 @@ static int max77387_configure(struct max77387_info *info, bool update)
 		plvls = pcfg->led_config[i].lumi_levels;
 		ptcap->levels[0].guidenum = MAX77387_LEVEL_OFF;
 		ptcap->levels[0].luminance = 0;
-		for (j = 1; j < ptcap->numberoflevels; j++) {
+		for (j = 1; j < pcfg->led_config[i].flash_levels + 1; j++) {
 			if (GET_CURRENT_BY_INDEX(plvls[j - 1].guidenum) >
 				pcfg->max_torch_current_mA)
 				break;
