@@ -92,6 +92,10 @@
 #define CLK_RESET_PLLA_BASE		0xb0
 #define CLK_RESET_PLLX_BASE		0xe0
 
+#define CLK_RESET_PLLP_RESHIFT		0x528
+#define CLK_RESET_PLLP_RESHIFT_DEFAULT	0x3b
+#define CLK_RESET_PLLP_RESHIFT_ENABLE	0x3
+
 #define CLK_RESET_PLLC_MISC		0x8c
 #define CLK_RESET_PLLM_MISC		0x9c
 #define CLK_RESET_PLLP_MISC		0xac
@@ -138,6 +142,7 @@
 #define MSELECT_CLKM			(0x3 << 30)
 
 #define TEGRA_RTC_MSEC	0x10
+#define FLOW_CONTROL_CLUSTER_CONTROL	0x2c
 
 #if USE_PLL_LOCK_BITS
 #define LOCK_DELAY 		PLL_POST_LOCK_DELAY
@@ -559,6 +564,15 @@ resume_lp1:
 	pll_locked r1, r0, CLK_RESET_PLLP_BASE
 	pll_locked r1, r0, CLK_RESET_PLLC_BASE
 	pll_locked r1, r0, CLK_RESET_PLLX_BASE
+
+#if !defined(CONFIG_ARCH_TEGRA_3x_SOC)
+	ldr	r1, [r0, #CLK_RESET_PLLP_BASE]
+	bic	r1, r1, #(1<<31)		/* disable PllP bypass */
+	str	r1, [r0, #CLK_RESET_PLLP_BASE]
+
+	mov	r1, #CLK_RESET_PLLP_RESHIFT_DEFAULT
+	str	r1, [r0, #CLK_RESET_PLLP_RESHIFT]
+#endif
 
 	mov32	r7, TEGRA_TMRUS_BASE
 	ldr	r1, [r7]
@@ -1153,9 +1167,21 @@ lp1bb_emc_source_check:
 	b	powerdown_pll_cx                @ if not, turn off pll-c/pll-x
 #endif
 powerdown_pll_pacx:
+
+	ldr	r0, [r6, #FLOW_CONTROL_CLUSTER_CONTROL]
+	tst	r0, #1
 	ldr	r0, [r5, #CLK_RESET_PLLP_BASE]
 	bic	r0, r0, #(1<<30)
+#if !defined(CONFIG_ARCH_TEGRA_3x_SOC)
+	orreq	r0, r0, #(1<<31)		@ enable PllP bypass on fast
+#endif
 	str	r0, [r5, #CLK_RESET_PLLP_BASE]
+
+#if !defined(CONFIG_ARCH_TEGRA_3x_SOC)
+	mov	r0, #CLK_RESET_PLLP_RESHIFT_ENABLE
+	str	r0, [r5, #CLK_RESET_PLLP_RESHIFT]
+#endif
+
 	ldr	r0, [r5, #CLK_RESET_PLLA_BASE]
 	bic	r0, r0, #(1<<30)
 	str	r0, [r5, #CLK_RESET_PLLA_BASE]
