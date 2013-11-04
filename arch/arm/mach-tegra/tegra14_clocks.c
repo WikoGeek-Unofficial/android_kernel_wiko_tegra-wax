@@ -402,6 +402,14 @@
 #define USB_PLLS_USE_LOCKDET			(1<<6)
 #define USB_PLLS_ENABLE_SWCTL			((1<<2) | (1<<0))
 
+/* CPU clock trimmers */
+#define CPU_FINETRIM_BYP			0x4d0
+#define CPU_FINETRIM_SELECT			0x4d4
+#define CPU_FINETRIM_DR				0x4d8
+#define CPU_FINETRIM_DF				0x4dc
+#define CPU_FINETRIM_F				0x4e0
+#define CPU_FINETRIM_R				0x4e4
+
 /* DFLL */
 #define DFLL_BASE				0x2f4
 #define DFLL_BASE_RESET				(1<<0)
@@ -3180,6 +3188,20 @@ static void tune_cpu_trimmers(bool trim_high)
 {
 	tegra_soctherm_adjust_cpu_zone(trim_high);
 }
+
+static void program_dvco_shapers(void)
+{
+
+	clk_writel(0x3F, CPU_FINETRIM_DR);
+	clk_writel(0x3F, CPU_FINETRIM_DF);
+	clk_writel(0x0,  CPU_FINETRIM_F);
+	clk_writel(0xFFF, CPU_FINETRIM_R);
+	clk_writel(0x3F, CPU_FINETRIM_SELECT);
+	wmb();
+	clk_readl(CPU_FINETRIM_R);
+
+}
+
 #endif
 
 static void __init tegra14_dfll_cpu_late_init(struct clk *c)
@@ -3192,6 +3214,7 @@ static void __init tegra14_dfll_cpu_late_init(struct clk *c)
 		pr_err("%s: CPU dvfs is not present\n", __func__);
 		return;
 	}
+	program_dvco_shapers();
 	tegra_dvfs_set_dfll_tune_trimmers(cpu->dvfs, tune_cpu_trimmers);
 
 #ifdef CONFIG_TEGRA_FPGA_PLATFORM
@@ -3267,6 +3290,9 @@ static void tegra14_dfll_clk_resume(struct clk *c)
 
 	if (c->state != UNINITIALIZED) {
 		tegra_periph_reset_deassert(c);
+#ifdef CONFIG_ARCH_TEGRA_HAS_CL_DVFS
+		program_dvco_shapers();
+#endif
 		tegra_cl_dvfs_resume(c->u.dfll.cl_dvfs);
 	}
 }
