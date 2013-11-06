@@ -36,14 +36,17 @@ int tegra_camera_disable_emc(struct tegra_camera *camera)
 
 #if defined(CONFIG_TEGRA_ISOMGR)
 	{
-		int ret = 0;
-		/* deallocate isomgr bw */
-		ret = tegra_camera_isomgr_request(camera, 0, 0);
-		if (ret) {
-			dev_err(camera->dev,
-			"%s: failed to deallocate memory in isomgr\n",
-			__func__);
-			return -ENOMEM;
+		if (camera->iso_request) {
+			int ret = 0;
+			/* deallocate isomgr bw */
+			ret = tegra_camera_isomgr_request(camera, 0, 0);
+			if (ret) {
+				dev_err(camera->dev,
+				"%s: failed to deallocate memory in isomgr\n",
+				__func__);
+				return -ENOMEM;
+			}
+			camera->iso_request = 0;
 		}
 	}
 #endif

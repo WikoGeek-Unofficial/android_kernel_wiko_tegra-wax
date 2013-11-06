@@ -106,6 +106,7 @@ struct tegra_camera {
 	struct camera_throttle camera_throt;
 #endif
 #if defined(CONFIG_TEGRA_ISOMGR)
+	uint iso_request;
 	tegra_isomgr_handle isomgr_handle;
 #endif
 };

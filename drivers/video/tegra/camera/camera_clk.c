@@ -149,6 +149,7 @@ int tegra_camera_clk_set_rate(struct tegra_camera *camera)
 				__func__, bw);
 				return -ENOMEM;
 			}
+			camera->iso_request = 1;
 #endif
 		}
 #endif
