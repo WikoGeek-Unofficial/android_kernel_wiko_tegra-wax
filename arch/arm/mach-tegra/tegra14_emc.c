@@ -859,20 +859,36 @@ static noinline void emc_set_clock(const struct tegra14_emc_table *next_timing,
 	if (dqs_preset(next_timing, last_timing)) {
 		if (pre_wait < 30)
 			pre_wait = 30; /* (T148) 30us+ for dqs vref settled */
-		/* Take the DISC pads out of DPD. */
-		pmc_dpd = (PMC_IO_DPD2_REQ_CODE_DPD_OFF <<
-			   PMC_IO_DPD2_REQ_CODE_SHIFT);
-		writel(pmc_dpd | PMC_IO_DPD2_REQ_DISC_BIAS,
-		       pmc_base + PMC_IO_DPD2_REQ);
+	} else {
+		if (pre_wait < 5)
+			pre_wait = 5; /* Time for BGBIAS to come out of DPD. */
 	}
+
+	/* Take the DISC pads out of DPD. */
+	pmc_dpd = (PMC_IO_DPD2_REQ_CODE_DPD_OFF <<
+		   PMC_IO_DPD2_REQ_CODE_SHIFT);
+	writel(pmc_dpd | PMC_IO_DPD2_REQ_DISC_BIAS,
+	       pmc_base + PMC_IO_DPD2_REQ);
+
 	emc_timing_update();
 	t_start = tegra_read_usec_raw();
 
-	/* 3. For t148, leave auto cal alone. */
+	/* 3. Autocal configuration. */
+	udelay(5);
+	emc_writel(next_timing->burst_regs[EMC_AUTO_CAL_CONFIG2_INDEX],
+		   EMC_AUTO_CAL_CONFIG2);
+	emc_writel(next_timing->burst_regs[EMC_AUTO_CAL_CONFIG3_INDEX],
+		   EMC_AUTO_CAL_CONFIG3);
+	emc_writel(next_timing->burst_regs[EMC_AUTO_CAL_CONFIG_INDEX],
+		   EMC_AUTO_CAL_CONFIG);
+	emc_writel(0, EMC_AUTO_CAL_INTERVAL);
 
 	/* 4. program burst shadow registers */
 	for (i = 0; i < next_timing->burst_regs_num; i++) {
-		if (!burst_reg_addr[i])
+		if (!burst_reg_addr[i] ||
+		    (burst_reg_addr[i] == emc_base + EMC_AUTO_CAL_CONFIG) ||
+		    (burst_reg_addr[i] == emc_base + EMC_AUTO_CAL_CONFIG2) ||
+		    (burst_reg_addr[i] == emc_base + EMC_AUTO_CAL_CONFIG3))
 			continue;
 		__raw_writel(next_timing->burst_regs[i], burst_reg_addr[i]);
 	}
@@ -970,7 +986,12 @@ static noinline void emc_set_clock(const struct tegra14_emc_table *next_timing,
 			udelay(1 + pre_wait - t_diff);
 	}
 
-	/* 12-14. read any MC register to ensure the programming is done
+	/* 12 Ensure autocalibration is done. */
+	i = wait_for_update(EMC_AUTO_CAL_STATUS,
+			    EMC_AUTO_CAL_STATUS_ACTIVE, false);
+	BUG_ON(i);
+
+	/* 13-14. read any MC register to ensure the programming is done
 	   change EMC clock source register wait for clk change completion */
 	do_clock_change(clk_setting);
 
@@ -984,19 +1005,20 @@ static noinline void emc_set_clock(const struct tegra14_emc_table *next_timing,
 		wmb();
 	}
 
-	/* 14.3 Check if we are entering schmit mode. If we are, then DPD can
-	   be requested for the BG BIAS cells of the DISC pads. */
+	/* 15 Check if we are entering schmit mode. If we are, then DPD can be
+	   requested for the BG BIAS cells of the DISC pads. Also here we set
+	   the AUTO_CAL */
 	if (~next_timing->burst_regs[EMC_XM2DQSPADCTRL2_INDEX] &
 	    EMC_XM2DQSPADCTRL2_RX_FT_REC_ENABLE) {
 		pmc_dpd = (PMC_IO_DPD2_REQ_CODE_DPD_ON <<
 			   PMC_IO_DPD2_REQ_CODE_SHIFT);
 		writel(pmc_dpd | PMC_IO_DPD2_REQ_DISC_BIAS,
 		       pmc_base + PMC_IO_DPD2_REQ);
+	} else {
+		emc_writel(next_timing->emc_acal_interval,
+			   EMC_AUTO_CAL_INTERVAL);
 	}
 
-	/* 15. restore auto-cal. On t148, this is just a reprogramming - its
-	   already enabled during the clock change itself. */
-	emc_writel(next_timing->emc_acal_interval, EMC_AUTO_CAL_INTERVAL);
 
 	/* 16. restore dynamic self-refresh - for t148 if requested, we will
 	   leave DSR disabled. Otherwise just follow the table entry. */
