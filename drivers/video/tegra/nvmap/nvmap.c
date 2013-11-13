@@ -329,15 +329,17 @@ int nvmap_pin_ids(struct nvmap_client *client,
 		for (i = 0; i < nr; i++) {
 			if (h[i]->heap_pgalloc && h[i]->pgalloc.dirty) {
 				ret = map_iovmm_area(h[i]);
-				while (ret && --i >= 0) {
-					if (!h[i]->heap_pgalloc)
-						continue;
-					tegra_iommu_zap_vm(h[i]->pgalloc.area);
-				}
+				if (ret)
+					break;
 			}
 		}
 	}
 
+	while (ret && --i >= 0) {
+		if (!h[i]->heap_pgalloc)
+			continue;
+		tegra_iommu_zap_vm(h[i]->pgalloc.area);
+	}
 out:
 	if (ret) {
 		nvmap_ref_lock(client);
@@ -518,15 +520,6 @@ int nvmap_pin_array(struct nvmap_client *client,
 			if (unique_arr[i]->heap_pgalloc &&
 			    unique_arr[i]->pgalloc.dirty) {
 				ret = map_iovmm_area(unique_arr[i]);
-				while (ret && --i >= 0) {
-					if (unique_arr[i]->heap_pgalloc) {
-						struct nvmap_pgalloc *pgalloc;
-
-						pgalloc = &unique_arr[i]->pgalloc;
-						tegra_iommu_zap_vm(pgalloc->area);
-					}
-					atomic_dec(&unique_arr_refs[i]->pin);
-				}
 				if (ret)
 					goto err_out_unpin;
 			}
@@ -538,6 +531,15 @@ int nvmap_pin_array(struct nvmap_client *client,
 	goto kfree_out;
 
 err_out_unpin:
+	while (--i >= 0) {
+		if (unique_arr[i]->heap_pgalloc) {
+			struct nvmap_pgalloc *pgalloc;
+
+			pgalloc = &unique_arr[i]->pgalloc;
+			tegra_iommu_zap_vm(pgalloc->area);
+		}
+		atomic_dec(&unique_arr_refs[i]->pin);
+	}
 	for (i = 0; i < count; i++) {
 		/* inc ref counter, because handle_unpin decrements it */
 		nvmap_handle_get(unique_arr[i]);
