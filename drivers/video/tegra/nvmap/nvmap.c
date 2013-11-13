@@ -329,8 +329,11 @@ int nvmap_pin_ids(struct nvmap_client *client,
 		for (i = 0; i < nr; i++) {
 			if (h[i]->heap_pgalloc && h[i]->pgalloc.dirty) {
 				ret = map_iovmm_area(h[i]);
-				while (ret && --i >= 0)
+				while (ret && --i >= 0) {
+					if (!h[i]->heap_pgalloc)
+						continue;
 					tegra_iommu_zap_vm(h[i]->pgalloc.area);
+				}
 			}
 		}
 	}
@@ -516,8 +519,12 @@ int nvmap_pin_array(struct nvmap_client *client,
 			    unique_arr[i]->pgalloc.dirty) {
 				ret = map_iovmm_area(unique_arr[i]);
 				while (ret && --i >= 0) {
-					tegra_iommu_zap_vm(
-						unique_arr[i]->pgalloc.area);
+					if (unique_arr[i]->heap_pgalloc) {
+						struct nvmap_pgalloc *pgalloc;
+
+						pgalloc = &unique_arr[i]->pgalloc;
+						tegra_iommu_zap_vm(pgalloc->area);
+					}
 					atomic_dec(&unique_arr_refs[i]->pin);
 				}
 				if (ret)
