@@ -23,6 +23,11 @@
 
 #include "tegra_emc.h"
 
+/* Boost BB floor by boost % if any of the engines in usage mask is on */
+#define BB_FLOOR_BOOST		20
+#define BB_FLOOR_BOOST_USAGE_MASK \
+(BIT(EMC_USER_VI) | BIT(EMC_USER_MSENC) | BIT(EMC_USER_2D) | BIT(EMC_USER_3D))
+
 int tegra14_emc_init(void);
 u32 notrace tegra_read_usec_raw(void);
 

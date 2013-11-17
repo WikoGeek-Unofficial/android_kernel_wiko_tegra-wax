@@ -4961,6 +4961,7 @@ static unsigned long tegra14_clk_shared_bus_update(struct clk *bus,
 	unsigned long iso_bw = 0;
 	unsigned long ceiling = bus->max_rate;
 	unsigned long ceiling_but_iso = bus->max_rate;
+	unsigned long bb_floor_rate = 0;
 	u32 usage_flags = 0;
 
 	list_for_each_entry(c, &bus->shared_bus_list,
@@ -5005,6 +5006,10 @@ static unsigned long tegra14_clk_shared_bus_update(struct clk *bus,
 			case SHARED_AUTO:
 				break;
 			case SHARED_FLOOR:
+				if (c->u.shared_bus_user.usage_flag &
+				    BIT(EMC_USER_BB))
+					bb_floor_rate = request_rate;
+				/* fall thru */
 			default:
 				rate = max(request_rate, rate);
 				if (c->u.shared_bus_user.client
@@ -5031,6 +5036,11 @@ static unsigned long tegra14_clk_shared_bus_update(struct clk *bus,
 		if (bus->ops && bus->ops->round_rate)
 			iso_bw_min = bus->ops->round_rate(bus, iso_bw_min);
 		ceiling_but_iso = max(ceiling_but_iso, iso_bw_min);
+
+		if (usage_flags & BB_FLOOR_BOOST_USAGE_MASK) {
+			bb_floor_rate += (bb_floor_rate / 100) * BB_FLOOR_BOOST;
+			rate = max(rate, bb_floor_rate);
+		}
 	}
 
 	//Magnum 2014-1-15 ,advice from Luis
@@ -6780,10 +6790,9 @@ struct clk tegra_list_clks[] = {
 	SHARED_SCLK("sbc1.sclk", "tegra11-spi.0",	"sclk", &tegra_clk_apb,        NULL, 0, 0),
 	SHARED_SCLK("sbc2.sclk", "tegra11-spi.1",	"sclk", &tegra_clk_apb,        NULL, 0, 0),
 	SHARED_SCLK("sbc3.sclk", "tegra11-spi.2",	"sclk", &tegra_clk_apb,        NULL, 0, 0),
-	SHARED_EMC_CLK("avp.emc",	"tegra-avp",		"emc",	&tegra_clk_emc, NULL, 0, 0, 0),
-	SHARED_EMC_CLK("mon_cpu.emc",	"tegra_mon",		"cpu_emc",
-					&tegra_clk_emc, NULL, 0, 0, 0),
 
+	SHARED_EMC_CLK("avp.emc",	"tegra-avp",		"emc",	&tegra_clk_emc, NULL, 0, 0, 0),
+	SHARED_EMC_CLK("mon_cpu.emc",	"tegra_mon",		"cpu_emc", &tegra_clk_emc, NULL, 0, 0, 0),
 	SHARED_EMC_CLK("disp1.emc",	"tegradc.0",		"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_DC1)),
 	SHARED_EMC_CLK("disp2.emc",	"tegradc.1",		"emc",	&tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_DC2)),
 	SHARED_EMC_CLK("hdmi.emc",	"hdmi",			"emc",	&tegra_clk_emc, NULL, 0, 0, 0),
@@ -6807,7 +6816,7 @@ struct clk tegra_list_clks[] = {
 	SHARED_EMC_CLK("edp.emc",	"edp.emc",		NULL,	&tegra_clk_emc, NULL, 0, SHARED_CEILING,  0),
 	SHARED_EMC_CLK("battery.emc",	"battery_edp",		"emc",	&tegra_clk_emc, NULL, 0, SHARED_CEILING, 0),
 	SHARED_EMC_CLK("bbc_bw.emc",	"tegra_bb.0",		"emc_bw", &tegra_clk_emc, NULL, 0, SHARED_ISO_BW, BIT(EMC_USER_BB)),
-	SHARED_EMC_CLK("bbc_fl.emc",	"tegra_bb.0",		"emc_fl", &tegra_clk_emc, NULL, 0, 0, 0),
+	SHARED_EMC_CLK("bbc_fl.emc",	"tegra_bb.0",		"emc_fl", &tegra_clk_emc, NULL, 0, 0,		  BIT(EMC_USER_BB)),
 
 #ifdef CONFIG_TEGRA_DUAL_CBUS
 	DUAL_CBUS_CLK("3d.cbus",	"tegra_gr3d",		"gr3d",	&tegra_clk_c2bus, "3d",  0, 0),
