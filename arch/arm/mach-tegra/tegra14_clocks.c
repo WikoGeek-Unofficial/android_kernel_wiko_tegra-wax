@@ -6359,7 +6359,7 @@ static struct clk tegra_clk_emc = {
 static struct clk tegra_clk_mc = {
 	.name = "mc",
 	.ops = &tegra_mc_clk_ops,
-	.max_rate = 1066000000,
+	.max_rate =  533000000,
 	.parent = &tegra_clk_emc,
 	.flags = PERIPH_NO_RESET,
 	.u.periph = {
@@ -6752,9 +6752,9 @@ struct clk tegra_list_clks[] = {
 	PERIPH_CLK("dds",	"dds",			NULL,	150,	0,	26000000, mux_clk_m,			PERIPH_ON_APB),
 	PERIPH_CLK("dp2",	"dp2",			NULL,	152,	0,	26000000, mux_clk_m,			PERIPH_ON_APB),
 
-	PERIPH_CLK("mc_bbc",	"mc_bbc",		NULL,	170,	0,	1066000000, mux_clk_mc,			PERIPH_NO_RESET),
-	PERIPH_CLK("mc_capa",	"mc_capa",		NULL,	167,	0,	1066000000, mux_clk_mc,			PERIPH_NO_RESET),
-	PERIPH_CLK("mc_cbpa",	"mc_cbpa",		NULL,	168,	0,	1066000000, mux_clk_mc,			PERIPH_NO_RESET),
+	PERIPH_CLK("mc_bbc",	"mc_bbc",		NULL,	170,	0,	 533000000, mux_clk_mc,			PERIPH_NO_RESET),
+	PERIPH_CLK("mc_capa",	"mc_capa",		NULL,	167,	0,	 533000000, mux_clk_mc,			PERIPH_NO_RESET),
+	PERIPH_CLK("mc_cbpa",	"mc_cbpa",		NULL,	168,	0,	 533000000, mux_clk_mc,			PERIPH_NO_RESET),
 	PERIPH_CLK("pll_p_bbc",	"pll_p_bbc",		NULL,	175,	0,	432000000,mux_pll_p,			PERIPH_NO_RESET),
 
 	PERIPH_CLK("isp_sapor",	"isp_sapor",		NULL,	163,	0x654,	150000000, mux_pllm_pllc_pllp_plla,	MUX | DIV_U71 | PERIPH_NO_RESET),
