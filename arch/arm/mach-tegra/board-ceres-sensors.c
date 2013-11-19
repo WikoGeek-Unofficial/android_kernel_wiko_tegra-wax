@@ -26,6 +26,8 @@
 #include <linux/pid_thermal_gov.h>
 #include <generated/mach-types.h>
 #include <mach/edp.h>
+#include <media/imx179.h> //luis
+#include "include/mach/pinmux-t14.h" //luis
 
 #include <media/camera.h>
 #include <media/imx091.h>
@@ -36,11 +38,26 @@
 #include <media/as364x.h>
 #include <media/ov5693.h>
 #include <media/ov5640.h>
+#include <media/ov5648.h>
 #include <media/ad5823.h>
 #include <media/ar0833.h>
 #include <media/dw9718.h>
 #include <media/max77387.h>
 #include <media/lm3565.h>
+
+
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/gpio.h>
+#include <mach/pinmux.h>
+#include <mach/gpio-tegra.h>
+#include "board.h"
+#include "tegra-board-id.h"
+#include "board-ceres.h"
+#include "devices.h"
+#include "gpio-names.h"
+
+#include <mach/pinmux-t14.h>
 
 #include "cpu-tegra.h"
 #include "devices.h"
@@ -160,7 +177,8 @@ static struct nct1008_platform_data ceres_nct1008_pdata = {
 
 struct max17048_platform_data max17048_pdata = {
 	.model_data = &ceres_yoku_2000_ssv_3_1_max17048_battery,
-	.tz_name = "battery-temp",
+//Ivan	.tz_name = "battery-temp",
+	.tz_name = "generic-adc-thermal",	
 	.soc_error_max_value = 96,
 };
 
@@ -860,9 +878,302 @@ struct ov5640_platform_data ceres_ov5640_data = {
 	.power_off = ceres_ov5640_power_off,
 };
 
+
+/*
+static struct regulator *avdd_cam;
+static struct regulator *dvdd_cam_1v2;
+static struct regulator *dovdd_cam_1v8;
+*/
+
+#define VI_PINMUX(_pingroup, _mux, _pupd, _tri, _io, _lock, _ioreset) \
+	{							\
+		.pingroup	= TEGRA_PINGROUP_##_pingroup,	\
+		.func		= TEGRA_MUX_##_mux,		\
+		.pupd		= TEGRA_PUPD_##_pupd,		\
+		.tristate	= TEGRA_TRI_##_tri,		\
+		.io		= TEGRA_PIN_##_io,		\
+		.lock		= TEGRA_PIN_LOCK_##_lock,	\
+		.od		= TEGRA_PIN_OD_DEFAULT,		\
+		.ioreset	= TEGRA_PIN_IO_RESET_##_ioreset	\
+	}
+
+
+static struct tegra_pingroup_config mclk_disable =
+	VI_PINMUX(CAM2_MCLK, VIMCLK2, NORMAL, NORMAL, OUTPUT, DEFAULT, DEFAULT);
+
+static struct tegra_pingroup_config mclk_enable =
+	VI_PINMUX(CAM2_MCLK, VIMCLK2_ALT_ALT, PULL_UP, NORMAL, OUTPUT, DEFAULT, DEFAULT);
+
+
+static int ceres_ov5648_power_on( struct nvc_regulator *vreg )
+{
+	int err;
+	pr_info( "%s", __func__ );
+	tegra_pinmux_config_table(&mclk_enable, 1);
+
+	
+	gpio_set_value( TEGRA_GPIO_PS4, 1);
+
+
+	
+	err = regulator_enable(vreg[OV5648_VREG_IOVDD].vreg);
+	if (err)
+		goto ov5648_poweron_fail;
+
+
+
+	err = regulator_enable(vreg[OV5648_VREG_AVDD].vreg);
+	if (err)
+		goto ov5648_avdd_fail;
+
+		
+	
+	
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 0); //pwd dwn
+	gpio_set_value(CAM_RSTN, 0); //rst
+	usleep_range(10, 20);
+
+
+
+	err = regulator_enable(vreg[OV5648_VREG_DVDD].vreg);
+		if (err)
+			goto ov5648_dvdd_fail;
+
+	
+
+	usleep_range(1, 2);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
+
+	
+
+	gpio_set_value(CAM_RSTN, 0);
+
+	usleep_range(10, 20);
+	gpio_set_value(CAM_RSTN, 1);
+
+	usleep_range(300, 310);
+	return 1;
+
+		
+ov5648_dvdd_fail:
+	gpio_set_value(CAM_RSTN, 1);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
+	regulator_disable(vreg[OV5648_VREG_AVDD].vreg);
+ov5648_avdd_fail:
+
+	regulator_disable(vreg[OV5648_VREG_IOVDD].vreg);
+
+	
+ov5648_poweron_fail:
+		pr_err("%s FAILED\n", __func__);
+		return -ENODEV;
+
+}
+
+static int ceres_ov5648_power_off(struct  nvc_regulator *vreg )
+{
+	if (unlikely(WARN_ON(!vreg)))
+		return -EFAULT;
+	usleep_range(1, 2);
+	tegra_pinmux_config_table(&mclk_disable, 1);
+
+	
+	gpio_set_value(CAM_RSTN, 1);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
+	usleep_range(1, 2);
+
+	regulator_disable(vreg[OV5648_VREG_IOVDD].vreg);
+	//regulator_disable(macallan_vcmvdd);
+	regulator_disable(vreg[OV5648_VREG_DVDD].vreg);
+	regulator_disable(vreg[OV5648_VREG_AVDD].vreg);
+
+	return 0;
+}
+
+static struct ov5648_platform_data ceres_ov5648_pdata = {
+	.dev_name = "camera",
+	.power_on = ceres_ov5648_power_on,
+	.power_off = ceres_ov5648_power_off,
+};
+
+
+//static struct regulator *pluto_i2cvdd = NULL;
+
+
+static struct nvc_gpio_pdata imx179_gpio_pdata[] = {
+	{IMX179_GPIO_RESET,     CAM_RSTN_TINNO,         true, false},
+	{IMX179_GPIO_PWDN,      CAM_PWDN_TINNO,         true, false},
+	{IMX179_GPIO_GP1,       CAM_CHOS_TINNO,         true, false }
+}; 
+
+
+static int pluto_imx179_power_on(struct nvc_regulator *vreg)
+{
+	int err;
+    
+	if (unlikely(WARN_ON(!vreg)))
+		return -EFAULT;
+
+	//if (pluto_get_extra_regulators())
+	//	goto imx179_poweron_fail;
+    
+    #if 0
+    if ( ! regulator_is_enabled(pluto_i2cvdd) )
+    {
+        err = regulator_enable(pluto_i2cvdd);
+        if (unlikely(err))
+            goto imx179_i2c_fail;
+    }
+    #endif
+    
+    tegra_pinmux_config_table(&mclk_enable, 1);
+
+	gpio_set_value(CAM_PWDN_TINNO, 0);
+    gpio_set_value(CAM_RSTN_TINNO, 0);
+	usleep_range(10, 20);
+
+	err = regulator_enable(vreg[IMX179_VREG_AVDD].vreg);
+	if (unlikely(err))
+		goto imx179_avdd_fail;
+
+	err = regulator_enable(vreg[IMX179_VREG_IOVDD].vreg);
+	if (unlikely(err))
+		goto imx179_iovdd_fail;
+
+	usleep_range(1, 2);
+	gpio_set_value(CAM_PWDN_TINNO, 1);
+    gpio_set_value(CAM_RSTN_TINNO, 1);
+    usleep_range(300, 350);
+
+	err = regulator_enable(vreg[IMX179_VREG_DVDD].vreg);
+	if (unlikely(err))
+		goto imx179_dvdd_fail;
+
+	usleep_range(100, 110);
+    
+    gpio_set_value(CAM_CHOS_TINNO, 0);
+
+	return 0;
+
+
+
+imx179_dvdd_fail:
+    pr_err("luis %s imx179_dvdd_fail FAILED\n", __func__);
+	regulator_disable(vreg[IMX179_VREG_IOVDD].vreg);
+
+imx179_iovdd_fail:
+    pr_err("luis %s imx179_iovdd_fail FAILED\n", __func__);
+	regulator_disable(vreg[IMX179_VREG_AVDD].vreg);
+
+imx179_avdd_fail:
+    
+	return -ENODEV;
+}
+
+static int pluto_imx179_power_off(struct nvc_regulator *vreg)
+{
+	if (unlikely(WARN_ON(!vreg)))
+		return -EFAULT;
+
+
+    tegra_pinmux_config_table(&mclk_disable, 1);
+        
+    
+	usleep_range(1, 2);
+	gpio_set_value(CAM_PWDN_TINNO, 0);
+    gpio_set_value(CAM_RSTN_TINNO, 0);
+	usleep_range(1, 2);
+
+    
+    if ( regulator_is_enabled(vreg[IMX179_VREG_DVDD].vreg) )
+    {
+        regulator_disable(vreg[IMX179_VREG_DVDD].vreg);
+    }
+    
+    
+    
+    if ( regulator_is_enabled(vreg[IMX179_VREG_IOVDD].vreg) )
+    {
+        regulator_disable(vreg[IMX179_VREG_IOVDD].vreg);
+    }
+    
+    if ( regulator_is_enabled(vreg[IMX179_VREG_AVDD].vreg) )
+    {
+        regulator_disable(vreg[IMX179_VREG_AVDD].vreg);
+    }
+
+	return 0;
+}
+
+static struct nvc_imager_cap imx179_cap = {
+	.identifier		= "IMX179",
+	.sensor_nvc_interface	= 3,
+	.pixel_types[0]		= 0x100,
+	.orientation		= 0,
+	.direction		= 0,
+	.initial_clock_rate_khz	= 6000,
+	.clock_profiles[0] = {
+		.external_clock_khz	= 24000,
+		.clock_multiplier	= 850000, /* value / 1,000,000 */
+	},
+	.clock_profiles[1] = {
+		.external_clock_khz	= 0,
+		.clock_multiplier	= 0,
+	},
+	.h_sync_edge		= 0,
+	.v_sync_edge		= 0,
+	.mclk_on_vgp0		= 0,
+	.csi_port		= 0,
+	.data_lanes		= 4,
+	.virtual_channel_id	= 0,
+	.discontinuous_clk_mode	= 0,
+	.cil_threshold_settle	= 0x0,
+	.min_blank_time_width	= 16,
+	.min_blank_time_height	= 16,
+	.cap_version		= NVC_IMAGER_CAPABILITIES_VERSION2,
+};
+
+static unsigned imx179_estates[] = {200, 100, 2};
+
+static struct imx179_platform_data imx179_pdata = {
+	.num			= 0,
+	.sync			= 0,
+	.dev_name		= "camera",
+	.gpio_count		= ARRAY_SIZE(imx179_gpio_pdata),
+	.gpio			= imx179_gpio_pdata,
+	.flash_cap		= {
+		.sdo_trigger_enabled = 0,
+		.adjustable_flash_timing = 0,
+	},
+	.cap			= &imx179_cap,
+	.edpc_config	= {
+		.states = imx179_estates,
+		.num_states = ARRAY_SIZE(imx179_estates),
+		.e0_index = 0,
+		.priority = EDP_MAX_PRIO - 1,
+		},
+	.power_on		= pluto_imx179_power_on,
+	.power_off		= pluto_imx179_power_off,
+};
+
+static struct i2c_board_info ceres_i2c_board_info_imx179 = {
+
+	I2C_BOARD_INFO("imx179", 0x10),
+	.platform_data = &imx179_pdata,
+	
+};
+
+
+
+
 static struct i2c_board_info ceres_i2c_board_info_ov5640 = {
 	I2C_BOARD_INFO("ov5640", 0x3c),
 	.platform_data = &ceres_ov5640_data,
+};
+
+static struct i2c_board_info ceres_i2c_board_info_ov5648 = {
+	I2C_BOARD_INFO("ov5648", 0x36),
+	.platform_data = &ceres_ov5648_pdata,
 };
 
 static struct i2c_board_info ceres_i2c_board_info_imx091 = {
@@ -910,11 +1221,6 @@ static struct i2c_board_info ceres_i2c_board_info_max77387 = {
 	.platform_data = &ceres_max77387_pdata,
 };
 
-static struct i2c_board_info atlantis_i2c_board_info_lm3565 = {
-	I2C_BOARD_INFO("lm3565", 0x30),
-	.platform_data = &atlantis_lm3565_pdata,
-};
-
 static struct camera_module ceres_camera_module_info[] = {
 	/* E1707 camera board */
 	{
@@ -948,6 +1254,9 @@ static struct camera_module ceres_camera_module_info[] = {
 		/* front camera */
 		.sensor = &ceres_i2c_board_info_imx132,
 	},
+	{
+		.sensor = &ceres_i2c_board_info_ov5648,
+	},
 
 	{}
 };
@@ -956,6 +1265,7 @@ static struct camera_platform_data ceres_pcl_pdata = {
 	.cfg = 0xAA55AA55,
 	.modules = ceres_camera_module_info,
 };
+
 
 static struct platform_device ceres_camera_generic = {
 	.name = "pcl-generic",
@@ -1000,40 +1310,79 @@ static struct i2c_board_info ceres_i2c_board_info_e1690[] = {
 	},
 };
 
+
+
+
+static struct camera_module ceres_camera_module_infox[] = {
+	/* E1707 camera board */
+	{
+		/* rear camera */
+        .sensor = &ceres_i2c_board_info_imx179,
+	},
+	{
+		.sensor = &ceres_i2c_board_info_ov5648,
+	},
+
+	{}
+};
+
+static struct camera_platform_data ceres_pcl_pdatax = {
+	.cfg = 0xAA55AA55,
+	.modules = ceres_camera_module_infox,
+};
+
+
+
 static int ceres_camera_init(void)
 {
 	/* on atlantis FFD, only IMX135/AD5816/LM3565/IMX132 are
 	supported, auto-detection is not neccessary. */
-	if (board_info.board_id == BOARD_E1740) {
-		i2c_register_board_info(2, ceres_i2c_board_info_e1740,
+
+	
+	/*if (board_info.board_id == BOARD_E1740) {
+		i2c_register_board_info(0, ceres_i2c_board_info_e1740,
 			ARRAY_SIZE(ceres_i2c_board_info_e1740));
 		return 0;
 	}
+	*/
 
 	/* on ceres FFD, only IMX135/AD5816/LM3565/IMX132 are
 	supported, auto-detection is not neccessary. */
-	if (board_info.board_id == BOARD_E1690) {
-		i2c_register_board_info(2, ceres_i2c_board_info_e1690,
+	/*if (board_info.board_id == BOARD_E1690) {
+		i2c_register_board_info(0, ceres_i2c_board_info_e1690,
 			ARRAY_SIZE(ceres_i2c_board_info_e1690));
 		return 0;
 	}
 
-	/* the default camera board on atlantis ERS is E1697, it's almost the
-	same as E1707 except the flash device is lm3565 instead of max77387. */
-	if (board_info.board_id == BOARD_E1670)
-		ceres_camera_module_info[0].flash =
-			&atlantis_i2c_board_info_lm3565;
-
 	platform_device_add_data(&ceres_camera_generic,
 		&ceres_pcl_pdata, sizeof(ceres_pcl_pdata));
+	platform_device_register(&ceres_camera_generic);
+	*/
+
+	void* p;
+	p = &ceres_i2c_board_info_e1690;
+	p = &ceres_i2c_board_info_e1740;
+	p = &ceres_camera_generic;
+	p = &ceres_pcl_pdata;
+
+	platform_device_add_data(&ceres_camera_generic,
+		&ceres_pcl_pdatax, sizeof(ceres_pcl_pdatax));
 	platform_device_register(&ceres_camera_generic);
 
 	return 0;
 }
 
+#ifndef TINNO_PHONE_CONFIG	
 static struct i2c_board_info __initdata ceres_i2c_board_info_max44005[] = {
 	{
 		I2C_BOARD_INFO("max44005", 0x44),
+	},
+};
+#endif
+
+static struct i2c_board_info __initdata ceres_i2c_board_info_ap3220[] = {
+	{
+		I2C_BOARD_INFO("ap3220", 0x1c),
 	},
 };
 
@@ -1064,6 +1413,16 @@ static struct mpu_platform_data mpu9150_gyro_data_e1680 = {
 			   0x00, 0x34, 0x0D, 0x65, 0x32, 0xE9, 0x94, 0x89},
 };
 
+static struct mpu_platform_data bma222e_gsensor_data_e1680 = {
+	.int_config	= 0x10,
+	.level_shifter	= 0,
+	/* Located in board_[platformname].h */
+	.orientation	= MPU_ACCE_ORIENTATION_E1680,
+	.sec_slave_type	= SECONDARY_SLAVE_TYPE_NONE,
+	.key		= {0x4E, 0xCC, 0x7E, 0xEB, 0xF6, 0x1E, 0x35, 0x22,
+			   0x00, 0x34, 0x0D, 0x65, 0x32, 0xE9, 0x94, 0x89},
+};
+
 static struct mpu_platform_data mpu9150_gyro_data_e1670 = {
 	.int_config	= 0x10,
 	.level_shifter	= 0,
@@ -1087,6 +1446,17 @@ static struct mpu_platform_data mpu_compass_data_e1680 = {
 static struct mpu_platform_data mpu_compass_data_e1670 = {
 	.orientation	= MPU_COMPASS_ORIENTATION_E1670,
 	.config		= NVI_CONFIG_BOOT_MPU,
+};
+
+
+static struct mpu_platform_data ak8963_compass_data_e1680 = {
+	.int_config	= 0x10,
+	.level_shifter	= 0,    
+	.orientation	= MPU_COMPASS_ORIENTATION_E1680,
+	.config		= NVI_CONFIG_BOOT_HOST,
+	.sec_slave_id	= COMPASS_ID_AK8963,
+	.key		= {0x4E, 0xCC, 0x7E, 0xEB, 0xF6, 0x1E, 0x35, 0x22,
+			   0x00, 0x34, 0x0D, 0x65, 0x32, 0xE9, 0x94, 0x89},	
 };
 
 static struct mpu_platform_data bmp180_pdata = {
@@ -1114,6 +1484,42 @@ static struct i2c_board_info __initdata inv_mpu9150_i2c1_board_info[] = {
 	},
 };
 
+//Ivan added
+/*
+static struct i2c_board_info __initdata dummy_mpu9150_i2c1_board_info[] = {
+	{
+		I2C_BOARD_INFO(MPU_GYRO_NAME, MPU_GYRO_ADDR),
+		.platform_data = &mpu9150_gyro_data,
+	},
+};
+*/
+
+static struct i2c_board_info __initdata bma222e_acce_i2c1_board_info[] = {
+	{
+		/* The actual BMP180 address is 0x77 but because this conflicts
+		 * with another device, this address is hacked so Linux will
+		 * call the driver.  The conflict is technically okay since the
+		 * BMP180 is behind the MPU.  Also, the BMP180 driver uses a
+		 * hard-coded address of 0x77 since it can't be changed anyway.
+		 */
+		I2C_BOARD_INFO("bma222e", 0x19),
+		.platform_data = &bma222e_gsensor_data_e1680,
+	},
+};
+
+static struct i2c_board_info __initdata ak8963_mag_i2c1_board_info[] = {
+	{
+		/* The actual BMP180 address is 0x77 but because this conflicts
+		 * with another device, this address is hacked so Linux will
+		 * call the driver.  The conflict is technically okay since the
+		 * BMP180 is behind the MPU.  Also, the BMP180 driver uses a
+		 * hard-coded address of 0x77 since it can't be changed anyway.
+		 */
+		I2C_BOARD_INFO("ak8963", 0x0C),
+		.platform_data = &ak8963_compass_data_e1680,
+	},
+};
+
 static void mpuirq_init(void)
 {
 	int ret = 0;
@@ -1122,7 +1528,16 @@ static void mpuirq_init(void)
 	char *gyro_name = MPU_GYRO_NAME;
 
 	pr_info("*** MPU START *** mpuirq_init...\n");
-
+//Ivan
+#ifdef TINNO_PHONE_CONFIG
+	i2c_register_board_info(gyro_bus_num, bma222e_acce_i2c1_board_info,
+		ARRAY_SIZE(bma222e_acce_i2c1_board_info));	
+	
+	i2c_register_board_info(gyro_bus_num, ak8963_mag_i2c1_board_info,
+		ARRAY_SIZE(ak8963_mag_i2c1_board_info));		
+	return;
+#endif
+	
 	ret = gpio_request(gyro_irq_gpio, gyro_name);
 
 	if (ret < 0) {
@@ -1350,8 +1765,14 @@ int __init ceres_sensors_init(void)
 
 	if ((board_info.board_id != BOARD_E1670) &&
 		 (board_info.board_id != BOARD_E1740)) {
+#ifdef TINNO_PHONE_CONFIG	
+		i2c_register_board_info(0, ceres_i2c_board_info_ap3220,
+				ARRAY_SIZE(ceres_i2c_board_info_ap3220));	
+#else
 		i2c_register_board_info(0, ceres_i2c_board_info_max44005,
 				ARRAY_SIZE(ceres_i2c_board_info_max44005));
+#endif
+		
 		if (get_power_supply_type() == POWER_SUPPLY_TYPE_BATTERY)
 			i2c_register_board_info(0, max77660_fg_board_info, 1);
 	} else {

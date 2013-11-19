@@ -748,6 +748,14 @@ static int max77660_regulator_preinit(struct max77660_regulator *reg)
 
 	/* ES 1.1 and 1.2 suggest to keep BUCK3/5 and LDO1/14 in GLPM */
 	if (max77660_is_es_1_1_or_1_2(reg->dev))
+		if (reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK6 ||
+			reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK7) {
+			pr_info("%s: buck%d force to pwm mode\n", __func__,
+				reg->rinfo->id + 1);
+			pdata->flags |= SD_FORCED_PWM_MODE;
+		}
+
+	if (max77660_is_es_1_1_or_1_2(reg->dev))
 		if (reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK3 ||
 			reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK5 ||
 			reg->rinfo->id == MAX77660_REGULATOR_ID_LDO1 ||
@@ -778,8 +786,12 @@ static int max77660_regulator_preinit(struct max77660_regulator *reg)
 			 * from FPWM mode.
 			 */
 			if ((pdata->flags & SD_FORCED_PWM_MODE) &&
-					!(max77660_is_es_1_1_or_1_2(reg->dev)))
+					!(max77660_is_es_1_2(reg->dev))) {
+				pr_info("%s: buck%d force to pwm mode\n", __func__,
+					reg->rinfo->id + 1);
+				
 				val |= MAX77660_BUCK6_7_CNFG_FPWM_MASK;
+			}
 		}
 
 		ret = max77660_reg_update(to_max77660_chip(reg),

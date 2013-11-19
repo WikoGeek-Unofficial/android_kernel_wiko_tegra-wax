@@ -39,7 +39,8 @@ static const u8 max98090_reg_def[M98090_REG_CNT] = {
 	0x00, /* 0A Analog Mic Loop Quick */
 	0x00, /* 0B Analog Line Loop Quick */
 	0x00, /* 0C Reserved */
-	0x00, /* 0D Input Config */
+//Ivan 00 -> 10	
+	0x10, /* 0D Input Config */		
 	0x1B, /* 0E Line Input Level */
 	0x00, /* 0F Line Config */
 
@@ -2497,7 +2498,8 @@ static int max98090_set_bias_level(struct snd_soc_codec *codec,
 			}
 		}
 
-		if (max98090->jack_state == M98090_JACK_STATE_HEADSET) {
+//Ivan
+//		if (max98090->jack_state == M98090_JACK_STATE_HEADSET) {
 			/*
 			 * Set to normal bias level.
 			 */
@@ -2506,7 +2508,7 @@ static int max98090_set_bias_level(struct snd_soc_codec *codec,
 
 			snd_soc_update_bits(codec, M98090_REG_3E_PWR_EN_IN,
 				M98090_PWR_MBEN_MASK, M98090_PWR_MBEN_MASK);
-		}
+//		}
 		break;
 
 	case SND_SOC_BIAS_PREPARE:

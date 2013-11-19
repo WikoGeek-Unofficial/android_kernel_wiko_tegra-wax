@@ -37,3 +37,4 @@ obj-$(CONFIG_VIDEO_OV5693)	+= ov5693.o
 obj-$(CONFIG_VIDEO_AD5823)	+= ad5823.o
 obj-$(CONFIG_VIDEO_OV7695)	+= ov7695.o
 obj-$(CONFIG_VIDEO_CAMERA)	+= camera.o
+obj-$(CONFIG_VIDEO_IMX179)	+= imx179.o

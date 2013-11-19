@@ -1034,6 +1034,14 @@ config SOC_CAMERA_OV2640
 	help
 	  This is a ov2640 camera driver
 
+
+config VIDEO_OV5648
+        tristate "OV5648 camera sensor support"
+        depends on I2C && ARCH_TEGRA
+        help
+          This is a driver for the Omnivision OV5648 5MP camera sensor
+          for use with the tegra isp.
+
 config SOC_CAMERA_OV5640
 	tristate "ov5640 camera support"
 	depends on SOC_CAMERA && I2C

@@ -43,8 +43,8 @@
 #include "tegra14_host1x_devices.h"
 
 #define DSI_PANEL_RST_GPIO	TEGRA_GPIO_PG4
-#define DSI_PANEL_BL_EN_GPIO	TEGRA_GPIO_PG3
-#define DSI_PANEL_BL_PWM_GPIO	TEGRA_GPIO_PG2
+#define DSI_PANEL_BL_EN_GPIO	TEGRA_GPIO_PG3		//TEGRA_GPIO_PG2 -> PWM
+#define DSI_PANEL_BL_PWM_GPIO	TEGRA_GPIO_PG3		//TEGRA_GPIO_PG3
 #define TE_GPIO			TEGRA_GPIO_PG1
 
 struct platform_device * __init ceres_host1x_init(void)
@@ -400,7 +400,8 @@ static struct tegra_dc_sd_settings ceres_sd_settings = {
 			},
 		},
 	.sd_brightness = &sd_brightness,
-	.use_vpulse2 = true,
+//	.use_vpulse2 = true,
+	.bl_device_name = "pwm-backlight",	
 };
 
 void tegra_fb_data_get(struct tegra_fb_data **fb_data)
@@ -431,6 +432,12 @@ static void ceres_panel_select(void)
 	case BOARD_E1563:
 	/* fall through */
 	default:
+#ifdef TINNO_PHONE_CONFIG
+//Ivan	    panel = &dsi_hx8394a_720p;
+	    panel = &dsi_otm1283a_720p;
+	    dsi_instance = DSI_INSTANCE_0;	
+	    break;
+#else
 		if (tegra_get_board_panel_id()) {
 			panel = &dsi_s_1080p_5;
 			dsi_instance = DSI_INSTANCE_0;
@@ -439,6 +446,7 @@ static void ceres_panel_select(void)
 			dsi_instance = DSI_INSTANCE_0;
 		}
 		break;
+#endif
 	}
 
 	if (panel->init_sd_settings)
@@ -541,11 +549,14 @@ int __init ceres_panel_init(void)
 		return err;
 	}
 
+//Ivan removed
+#if 0
 	ceres_set_hotplug_gpio();
 
 	err = tegra_init_hdmi(&ceres_disp2_device, phost1x);
 	if (err)
 		return err;
+#endif
 
 #ifdef CONFIG_TEGRA_NVAVP
 	nvavp_device.dev.parent = &phost1x->dev;

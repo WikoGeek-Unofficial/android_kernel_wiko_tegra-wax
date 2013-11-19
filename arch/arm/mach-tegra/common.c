@@ -150,6 +150,11 @@ static struct board_info button_board_info;
 static struct board_info joystick_board_info;
 static struct board_info rightspeaker_board_info;
 static struct board_info leftspeaker_board_info;
+
+#ifdef TINNO_PHONE_CONFIG
+//static struct board_info ld_board_info;
+#endif
+
 #ifdef CONFIG_TEGRA_USE_NCT
 unsigned long tegra_nck_start;
 unsigned long tegra_nck_size;
@@ -247,6 +252,9 @@ static int emc_max_dvfs;
 static unsigned int memory_type;
 static int usb_port_owner_info;
 static int pmic_rst_reason;
+//Ivan added
+static int tinno_boot_mode;
+
 
 /* WARNING: There is implicit client of pllp_out3 like i2c, uart, dsi
  * and so this clock (pllp_out3) should never be disabled.
@@ -1380,8 +1388,24 @@ void tegra_get_board_info(struct board_info *bi)
 	struct device_node *board_info;
 	u32 prop_val;
 	int err;
+#endif
 
-	board_info = of_find_node_by_path("/chosen/board_info");
+#ifdef TINNO_PHONE_CONFIG	
+	memset(bi, 0, sizeof(*bi));
+	bi->board_id = 0x690;
+	bi->sku = 0x3e9;		//Ivan 1001
+	bi->fab = 0x2;
+	bi->major_revision = 0x44;
+	bi->minor_revision = 0x6;
+	system_serial_high = (bi->board_id << 16) | bi->sku;
+	system_serial_low = (bi->fab << 24) |
+	(bi->major_revision << 16) | (bi->minor_revision << 8);
+	return;
+#endif    
+
+#ifdef CONFIG_OF
+	board_info = of_find_node_by_path("/chosen/board_info");	
+	
 	if (!IS_ERR_OR_NULL(board_info)) {
 		memset(bi, 0, sizeof(*bi));
 
@@ -1427,8 +1451,28 @@ void tegra_get_board_info(struct board_info *bi)
 #ifdef CONFIG_OF
 	}
 #endif
+//Ivan
+//      printk("Ivan tegra_get_board_info: board_id = %x, sku = %x, fab = %x, major_revision = %x, minor_revision = %x \n",
+//	bi->board_id, bi->sku, bi->fab, bi->major_revision, bi->minor_revision );
+
 }
 
+/*
+#ifdef TINNO_PHONE_CONFIG
+static int __init tegra_ld_board_info(char *info)
+{
+	char *p = info;
+	ld_board_info.board_id = memparse(p, &p);
+	ld_board_info.sku = memparse(p+1, &p);
+	ld_board_info.fab = memparse(p+1, &p);
+	ld_board_info.major_revision = memparse(p+1, &p);
+	ld_board_info.minor_revision = memparse(p+1, &p);
+	return 1;
+}
+
+__setup("board_info=", tegra_ld_board_info);
+#endif
+*/
 static int __init tegra_pmu_board_info(char *info)
 {
 	char *p = info;
@@ -1646,6 +1690,25 @@ static int __init tegra_pmic_rst_reason(char *id)
 }
 
 __setup("pmic_rst_reason=", tegra_pmic_rst_reason);
+
+//Ivan added
+static int __init tegra_bootmode_id(char *id)
+{
+	char *p = id;
+
+	if (get_option(&p, &tinno_boot_mode) != 1)
+		return 0;
+	return 1;
+}
+
+int tegra_get_bootmode_id(void)
+{
+	return tinno_boot_mode;
+}
+
+EXPORT_SYMBOL(tegra_get_bootmode_id);
+
+__setup("androidboot.tn_bootmode=", tegra_bootmode_id);
 
 /*
  * Tegra has a protected aperture that prevents access by most non-CPU

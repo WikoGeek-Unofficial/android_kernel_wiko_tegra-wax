@@ -447,6 +447,7 @@ static void max97236_keypress(struct max97236_priv *max97236,
 	regmap_read(max97236->regmap, M97236_REG_17_PASSIVE_MBH_KEYSCAN_DATA,
 				&reg);
 	press = (reg & M97236_PRESS_MASK) == M97236_PRESS_MASK;
+	printk("Ivan max97236_keypress keydata = %x, status_reg[0] = %x, status_reg[1] = %x\n",reg,&status_reg[0],&status_reg[1]);
 
 	if (press) {
 		if (status_reg[0] & M97236_MCSW_MASK) {
@@ -478,7 +479,7 @@ static void max97236_keypress(struct max97236_priv *max97236,
 		}
 	}
 
-	if (verbosity)
+	if (1 /*verbosity*/)
 		dev_info(max97236->codec->dev, "%s %s\n",
 				press ? (char *) keystr : "BUTTON",
 				press ? "PRESS" : "RELEASE");
@@ -509,7 +510,7 @@ static void max97236_report_jack_state(struct max97236_priv *max97236,
 		string_copy(string, "NOTHING", MAX_STRING);
 	}
 
-	if (verbosity)
+	if (1)
 		dev_info(max97236->codec->dev, "0x%02X, 0x%02X, 0x%02X - %s\n",
 			status_reg[0],
 			status_reg[1],
@@ -691,7 +692,8 @@ static void max97236_jack_plugged(struct max97236_priv *max97236)
 		goto max97236_jack_plugged_20;
 
 	msleep(250);
-
+	
+	printk("Ivan max97236_jack_plugged \n");
 	regmap_update_bits(max97236->regmap, M97236_REG_1D_ENABLE_1,
 			M97236_SHDNN_MASK,
 			M97236_SHDNN_MASK);
@@ -927,6 +929,7 @@ static void max97236_jack_work(struct work_struct *work)
 	int ret;
 
 	ret = clk_enable(clk_cdev1);
+	printk("Ivan max97236_jack_work \n");
 	if (ret)
 		pr_info("Can't enable clk extern1\n");
 
@@ -947,7 +950,7 @@ static irqreturn_t max97236_interrupt(int irq, void *data)
 	struct max97236_priv *max97236 = snd_soc_codec_get_drvdata(codec);
 
 	/* dev_info(codec->dev, "***** max97236_interrupt *****\n"); */
-
+	printk("Ivan max97236_interrupt ignore_int = %d\n", max97236->ignore_int);
 	if (max97236->ignore_int) {
 		unsigned int reg1, reg2;
 		regmap_read(max97236->regmap, M97236_REG_00_STATUS1, &reg1);
@@ -1125,6 +1128,7 @@ static int max97236_probe(struct snd_soc_codec *codec)
 		ret = request_threaded_irq(gpio_to_irq(max97236->irq), NULL,
 					max97236_interrupt,
 					IRQF_TRIGGER_FALLING,
+//Ivan					IRQF_TRIGGER_RISING,			     
 					"max97236_interrupt", codec);
 		if (ret)
 			dev_err(codec->dev, "Failed to request IRQ: %d\n", ret);

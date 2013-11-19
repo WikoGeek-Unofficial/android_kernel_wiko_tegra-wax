@@ -735,9 +735,16 @@ int tegra_bbc_proxy_set_rf_mode(struct device *dev, bool fpwm)
 		if (regulator_set_mode(bbc->rf2v65, REGULATOR_MODE_NORMAL))
 			return -EINVAL;
 	} else {
+//Ivan
+/*	  
 		if (regulator_set_mode(bbc->rf1v7, REGULATOR_MODE_FAST))
 			return -EINVAL;
 		if (regulator_set_mode(bbc->rf2v65, REGULATOR_MODE_FAST))
+			return -EINVAL;
+*/
+		if (regulator_set_mode(bbc->rf1v7, REGULATOR_MODE_NORMAL))
+			return -EINVAL;
+		if (regulator_set_mode(bbc->rf2v65, REGULATOR_MODE_NORMAL))
 			return -EINVAL;
 	}
 	bbc->fpwm = fpwm;

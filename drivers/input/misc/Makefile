@@ -64,3 +64,5 @@ obj-$(CONFIG_INPUT_DRV2603_VIBRATOR)	+= drv2603-vibrator.o
 obj-y					+= compass/
 obj-y					+= mpu/
 obj-y					+= pressure/
+obj-y					+= bma222e.o
+

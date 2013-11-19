@@ -1134,7 +1134,7 @@ static irqreturn_t carddetect_irq(int irq, void *data)
 	plat = pdev->dev.platform_data;
 
 	tegra_host->card_present =
-			(gpio_get_value_cansleep(plat->cd_gpio) == 0);
+			(gpio_get_value_cansleep(plat->cd_gpio) == 1);		//Ivan 0 -> 1
 
 	if (tegra_host->card_present) {
 		err = tegra_sdhci_configure_regulators(tegra_host,
@@ -2670,7 +2670,7 @@ static int tegra_sdhci_resume(struct sdhci_host *sdhci)
 
 	if (gpio_is_valid(plat->cd_gpio)) {
 		tegra_host->card_present =
-			(gpio_get_value_cansleep(plat->cd_gpio) == 0);
+			(gpio_get_value_cansleep(plat->cd_gpio) == 1);	//Ivan 0 -> 1
 	}
 
 	/* Enable the power rails if any */
@@ -3267,7 +3267,7 @@ static int __devinit sdhci_tegra_probe(struct platform_device *pdev)
 		gpio_direction_input(plat->cd_gpio);
 
 		tegra_host->card_present =
-			(gpio_get_value_cansleep(plat->cd_gpio) == 0);
+			(gpio_get_value_cansleep(plat->cd_gpio) == 1);		//Ivan 0 -> 1
 
 	} else if (plat->mmc_data.register_status_notify) {
 		plat->mmc_data.register_status_notify(sdhci_status_notify_cb, host);

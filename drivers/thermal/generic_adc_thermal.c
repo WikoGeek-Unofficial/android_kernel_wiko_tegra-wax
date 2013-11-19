@@ -85,6 +85,9 @@ static int gadc_thermal_thermistor_adc_to_temp(
 		temp = (first_index_temp + i - 1) * 1000;
 		temp += (adc_low - adc_raw) * 1000 / (adc_high - adc_low);
 	}
+//Ivan added for ES Phone
+//FIXME
+	temp = 25000;
 	return temp;
 }
 
@@ -235,6 +238,7 @@ static int __devinit gadc_thermal_probe(struct platform_device *pdev)
 	struct gadc_thermal_driver_data *drvdata;
 	int ret;
 
+	printk("Ivan gadc_thermal_probe \n");
 	if (!pdata) {
 		dev_err(&pdev->dev, "%s: No platform data\n", __func__);
 		return -ENODEV;

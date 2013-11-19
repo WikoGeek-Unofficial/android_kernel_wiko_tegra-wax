@@ -472,7 +472,7 @@ struct input_keymap_entry {
 /* Code 255 is reserved for special needs of AT keyboard driver */
 
 #define BTN_MISC		0x100
-#define BTN_0			0x100
+#define BTN_0			KEY_PLAYPAUSE //0x100
 #define BTN_1			0x101
 #define BTN_2			0x102
 #define BTN_3			0x103

@@ -1396,6 +1396,17 @@ static inline int max77660_is_es_1_1_or_1_2(struct device *dev)
 	return false;
 }
 
+static inline int max77660_is_es_1_2(struct device *dev)
+{
+	int minor, major;
+
+	max77660_get_es_version(dev->parent, &major, &minor);
+	if ((major == 1) && (minor == 2))
+		return true;
+	return false;
+}
+
+
 #define MAX77660_GPADC_IIO_MAP(chan, _consumer, _comsumer_channel_name) \
 {									\
 	.adc_channel_label = MAX77660_DATASHEET_NAME(chan),		\

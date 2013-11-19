@@ -156,7 +156,8 @@ static int tegra_fb_set_par(struct fb_info *info)
 
 		memcpy(&tegra_fb->mode, &m, sizeof(tegra_fb->mode));
 
-		info->mode = (struct fb_videomode *)&tegra_fb->mode;
+		info->mode = (struct fb_videomode *)
+			fb_find_nearest_mode(&m, &info->modelist);
 		if (!info->mode) {
 			dev_warn(&tegra_fb->ndev->dev, "can't match video mode\n");
 			info->mode = old_mode;

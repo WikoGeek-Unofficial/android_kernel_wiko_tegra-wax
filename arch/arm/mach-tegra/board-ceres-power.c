@@ -152,19 +152,20 @@ static struct regulator_consumer_supply max77660_ldo2_supply[] = {
 	REGULATOR_SUPPLY("vdd", "2-000c"),
 	REGULATOR_SUPPLY("af_vdd", "2-0010"),
 	REGULATOR_SUPPLY("af_vdd", "2-004a"),
+    REGULATOR_SUPPLY("vana", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo3_supply[] = {
 	REGULATOR_SUPPLY("avdd_cam1", NULL),
-	REGULATOR_SUPPLY("vana", "2-0010"),
 	REGULATOR_SUPPLY("vana", "2-0036"),
-	REGULATOR_SUPPLY("avdd_ov5693", "2-0010"),
+    REGULATOR_SUPPLY("vif", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo4_supply[] = {
 	 REGULATOR_SUPPLY("avdd_lcd", NULL),
 	 REGULATOR_SUPPLY("avdd", "spi2.0"),
 	 REGULATOR_SUPPLY("vin", "2-004a"),
+	 REGULATOR_SUPPLY("vdd_tp", "2-0039"),	 
 };
 
 static struct regulator_consumer_supply max77660_ldo4_display_config0_supply[] = {
@@ -178,9 +179,8 @@ static struct regulator_consumer_supply max77660_ldo5_supply[] = {
 
 static struct regulator_consumer_supply max77660_ldo6_supply[] = {
 	REGULATOR_SUPPLY("vdd_cam_1v2", NULL),
-	REGULATOR_SUPPLY("vdig", "2-0010"),
 	REGULATOR_SUPPLY("vdig", "2-0036"),
-	REGULATOR_SUPPLY("dvdd", "2-0010"),
+    REGULATOR_SUPPLY("vdig", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo7_supply[] = {
@@ -206,8 +206,9 @@ static struct regulator_consumer_supply max77660_ldo9_supply[] = {
 	REGULATOR_SUPPLY("vdd_pm_2v8", NULL),
 	REGULATOR_SUPPLY("vdd", "0-004c"),
 	REGULATOR_SUPPLY("vdd", "0-0069"),
-	REGULATOR_SUPPLY("vdd", "0-000d"),
+	REGULATOR_SUPPLY("vdd", "0-000c"),
 	REGULATOR_SUPPLY("vdd", "0-0078"),
+	REGULATOR_SUPPLY("vdd_prox", "0-001c"),	
 };
 
 static struct regulator_consumer_supply max77660_ldo10_supply[] = {
@@ -262,13 +263,18 @@ static struct regulator_consumer_supply max77660_sw1_supply[] = {
 
 static struct regulator_consumer_supply max77660_sw2_supply[] = {
 	REGULATOR_SUPPLY("vdd_cam_1v8", NULL),
-	REGULATOR_SUPPLY("vif", "2-0010"),
 	REGULATOR_SUPPLY("vif", "2-0036"),
 	REGULATOR_SUPPLY("dvdd", "2-003c"),
 	REGULATOR_SUPPLY("vdd_i2c", "2-000e"),
 	REGULATOR_SUPPLY("vdd_i2c", "2-000c"),
 	REGULATOR_SUPPLY("vdd", "2-004a"),
 	REGULATOR_SUPPLY("dovdd", "2-0010"),
+    	REGULATOR_SUPPLY("vddio_cam_mb", ""),
+    	REGULATOR_SUPPLY("vddio_cam_mb", "2-0010"),
+//edit by Magnum 2013-11-13
+#ifdef TINNO_TP_2_CAM	    
+	REGULATOR_SUPPLY("vio_tp", "2-0039"),
+#endif
 };
 
 static struct regulator_consumer_supply max77660_sw3_supply[] = {
@@ -277,8 +283,14 @@ static struct regulator_consumer_supply max77660_sw3_supply[] = {
 	REGULATOR_SUPPLY("vdd_aud_mic", NULL),
 	REGULATOR_SUPPLY("vdd", "0-0044"),
 	REGULATOR_SUPPLY("vlogic", "0-0069"),
-	REGULATOR_SUPPLY("vid", "0-000d"),
+	REGULATOR_SUPPLY("vid", "0-000c"),
 	REGULATOR_SUPPLY("vddio", "0-0078"),
+	//edit by Magnum 2013-11-13
+#ifndef TINNO_TP_2_CAM	    
+	REGULATOR_SUPPLY("vio_tp", "2-0039"),	
+#endif 
+	REGULATOR_SUPPLY("vdd_sensor", "0-0019"),	
+	REGULATOR_SUPPLY("vio_prox", "0-001c"),		
 };
 
 static struct regulator_consumer_supply max77660_sw4_supply[] = {
@@ -372,7 +384,7 @@ MAX77660_PDATA_INIT(LDO2, ldo2, 2800, 2800, NULL,
 		0, 0, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO3, ldo3, 2800, 2800, NULL,
-		0, 0, 1, FPS_SRC_DEF, -1, -1, 0);
+		1, 1, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO4, ldo4, 3000, 3000, NULL,
 		1, 1, 1, FPS_SRC_DEF, -1, -1, 0);
@@ -380,7 +392,7 @@ MAX77660_PDATA_INIT(LDO4, ldo4, 3000, 3000, NULL,
 MAX77660_PDATA_INIT(LDO5, ldo5, 1800, 1800, NULL,
 		0, 0, 1, FPS_SRC_DEF, -1, -1, 0);
 
-MAX77660_PDATA_INIT(LDO6, ldo6, 1200, 1200, max77660_rails(buck5),
+MAX77660_PDATA_INIT(LDO6, ldo6, 1500, 1500, max77660_rails(buck5),
 		0, 0, 0, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO7, ldo7, 1050, 1050, max77660_rails(buck3),
@@ -423,7 +435,7 @@ MAX77660_PDATA_INIT(SW1, sw1, 1800, 1800, max77660_rails(buck5),
 		1, 1, 0, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(SW2, sw2, 1800, 1800, max77660_rails(buck5),
-		0, 0, 0, FPS_SRC_DEF, -1, -1, 0);
+        1, 1, 0, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(SW3, sw3, 1800, 1800, max77660_rails(buck5),
 		0, 1, 0, FPS_SRC_DEF, -1, -1, 0);
@@ -539,7 +551,8 @@ uint32_t max77660_adc_temperature_lookup_table[] = {
 */
 
 static struct max77660_bcharger_platform_data max77660_bcharger_pdata = {
-	.tz_name = "battery-temp",
+//Ivan	.tz_name = "battery-temp",
+	.tz_name = "generic-adc-thermal",  	//Ivan added
 	.max_charge_current_mA = 3000,
 	.consumer_supplies = max77660_batt_supply,
 	.num_consumer_supplies = ARRAY_SIZE(max77660_batt_supply),
@@ -574,7 +587,8 @@ static struct iio_map max77660_iio_map[] = {
 
 static struct gadc_thermal_platform_data gadc_thermal_battery_pdata = {
 	.iio_channel_name = "vthm_channel",
-	.tz_name = "battery-temp",
+//	.tz_name = "battery-temp",
+	.tz_name = "generic-adc-thermal",	
 	.temp_offset = 0,
 	.adc_to_temp = NULL,
 	.adc_temp_lookup = max77660_adc_temperature_lookup_table,
@@ -612,7 +626,7 @@ struct max77660_sim_platform_data max77660_sim_pdata = {
 			.batremove_en = 0,
 			.det_debouncecnt = 0x10,
 			.auto_pwrdn_en = 0,
-			.inst_pol = 1,
+			.inst_pol = 0,			//Ivan 1 -> 0
 			.sim_puen = 1,
 			.pwrdn_debouncecnt = 0x10,
 		},
@@ -621,7 +635,7 @@ struct max77660_sim_platform_data max77660_sim_pdata = {
 			.batremove_en = 0,
 			.det_debouncecnt = 0x10,
 			.auto_pwrdn_en = 0,
-			.inst_pol = 1,
+			.inst_pol = 0,			//Ivan 1 -> 0
 			.sim_puen = 1,
 			.pwrdn_debouncecnt = 0x10,
 		},
@@ -675,6 +689,7 @@ static struct max77660_platform_data max77660_pdata = {
 		.base_voltage_uV = 600000,
 		.max_voltage_uV = 1200000,
 	},
+	.led_disable = true,
 };
 
 static struct i2c_board_info __initdata max77660_regulators[] = {

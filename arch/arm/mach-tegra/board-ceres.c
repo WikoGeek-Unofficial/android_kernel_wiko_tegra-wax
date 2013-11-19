@@ -72,6 +72,11 @@
 #include "common.h"
 #include "board-touch.h"
 #include "fuse.h"
+//Ivan
+#ifdef TINNO_PHONE_CONFIG
+//#include "board-touch-320x.h"
+#include "board-touch-synaptics-i2c.h"
+#endif
 
 #define FUSE_SPARE_BIT_12_0     0x2d0
 
@@ -79,8 +84,8 @@
 #define CERES_BT_HOST_WAKE	TEGRA_GPIO_PM2
 #define CERES_BT_EXT_WAKE	TEGRA_GPIO_PM1
 #define CERES_NFC_IRQ		TEGRA_GPIO_PM4
-#define CERES_NFC_EN		TEGRA_GPIO_PI0
-#define CERES_NFC_WAKE		TEGRA_GPIO_PM0
+#define CERES_NFC_EN		TEGRA_GPIO_PM5 //TEGRA_GPIO_PI0
+#define CERES_NFC_WAKE		TEGRA_GPIO_PM6 //TEGRA_GPIO_PM0
 
 static struct board_info board_info;
 char wifi_mac_addr[6];
@@ -227,6 +232,7 @@ void ceres_get_mac_addr(struct memory_accessor *mem_acc, void *context)
 	}
 }
 
+#ifndef TINNO_PHONE_CONFIG	
 static struct at24_platform_data ceres_eeprom_info = {
 	.byte_len	= (256*1024)/8,
 	.page_size	= 64,
@@ -238,6 +244,7 @@ static struct i2c_board_info ceres_eeprom_mac_add = {
 	I2C_BOARD_INFO("at24", 0x56),
 	.platform_data = &ceres_eeprom_info,
 };
+#endif
 
 static struct max98090_eq_cfg max98090_eq_cfg[] = {
 };
@@ -248,8 +255,8 @@ static struct max98090_pdata ceres_max98090_pdata = {
 	.eq_cfgcnt = ARRAY_SIZE(max98090_eq_cfg),
 
 	/* Microphone Configuration */
-	.digmic_left_mode = 1,
-	.digmic_right_mode = 1,
+	.digmic_left_mode = 0,		//Ivan 1 -> 0
+	.digmic_right_mode = 0,		//Ivan 1 -> 0
 };
 
 static struct aic325x_gpio_setup aic3256_gpio[] = {
@@ -800,6 +807,7 @@ static __initdata struct tegra_clk_init_table ceres_clk_init_table[] = {
 	{ "pll_m",	NULL,		0,		false},
 	{ "vi_sensor",	"pll_p",	150000000,	false},
 	{ "vi_sensor2",	"pll_p",	150000000,	false},
+	{ "pwm",        "pll_p",        6000000,        false},	
 	{ "vi",		"pll_p",	100000000,	false},
 	{ "isp",	"pll_p",	150000000,	false},
 	{ "isp_sapor",	"pll_p",	150000000,	false},
@@ -956,10 +964,13 @@ static void ceres_i2c_init(void)
 
 	ceres_i2c_bus3_board_info[0].irq = gpio_to_irq(CERES_NFC_IRQ);
 	i2c_register_board_info(1, ceres_i2c_bus3_board_info, 1);
-
+//Ivan removed
+#ifndef TINNO_PHONE_CONFIG	
 	i2c_register_board_info(0, &ceres_eeprom_mac_add, 1);
+#endif
 }
 
+#ifndef TINNO_PHONE_CONFIG
 static __initdata struct tegra_clk_init_table raydium_touch_clk_init_table[] = {
 	/* name		parent		rate		enabled */
 	{ "vi_sensor",	"pll_p",	41000000,	true},
@@ -1059,11 +1070,15 @@ static struct spi_board_info synaptics_9999_spi_board_ceres[] = {
 		.platform_data = &synaptics_ceres_platformdata,
 	},
 };
+#endif
 
 static int __init ceres_touch_init(void)
 {
 	if (tegra_get_touch_vendor_id() == RAYDIUM_TOUCH) {
-		pr_info("%s: initializing raydium\n", __func__);
+		pr_info("%s: initializing raydium\n", __func__);	  
+#ifdef TINNO_PHONE_CONFIG
+		touch_init_synaptics_i2c();//touch_init_syn320x();
+#else
 		tegra_clk_init_from_table(raydium_touch_clk_init_table);
 		rm31080a_ceres_spi_board[0].irq =
 			gpio_to_irq(TOUCH_GPIO_IRQ_RAYDIUM_SPI);
@@ -1072,10 +1087,15 @@ static int __init ceres_touch_init(void)
 					&rm31080ts_ceres_data,
 					&rm31080a_ceres_spi_board[0],
 					ARRAY_SIZE(rm31080a_ceres_spi_board));
+#endif
 	} else {
 		pr_info("%s: initializing synaptics\n", __func__);
+#ifdef TINNO_PHONE_CONFIG
+		touch_init_synaptics_i2c();//touch_init_syn320x();
+#else		
 		touch_init_synaptics(synaptics_9999_spi_board_ceres,
 				ARRAY_SIZE(synaptics_9999_spi_board_ceres));
+#endif
 	}
 	return 0;
 }
@@ -1104,10 +1124,13 @@ static void ceres_tegra_bb_init(void)
 }
 #endif
 
+#ifndef TINNO_PHONE_CONFIG
+
 static void __init ceres_dtv_init(void)
 {
 	platform_device_register(&tegra_dtv_device);
 }
+#endif
 
 static void __init tegra_ceres_early_init(void)
 {
@@ -1147,7 +1170,9 @@ static void __init tegra_ceres_late_init(void)
 	tegra_soc_device_init("ceres");
 	ceres_keys_init();
 	ceres_regulator_init();
+#ifndef TINNO_PHONE_CONFIG	
 	ceres_dtv_init();
+#endif
 	ceres_suspend_init();
 	ceres_touch_init();
 	ceres_sdhci_init();

@@ -569,6 +569,7 @@ static struct resource spi_resource6[] = {
 #endif
 
 #ifdef CONFIG_ARCH_TEGRA_14x_SOC
+#ifndef TINNO_PHONE_CONFIG
 static struct resource dtv_resource[] = {
 	[0] = {
 		.start  = TEGRA_DTV_BASE,
@@ -592,6 +593,7 @@ struct platform_device tegra_dtv_device = {
 		.coherent_dma_mask = 0xffffffff,
 	},
 };
+#endif
 #endif
 
 #ifdef CONFIG_ARCH_TEGRA_3x_SOC

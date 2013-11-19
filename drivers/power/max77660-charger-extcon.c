@@ -164,6 +164,8 @@ static int max77660_battery_detect(struct max77660_chg_extcon *chip)
 {
 	int ret = 0;
 	u8 status;
+//Ivan added for testing FIXME
+	return 0;
 
 	ret = max77660_reg_read(chip->parent, MAX77660_CHG_SLAVE,
 			MAX77660_CHARGER_DETAILS1, &status);

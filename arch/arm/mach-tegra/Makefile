@@ -269,8 +269,10 @@ obj-${CONFIG_MACH_CARDHU}               += board-cardhu-sensors.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-memory.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-powermon.o
 
-obj-y                                   += board-touch-raydium_spi.o
-obj-y                                   += board-touch-synaptics-spi.o
+obj-${CONFIG_DISABLE}	               	+= board-touch-raydium_spi.o
+obj-${CONFIG_DISABLE}                   += board-touch-synaptics-spi.o
+#obj-y                                   += board-touch-syn320x-i2c.o
+obj-y                                   += board-touch-synaptics-i2c.o
 
 obj-${CONFIG_MACH_P1852}               += board-p1852.o
 obj-${CONFIG_MACH_P1852}               += board-p1852-power.o
@@ -376,6 +378,8 @@ obj-${CONFIG_MACH_CERES}                += panel-l-720p-5.o
 obj-${CONFIG_MACH_CERES}                += panel-j-720p-4-7.o
 obj-${CONFIG_MACH_CERES}                += panel-s-1080p-5.o
 obj-${CONFIG_MACH_CERES}                += panel-j-720p-4-7.o
+obj-${CONFIG_MACH_CERES}                += panel-hx8394a-720p.o
+obj-${CONFIG_MACH_CERES}                += panel-otm1283a-720p.o
 
 obj-${CONFIG_TEGRA_BB_XMM_POWER}        += baseband-xmm-power.o
 obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
