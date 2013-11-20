@@ -47,6 +47,19 @@ struct gadc_thermal_driver_data {
 	int temp_offset;
 };
 
+//Ivan Accuracy up to 4 digits
+static int adc2TRes(int adc)
+{
+    long dwVolt;
+    long TRes;
+    if (adc > 2770)
+	return 221924;
+    dwVolt = ( adc * 25 *1000)/4096;		//2.5
+    TRes = (100000 * dwVolt) /(25000 - dwVolt);    
+    return (int)TRes;
+    
+}
+
 static int gadc_thermal_thermistor_adc_to_temp(
 	struct gadc_thermal_driver_data *drvdata, int adc_raw)
 {
@@ -59,6 +72,11 @@ static int gadc_thermal_thermistor_adc_to_temp(
 	int temp, adc_low, adc_high, diff_temp;
 	int temp_decrement = (first_index_temp > last_index_temp);
 
+//Ivan added for testing
+	printk("Ivan BAtt Temperature adc_raw = %d \n",adc_raw);
+	adc_raw = adc2TRes(adc_raw);
+	printk("Ivan BAtt Temperature TRes = %d \n",adc_raw);
+	
 	for (i = 0; i < table_size - 1; ++i) {
 		if (temp_decrement) {
 			if (adc_raw <= lookup_table[i])
@@ -87,7 +105,7 @@ static int gadc_thermal_thermistor_adc_to_temp(
 	}
 //Ivan added for ES Phone
 //FIXME
-	temp = 25000;
+//	temp = 25000;
 	return temp;
 }
 
