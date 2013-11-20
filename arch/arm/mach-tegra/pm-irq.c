@@ -65,6 +65,7 @@ static u64 tegra_lp0_wake_enb;
 static u64 tegra_lp0_wake_level;
 static u64 tegra_lp0_wake_level_any;
 static int tegra_prevent_lp0;
+static u64 pmc_wake_status;
 
 static unsigned int tegra_wake_irq_count[PMC_MAX_WAKE_COUNT];
 
@@ -142,7 +143,6 @@ static inline void write_pmc_wake_level(u64 value)
 	__raw_writel((u32)(value >> 32), pmc + PMC_WAKE2_LEVEL);
 #endif
 }
-
 static inline u64 read_pmc_wake_status(void)
 {
 	u64 reg;
@@ -152,13 +152,14 @@ static inline u64 read_pmc_wake_status(void)
 #else
 	reg = __raw_readl(pmc + PMC_WAKE_STATUS);
 	reg |= ((u64)readl(pmc + PMC_WAKE2_STATUS)) << 32;
+	pmc_wake_status = reg;
 #endif
 	return reg;
 }
 
 u64 tegra_read_pmc_wake_status(void)
 {
-	return read_pmc_wake_status();
+	return pmc_wake_status;
 }
 
 static inline u64 read_pmc_sw_wake_status(void)
