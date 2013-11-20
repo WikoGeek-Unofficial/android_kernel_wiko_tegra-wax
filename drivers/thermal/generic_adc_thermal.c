@@ -73,9 +73,9 @@ static int gadc_thermal_thermistor_adc_to_temp(
 	int temp_decrement = (first_index_temp > last_index_temp);
 
 //Ivan added for testing
-	printk("Ivan BAtt Temperature adc_raw = %d \n",adc_raw);
+//	printk("Ivan BAtt Temperature adc_raw = %d \n",adc_raw);
 	adc_raw = adc2TRes(adc_raw);
-	printk("Ivan BAtt Temperature TRes = %d \n",adc_raw);
+//	printk("Ivan BAtt Temperature TRes = %d \n",adc_raw);
 	
 	for (i = 0; i < table_size - 1; ++i) {
 		if (temp_decrement) {
