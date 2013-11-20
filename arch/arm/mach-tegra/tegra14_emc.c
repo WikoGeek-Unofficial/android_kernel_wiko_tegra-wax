@@ -989,20 +989,15 @@ static noinline void emc_set_clock(const struct tegra14_emc_table *next_timing,
 
 	/* 3. Autocal configuration. */
 	udelay(5);
-	emc_writel(next_timing->burst_regs[EMC_AUTO_CAL_CONFIG2_INDEX],
-		   EMC_AUTO_CAL_CONFIG2);
-	emc_writel(next_timing->burst_regs[EMC_AUTO_CAL_CONFIG3_INDEX],
-		   EMC_AUTO_CAL_CONFIG3);
 	emc_writel(next_timing->burst_regs[EMC_AUTO_CAL_CONFIG_INDEX],
 		   EMC_AUTO_CAL_CONFIG);
+	emc_timing_update();
 	emc_writel(0, EMC_AUTO_CAL_INTERVAL);
 
 	/* 4. program burst shadow registers */
 	for (i = 0; i < next_timing->burst_regs_num; i++) {
-		if (!burst_reg_addr[i] ||
-		    (burst_reg_addr[i] == emc_base + EMC_AUTO_CAL_CONFIG) ||
-		    (burst_reg_addr[i] == emc_base + EMC_AUTO_CAL_CONFIG2) ||
-		    (burst_reg_addr[i] == emc_base + EMC_AUTO_CAL_CONFIG3))
+		if (!burst_reg_addr[i] || (burst_reg_addr[i] ==
+					   emc_base + EMC_AUTO_CAL_CONFIG))
 			continue;
 		__raw_writel(next_timing->burst_regs[i], burst_reg_addr[i]);
 	}
