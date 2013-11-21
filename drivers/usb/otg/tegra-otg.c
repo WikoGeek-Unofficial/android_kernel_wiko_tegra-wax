@@ -38,6 +38,7 @@
 
 #include <linux/usb/hcd.h>
 #include <mach/pm_domains.h>
+#include <linux/switch.h>                //add by wuhai
 
 #define USB_PHY_WAKEUP		0x408
 #define  USB_ID_INT_EN		(1 << 0)
@@ -90,6 +91,7 @@ static struct tegra_otg *tegra_clone;
 static struct notifier_block otg_vbus_nb;
 static struct notifier_block otg_id_nb;
 struct extcon_specific_cable_nb *extcondev;
+static struct switch_dev otg_state;   //add by wuhai
 
 static int otg_notifications(struct notifier_block *nb,
 				   unsigned long event, void *unused)
@@ -348,6 +350,8 @@ static void tegra_change_otg_state(struct tegra_otg *tegra,
 
 	DBG("%s(%d) requested otg state %s-->%s\n", __func__,
 		__LINE__, tegra_state_name(from), tegra_state_name(to));
+        //add by wuhai
+	switch_set_state((struct switch_dev *)&otg_state,to==OTG_STATE_A_HOST);
 
 	if (to != OTG_STATE_UNDEFINED && from != to) {
 		otg->phy->state = to;
@@ -956,12 +960,31 @@ static struct platform_driver tegra_otg_driver = {
 
 static int __init tegra_otg_init(void)
 {
-	return platform_driver_register(&tegra_otg_driver);
+        int ret =0;
+                
+	ret = platform_driver_register(&tegra_otg_driver);
+
+   	if (ret) {
+		DBG(0,"[MUSB]platform_driver_register error:(%d)\n", ret);
+		return ret;
+	}
+//add by wuhai
+	otg_state.name = "otg_state";	
+	otg_state.index = 0;
+	otg_state.state = 0;
+	ret = switch_dev_register(&otg_state);
+	if(ret)
+	{
+		DBG(0,"switch_dev_register returned:%d!\n", ret);
+		return 1;
+	}
+       return 0;
 }
 fs_initcall(tegra_otg_init);
 
 static void __exit tegra_otg_exit(void)
 {
 	platform_driver_unregister(&tegra_otg_driver);
+        switch_dev_unregister(&otg_state);
 }
 module_exit(tegra_otg_exit);

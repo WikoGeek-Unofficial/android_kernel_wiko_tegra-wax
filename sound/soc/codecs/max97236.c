@@ -31,6 +31,8 @@
 #include <mach/../../board.h>
 #include <mach/../../tegra-board-id.h>
 
+#include <linux/switch.h>                //add by wuhai
+
 static struct board_info board_info;
 
 #define DEBUG
@@ -192,6 +194,11 @@ static const struct soc_enum max97236_auto_enum =
 	SOC_ENUM_SINGLE(M97236_REG_1E_ENABLE_2, M97236_AUTO_SHIFT,
 		ARRAY_SIZE(max97236_auto_text), max97236_auto_text);
 
+#ifdef CONFIG_SWITCH
+static struct switch_dev tegra_max97236_button_switch = {
+	.name = "linebtn",
+};
+#endif
 
 static const struct snd_kcontrol_new max97236_snd_controls[] = {
 
@@ -484,6 +491,9 @@ static void max97236_keypress(struct max97236_priv *max97236,
 				press ? (char *) keystr : "BUTTON",
 				press ? "PRESS" : "RELEASE");
 
+        #ifdef CONFIG_SWITCH
+        switch_set_state(&tegra_max97236_button_switch, press ? 1:0);
+        #endif
 	snd_soc_jack_report(max97236->jack, key, 0x7E00);
 }
 
@@ -1292,6 +1302,14 @@ static int max97236_i2c_probe(struct i2c_client *i2c,
 
 	tegra_get_board_info(&board_info);
 
+        #ifdef CONFIG_SWITCH
+	/* Add linebtn switch class support */         //add by wuhai 
+	ret = switch_dev_register(&tegra_max97236_button_switch);
+	if (ret < 0) {
+		dev_err(&i2c->dev, "not able to register switch device\n");
+	}
+        #endif
+
 err_enable:
 	return ret;
 }
@@ -1302,6 +1320,9 @@ static int max97236_i2c_remove(struct i2c_client *client)
 	snd_soc_unregister_codec(&client->dev);
 	regmap_exit(max97236->regmap);
 	kfree(i2c_get_clientdata(client));
+        #ifdef CONFIG_SWITCH
+        switch_dev_unregister(&tegra_max97236_button_switch);
+        #endif
 	return 0;
 }
 
