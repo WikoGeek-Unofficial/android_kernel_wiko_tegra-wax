@@ -32,6 +32,7 @@
 #ifdef KERNEL_ABOVE_2_6_38
 #include <linux/input/mt.h>
 #endif
+#include <mach/board.h>
 
 #define DRIVER_NAME "synaptics_dsx_i2c"
 #define INPUT_PHYS_NAME "synaptics_dsx_i2c/input0"
@@ -42,6 +43,7 @@
 
 
 //edit by Magnum 2013-11-06
+static int boot_mode;
 static const int TPD_KEYSFACTORY[TPD_KEY_COUNT] =  {KEY_F1, KEY_F2, KEY_F3};
 
 #ifdef TPD_HAVE_BUTTON 
@@ -937,33 +939,39 @@ static int synaptics_rmi4_f11_abs_report(struct synaptics_rmi4_data *rmi4_data,
 
 //edit by Magnum 2013-11-07
 #ifdef TPD_HAVE_BUTTON 
-static void smart_report_key(struct synaptics_rmi4_data *rmi4_data,unsigned 
-int x, unsigned int y,bool down)
+static void smart_report_key(struct synaptics_rmi4_data *rmi4_data,struct synaptics_rmi4_f1a_handle 
+*f1a,unsigned char button,unsigned int x, unsigned int y,bool down)
 {
-	if(down){
-		
-			dev_dbg(&rmi4_data->i2c_client->dev,"Magnum report Virtual key X == %d, y == %d n",x,y);
-			#ifdef TYPE_B_PROTOCOL
-			input_mt_slot(rmi4_data->input_dev, 0);
-			input_mt_report_slot_state(rmi4_data->input_dev,MT_TOOL_FINGER, true);
-			#endif
-			
-			input_report_key(rmi4_data->input_dev,BTN_TOUCH, 1);
-			input_report_key(rmi4_data->input_dev,BTN_TOOL_FINGER, 1);
-			input_report_abs(rmi4_data->input_dev,ABS_MT_POSITION_X, x);
-			input_report_abs(rmi4_data->input_dev,ABS_MT_POSITION_Y, y);
-			input_report_abs(rmi4_data->input_dev,ABS_MT_PRESSURE, 50);	
-			//input_mt_sync(rmi4_data->input_dev);
-	
-	}
+	//edit by Magnum 2013-11-14:--report key in FTM mode
+	boot_mode = tegra_get_bootmode_id();
+	printk("Magnum boot mode == %d\n",boot_mode);
+	if(boot_mode == 1 ||boot_mode == 3)
+		input_report_key(rmi4_data->input_dev,f1a->button_map[button],down);  
 	else{
-			#ifdef TYPE_B_PROTOCOL
-			input_mt_slot(rmi4_data->input_dev, 0);
-			input_mt_report_slot_state(rmi4_data->input_dev,MT_TOOL_FINGER, false);
-			#endif
+		if(down){
+			
+				dev_dbg(&rmi4_data->i2c_client->dev,"Magnum report Virtual key X == %d, y == %d n",x,y);
+				#ifdef TYPE_B_PROTOCOL
+				input_mt_slot(rmi4_data->input_dev, 0);
+				input_mt_report_slot_state(rmi4_data->input_dev,MT_TOOL_FINGER, true);
+				#endif
+				
+				input_report_key(rmi4_data->input_dev,BTN_TOUCH, 1);
+				input_report_key(rmi4_data->input_dev,BTN_TOOL_FINGER, 1);
+				input_report_abs(rmi4_data->input_dev,ABS_MT_POSITION_X, x);
+				input_report_abs(rmi4_data->input_dev,ABS_MT_POSITION_Y, y);
+				input_report_abs(rmi4_data->input_dev,ABS_MT_PRESSURE, 50);	
+				//input_mt_sync(rmi4_data->input_dev);
 		
+		}
+		else{
+				#ifdef TYPE_B_PROTOCOL
+				input_mt_slot(rmi4_data->input_dev, 0);
+				input_mt_report_slot_state(rmi4_data->input_dev,MT_TOOL_FINGER, false);
+				#endif
+			
+		}
 	}
-
 }
 #endif
 
@@ -1049,7 +1057,7 @@ static void synaptics_rmi4_f1a_report(struct synaptics_rmi4_data *rmi4_data,
 				}
 			}
 			#ifdef TPD_HAVE_BUTTON
-				smart_report_key(rmi4_data,key_x,key_y,status);
+				smart_report_key(rmi4_data,f1a,button,key_x,key_y,status);
 			#else
 				input_report_key(rmi4_data->input_dev,f1a->button_map[button],status);  
 			#endif
@@ -2422,7 +2430,7 @@ static int __devexit synaptics_rmi4_remove(struct i2c_client *client)
 
 //edit by Magnum 2013-11-03
 #ifdef TPD_HAVE_BUTTON     
-static ssize_t mtk_virtual_keys_show(struct kobject *kobj,
+static ssize_t virtual_keys_show(struct kobject *kobj,
                    struct kobj_attribute *attr, char *buf) {
     int i, j;
     for(i=0, j=0;i<tpd_keycnt;i++)
@@ -2433,28 +2441,28 @@ static ssize_t mtk_virtual_keys_show(struct kobject *kobj,
            (i==tpd_keycnt-1?"\n":":"));
     return j;
 }
-static struct kobj_attribute mtk_virtual_keys_attr = {
+static struct kobj_attribute virtual_keys_attr = {
     .attr = {
         .name = "virtualkeys.synaptics_dsx_i2c",
         .mode = S_IRUGO,
     },
-    .show = &mtk_virtual_keys_show,
+    .show = &virtual_keys_show,
 };
 
-static struct attribute *mtk_properties_attrs[] = {
-    &mtk_virtual_keys_attr.attr,
+static struct attribute *virtual_key_properties_attrs[] = {
+    &virtual_keys_attr.attr,
     NULL
 };
 
-static struct attribute_group mtk_properties_attr_group = {
-    .attrs = mtk_properties_attrs,
+static struct attribute_group virtual_key_properties_attr_group = {
+    .attrs = virtual_key_properties_attrs,
 };
 static void create_virtual_key()
 {
 	int ret = 0, i = 0;
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
 	if(properties_kobj)
-	    ret = sysfs_create_group(properties_kobj,&mtk_properties_attr_group);
+	    ret = sysfs_create_group(properties_kobj,&virtual_key_properties_attr_group);
 	if(!properties_kobj || ret)
 	printk("failed to create board_properties\n");
 }
