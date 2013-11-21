@@ -441,6 +441,119 @@ static struct tegra_dc_cmu default_limited_cmu = {
 };
 #endif
 
+//edit by Magnum 2013-11-20
+#if 1
+struct tegra_dsi_cmd *  create_tegra_dsi_cmd(struct LCM_setting_table *table,unsigned int count)
+{	
+	struct tegra_dsi_cmd * init_cmd; 
+	unsigned char * p;   
+	unsigned int i;
+	//printk("Count == %d\n",count);
+	if(table == NULL)
+		return NULL;
+	if(count == 0 || count < 0)
+		return NULL;
+	init_cmd =  kzalloc(sizeof(struct tegra_dsi_cmd)*count,GFP_KERNEL);
+	for(i = 0; i < count; i++) {
+		unsigned int reg;
+		unsigned int size;
+		unsigned int single;
+		size = table[i].count;
+		reg = table[i].cmd;
+		p  =   kzalloc(sizeof(u8)*(size+1),GFP_KERNEL);
+		if(size > 1){
+		      p++;
+		      p= &table[i].para_list[0];
+		      p--;
+		      p[0] = reg;
+		      init_cmd[i].cmd_type = TEGRA_DSI_PACKET_CMD;
+		      init_cmd[i].data_id = DSI_DCS_LONG_WRITE;
+		      init_cmd[i].sp_len_dly.data_len = (size+1);
+		      init_cmd[i].pdata = p;
+		}
+		else if(size == 1){
+		      p = &table[i].para_list[0];
+		      single = table[i].para_list[0];
+		      init_cmd[i].cmd_type = TEGRA_DSI_PACKET_CMD;
+		      init_cmd[i].data_id = DSI_DCS_WRITE_1_PARAM;
+		      init_cmd[i].sp_len_dly.sp.data0 = reg;
+		      init_cmd[i].sp_len_dly.sp.data1 = single;				
+		}
+		else if(size == 0){
+		      init_cmd[i].cmd_type = TEGRA_DSI_PACKET_CMD;
+		      init_cmd[i].data_id = DSI_DCS_WRITE_0_PARAM;
+		      init_cmd[i].sp_len_dly.sp.data0 = reg;
+		      init_cmd[i].sp_len_dly.sp.data1 = 0x00;	
+		}
+		if(table[i].cmd == REGFLAG_DELAY){
+		      init_cmd[i].cmd_type = TEGRA_DSI_DELAY_MS;
+		      init_cmd[i].sp_len_dly.delay_ms = size;		     
+		}        
+	}
+	return init_cmd;
+}
+
+void check(struct tegra_dsi_cmd * init_cmd,unsigned int count)
+{
+    int i = 0;            int j = 0;           int len  = 0;
+    if(count == 0)
+		return;
+    if(count < 0)
+		return;
+    if(init_cmd== NULL)
+		return ;
+    for (i =0;i<count;i++)
+    {
+        if (init_cmd[i].cmd_type == TEGRA_DSI_DELAY_MS)
+        {
+                    printk("Delay Register sleep == %d ms\n",init_cmd[i].sp_len_dly.delay_ms);
+                    continue;
+        } 
+        else if(init_cmd[i].cmd_type == TEGRA_DSI_PACKET_CMD)
+        {
+               if(init_cmd[i].data_id == DSI_DCS_LONG_WRITE)
+               {
+          
+                      printk("init_cmd[%d]: Long PARAMs  PanelReg == 0x%x ,Data == ",i,init_cmd[i].pdata[0]);
+                
+                      len = init_cmd[i].sp_len_dly.data_len;
+                      if(len == 0)
+                            continue;
+                      for(j=0;j<len;j++){
+                                printk("0x%x  ",    init_cmd[i].pdata[j+1]);                     
+                      }
+                      printk("\n");  
+               }
+               else if(init_cmd[i].data_id == DSI_DCS_WRITE_1_PARAM)
+               {
+                    printk("init_cmd[%d]: 1 PARAM  PanelReg == 0x%x  data == 0x%x\n",i,init_cmd[i].sp_len_dly.sp.data0,init_cmd[i].sp_len_dly.sp.data1);
+               }
+               else if(init_cmd[i].data_id == DSI_DCS_WRITE_0_PARAM)
+               {
+                    printk("init_cmd[%d]: 0 PARAM  PanelReg == 0x%x \n",i,init_cmd[i].sp_len_dly.sp.data0);
+               }                      
+         } 
+    }
+    return ;             
+}
+
+void rebuild_tegra_lcm(struct LCM_setting_table *init_table,struct tegra_dsi_out * pdata ,u16 init_count)
+{
+	//pr_info("Magnum dsi_otm1283a_720p_dc_out_init\n");
+	if(!pdata->dsi_init_cmd){
+	//	pr_info("Magnum ceres_disp1_out no dsi init cmd BBBBBBBBBBBB\n");
+		pdata->dsi_init_cmd = create_tegra_dsi_cmd(init_table,init_count);		
+	}
+	if(!pdata->n_init_cmd){
+		//pr_info("Magnum ceres_disp1_out no n_init_cmd AAAAAAAAAAAAA\n");
+		pdata->n_init_cmd = init_count;
+	}
+	// just for check ,not be needed to excute
+	//check(pdata->dsi_init_cmd,init_count);
+}	
+
+#endif
+
 void tegra_dc_clk_enable(struct tegra_dc *dc)
 {
 	if (!tegra_is_clk_enabled(dc->clk)) {

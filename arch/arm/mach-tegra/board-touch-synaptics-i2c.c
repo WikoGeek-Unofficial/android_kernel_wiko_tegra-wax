@@ -160,7 +160,6 @@ int __init touch_init_synaptics_i2c(void)
 		ARRAY_SIZE(ceres_i2c_bus2_syn320x_info));	
 	return 0;*/
 	int ret;
-	pr_info("Magnum >>>>I2C device setup");
 	if (ARRAY_SIZE(bus_i2c_devices)) {
 		#ifdef TINNO_TP_2_CAM
 			pr_info("Magnum >>>>I2C device setup, i2c adapter == 2");

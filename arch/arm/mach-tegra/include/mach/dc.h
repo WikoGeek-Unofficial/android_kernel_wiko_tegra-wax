@@ -811,4 +811,29 @@ void tegra_log_suspend_time(void);
 #define tegra_log_resume_time()
 #define tegra_log_suspend_time()
 #endif
+
+/****************edit  by Magnum 2013-11-20***************
+**		rebuild  Tegra  LCM init  code.
+**		LCM_setting_table struct:  register+count+data.  
+**		avoid considering mipi transfer type.make driver init code portable.
+**		Step:	1: create an LCM_setting_table contains init codes
+**				2: struct tegra_dsi_out :	
+**					struct tegra_dsi_cmd	*dsi_init_cmd;	 required
+**					u16		n_init_cmd;			required 
+**		when you create an instance ,do not value  dsi_init_cmd and n_init_cmd,make them null.
+**		value them in init_dc_out func , just like dsi_otm1283a_720p_dc_out_init,
+**		by calling rebuild_tegra_lcm func.
+*/
+
+#define REGFLAG_DELAY             							0XFE
+
+struct LCM_setting_table {
+    unsigned char cmd;
+    unsigned char count;
+    unsigned char para_list[64];
+};
+struct tegra_dsi_cmd *  create_tegra_dsi_cmd(struct LCM_setting_table *table,unsigned int count);
+void check(struct tegra_dsi_cmd * init_cmd,unsigned int count);
+void rebuild_tegra_lcm(struct LCM_setting_table *init_table,struct tegra_dsi_out * pdata ,u16 init_count);
+
 #endif
