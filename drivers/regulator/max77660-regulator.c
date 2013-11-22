@@ -36,6 +36,14 @@ enum {
 	PWR_MODE_REG   /* XX_PWR_MODE */
 };
 
+/* RAMP_BUCKx control */
+enum {
+	RAMP_RATE_12P5MV,
+	RAMP_RATE_25MV,
+	RAMP_RATE_50MV,
+	RAMP_RATE_200MV
+};
+
 struct max77660_register {
 	u8 addr;
 };
@@ -566,6 +574,51 @@ static unsigned int max77660_regulator_get_mode(struct regulator_dev *rdev)
 	return reg->regulator_mode;
 }
 
+static int max77660_regulator_set_ramp_delay(struct regulator_dev *rdev,
+					     int ramp_delay)
+{
+	struct max77660_regulator *reg = rdev_get_drvdata(rdev);
+	struct max77660_regulator_info *rinfo = reg->rinfo;
+	u8 val;
+	int ret;
+
+	if ((reg->rinfo->id < MAX77660_REGULATOR_ID_BUCK1) ||
+			(reg->rinfo->id > MAX77660_REGULATOR_ID_BUCK5)) {
+		dev_err(reg->dev, "ramp delay not supported for %s\n",
+			rdev->desc->name);
+		return -EINVAL;
+	}
+
+	switch (ramp_delay) {
+	case 1 ... 12500:
+		val = RAMP_RATE_12P5MV;
+		break;
+	case 12501 ... 25000:
+		val = RAMP_RATE_25MV;
+		break;
+	case 25001 ... 50000:
+		val = RAMP_RATE_50MV;
+		break;
+	case 50001 ... 200000:
+		val = RAMP_RATE_200MV;
+		break;
+	default:
+		dev_err(reg->dev, "%s: invalid ramp delay setting\n",
+			rdev->desc->name);
+		return -EINVAL;
+	}
+
+	ret = max77660_reg_update(to_max77660_chip(reg), MAX77660_PWR_SLAVE,
+				  rinfo->regs[CFG_REG].addr, val,
+				  MAX77660_BUCK1_5_CNFG_RAMP_MASK);
+	if (ret < 0) {
+		dev_err(reg->dev, "%s: failed to update ramp setting\n",
+			rdev->desc->name);
+	}
+
+	return ret;
+}
+
 static int max77660_switch_enable(struct regulator_dev *rdev)
 {
 	struct max77660_regulator *reg = rdev_get_drvdata(rdev);
@@ -627,6 +680,7 @@ static struct regulator_ops max77660_regulator_ops = {
 	.is_enabled = max77660_regulator_is_enabled,
 	.set_mode = max77660_regulator_set_mode,
 	.get_mode = max77660_regulator_get_mode,
+	.set_ramp_delay = max77660_regulator_set_ramp_delay,
 };
 
 static struct regulator_ops max77660_sw_ops = {
