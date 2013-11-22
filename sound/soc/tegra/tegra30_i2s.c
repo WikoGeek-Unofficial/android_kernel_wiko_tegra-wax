@@ -539,7 +539,8 @@ static int tegra30_i2s_hw_params(struct snd_pcm_substream *substream,
 
 	if (i2s->reg_ctrl & TEGRA30_I2S_CTRL_MASTER_ENABLE) {
 		i2sclock = srate * params_channels(params) * sample_size;
-
+		printk("@@@%s srate:%d channel:%d sample_size:%d i2sclock:%d \n",
+			__func__, srate, params_channels(params), sample_size, i2sclock);
 		/* Additional "* 4" is needed for FSYNC mode */
 		if (i2s->reg_ctrl & TEGRA30_I2S_CTRL_FRAME_FORMAT_FSYNC)
 			i2sclock *= 4;
@@ -585,6 +586,8 @@ static int tegra30_i2s_hw_params(struct snd_pcm_substream *substream,
 
 		if (!sym_bitclk)
 			val |= TEGRA30_I2S_TIMING_NON_SYM_ENABLE;
+		printk("@@@%s val:%d \n",
+			__func__, val);
 
 		tegra30_i2s_write(i2s, TEGRA30_I2S_TIMING, val);
 	} else {
@@ -1110,6 +1113,10 @@ static int configure_baseband_i2s(struct tegra30_i2s  *i2s, int is_i2smaster,
 #ifndef CONFIG_ARCH_TEGRA_3x_SOC
 	u32  i;
 #endif
+	printk("@@@%s i2s->id:%d i2s_mode:%d, channels:%d, rate:%d, bitsize:%d, \
+	bit_clk:%d, clk_pll_a_out0:%lu \n",
+	__func__, i2s->id, i2s_mode, channels, rate, bitsize, bit_clk,
+	clk_get_rate(i2s->clk_pll_a_out0));
 
 	is_formatdsp = (i2s_mode == TEGRA_DAIFMT_DSP_A) ||
 					(i2s_mode == TEGRA_DAIFMT_DSP_B);
@@ -1122,7 +1129,8 @@ static int configure_baseband_i2s(struct tegra30_i2s  *i2s, int is_i2smaster,
 		if (is_formatdsp)
 			i2sclock *= 8;
 	}
-
+	printk("@@@%s i2s->id:%d clk_pll_a_out0:%lu \n",
+		__func__, i2s->id, clk_get_rate(i2s->clk_pll_a_out0));
 	if (is_i2smaster) {
 		ret = clk_set_parent(i2s->clk_i2s, i2s->clk_pll_a_out0);
 		if (ret) {
@@ -1720,12 +1728,13 @@ int tegra30_make_voice_call_connections(struct codec_config *codec_info,
 	tegra30_i2s_disable_clocks(bb_i2s);
 
 	msleep(20);
+	printk("0\n");
 
 	/*Configure codec i2s*/
 	configure_baseband_i2s(codec_i2s, codec_info->is_i2smaster,
 		codec_info->i2s_mode, codec_info->channels,
 		codec_info->rate, codec_info->bitsize, codec_info->bit_clk);
-
+	printk("1\n");
 	/*Configure bb i2s*/
 	configure_baseband_i2s(bb_i2s, bb_info->is_i2smaster,
 		bb_info->i2s_mode, bb_info->channels,
