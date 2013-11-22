@@ -442,7 +442,23 @@ static void string_copy(char *dest, char *src, int length)
 	strncpy(dest, src, length);
 	dest[length-1] = '\0';
 }
+/* headset key feature   WJ  22/11/13 */
+struct max97236_priv *g_max97236;
+bool is_sendkey_press(void)
+{
+	unsigned int status_reg;
 
+	regmap_read(g_max97236->regmap, M97236_REG_17_PASSIVE_MBH_KEYSCAN_DATA, &status_reg);    
+        return (status_reg & M97236_PRESS_MASK) == M97236_PRESS_MASK;
+}
+EXPORT_SYMBOL_GPL(is_sendkey_press);
+void switch_key_state( int status, int mask ){
+        g_max97236->jack->status &= ~mask;
+	g_max97236->jack->status |= status & mask;
+}
+
+EXPORT_SYMBOL_GPL(switch_key_state);
+/* headset key feature   WJ  22/11/13 */
 static void max97236_keypress(struct max97236_priv *max97236,
 		unsigned int *status_reg)
 {
@@ -450,11 +466,13 @@ static void max97236_keypress(struct max97236_priv *max97236,
 	unsigned int key = 0;
 	unsigned int reg;
 	int press;
-
+/* headset key feature   WJ  22/11/13 */
+        g_max97236 = max97236;
+/* headset key feature   WJ  22/11/13 */
 	regmap_read(max97236->regmap, M97236_REG_17_PASSIVE_MBH_KEYSCAN_DATA,
 				&reg);
 	press = (reg & M97236_PRESS_MASK) == M97236_PRESS_MASK;
-	printk("Ivan max97236_keypress keydata = %x, status_reg[0] = %x, status_reg[1] = %x\n",reg,&status_reg[0],&status_reg[1]);
+	printk("Ivan max97236_keypress keydata = %x, status_reg[0] = %x, status_reg[1] = %x\n",reg,status_reg[0],status_reg[1]);
 
 	if (press) {
 		if (status_reg[0] & M97236_MCSW_MASK) {

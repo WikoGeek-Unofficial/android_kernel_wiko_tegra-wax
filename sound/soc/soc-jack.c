@@ -102,8 +102,11 @@ void snd_soc_jack_report(struct snd_soc_jack *jack, int status, int mask)
 	}
 
 	/* Report before the DAPM sync to help users updating micbias status */
-	blocking_notifier_call_chain(&jack->notifier, status, jack);
-
+/* fix headset key state bug   WJ  22/11/13 */
+        if(mask &0x00FF){
+	    blocking_notifier_call_chain(&jack->notifier, status, jack);
+        }
+/* fix headset key state bug   WJ  22/11/13 */
 	snd_soc_dapm_sync(dapm);
 
 	snd_jack_report(jack->jack, jack->status);

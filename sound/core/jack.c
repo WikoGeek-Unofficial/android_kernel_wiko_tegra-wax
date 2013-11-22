@@ -24,6 +24,23 @@
 #include <linux/module.h>
 #include <sound/jack.h>
 #include <sound/core.h>
+/* headset key feature   WJ  22/11/13 */
+#include <linux/delay.h>
+
+#define DETECT_KEY_COUNT 15
+
+static int jack_btn[JACK_KEY_NUM]={
+    KEY_SEND,
+    KEY_HANGEUL,
+    KEY_PLAYPAUSE,
+#ifdef MULTI_KEY_FEATURE
+    KEY_NEXTSONG,
+    KEY_PREVIOUSSONG,
+    KEY_VOLUMEDOWN,
+    KEY_VOLUMEUP,
+#endif
+};
+/* headset key feature   WJ  22/11/13 */
 
 static int jack_switch_types[SND_JACK_SWITCH_TYPES] = {
 	SW_HEADPHONE_INSERT,
@@ -33,6 +50,7 @@ static int jack_switch_types[SND_JACK_SWITCH_TYPES] = {
 	SW_VIDEOOUT_INSERT,
 	SW_LINEIN_INSERT,
 };
+
 
 static int snd_jack_dev_free(struct snd_device *device)
 {
@@ -70,14 +88,15 @@ static int snd_jack_dev_register(struct snd_device *device)
 
 	/* Add capabilities for any keys that are enabled */
 	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
-		int testbit = SND_JACK_BTN_0 >> i;
+ /* headset key feature   WJ  22/11/13 */
+		/*int testbit = SND_JACK_BTN_0 >> i;
 
 		if (!(jack->type & testbit))
 			continue;
-
+*/
 		if (!jack->key[i])
-			jack->key[i] = BTN_0 + i;
-
+			jack->key[i] =jack_btn[i];// BTN_0 + i;
+/* headset key feature   WJ  22/11/13 */
 		input_set_capability(jack->input_dev, EV_KEY, jack->key[i]);
 	}
 
@@ -204,6 +223,28 @@ int snd_jack_set_key(struct snd_jack *jack, enum snd_jack_types type,
 }
 EXPORT_SYMBOL(snd_jack_set_key);
 
+/* headset key feature   WJ  22/11/13 */
+extern int call_status;
+extern bool is_sendkey_press(void);
+extern void switch_key_state(  int status, int mask);
+static bool is_long_press(void)
+{
+     int index = 0;
+    	bool current_status = false;
+
+    	while(index++ < DETECT_KEY_COUNT)
+    	{ 
+    		current_status = is_sendkey_press();
+    		if(!current_status)
+    		{
+    			break;
+    		}
+    		msleep(100);
+    	}
+        printk("[Jack] index = %d \n",index);
+       return index>DETECT_KEY_COUNT;
+}
+/* headset key feature   WJ  22/11/13 */
 /**
  * snd_jack_report - Report the current status of a jack
  *
@@ -213,18 +254,47 @@ EXPORT_SYMBOL(snd_jack_set_key);
 void snd_jack_report(struct snd_jack *jack, int status)
 {
 	int i;
-
 	if (!jack)
 		return;
-
-	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
-		int testbit = SND_JACK_BTN_0 >> i;
-
-		if (jack->type & testbit)
-			input_report_key(jack->input_dev, jack->key[i],
-					 status & testbit);
-	}
-
+/* headset key feature   WJ  22/11/13 */
+        if(jack->type &SND_JACK_BTN_0){
+            if(call_status!=0){
+                   if(is_long_press()) {
+                          printk("[Jack]long press remote button to end call! status = %x\n",status);
+                          input_report_key(jack->input_dev, KEY_HANGEUL, status &SND_JACK_BTN_0);
+                          input_report_key(jack->input_dev, KEY_HANGEUL, 0);
+                     } else {
+                         printk("[Jack]short press remote button to accept call! status = %x\n",status);
+                         input_report_key(jack->input_dev, KEY_SEND, status &SND_JACK_BTN_0);
+                         input_report_key(jack->input_dev, KEY_SEND, 0);
+                         switch_key_state(0, 0x7e00);
+                    }
+            }else{
+                         input_report_key(jack->input_dev, KEY_PLAYPAUSE, status &SND_JACK_BTN_0);
+            }
+ #ifdef MULTI_KEY_FEATURE
+           }else{
+               /* for(i=1;i< (ARRAY_SIZE(jack->key)-2);i++){
+                    int testbit = SND_JACK_BTN_0 >> i;
+                    if (jack->type & testbit)
+    			input_report_key(jack->input_dev, jack->key[i],
+    					 status & testbit);
+                }*/
+                if(jack->type & SND_JACK_BTN_1){
+                    if(call_status!=0)
+                         input_report_key(jack->input_dev, KEY_VOLUMEUP, status &SND_JACK_BTN_1);
+                    else
+                         input_report_key(jack->input_dev, KEY_PREVIOUSSONG, status &SND_JACK_BTN_1);
+                }
+                if(jack->type & SND_JACK_BTN_2){
+                    if(call_status!=0)
+                         input_report_key(jack->input_dev, KEY_VOLUMEDOWN, status &SND_JACK_BTN_2);
+                    else
+                         input_report_key(jack->input_dev, KEY_NEXTSONG, status &SND_JACK_BTN_2);
+                }
+#endif
+        }
+ /* headset key feature   WJ  22/11/13 */
 	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++) {
 		int testbit = 1 << i;
 		if (jack->type & testbit)

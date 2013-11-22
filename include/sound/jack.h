@@ -52,7 +52,16 @@ enum snd_jack_types {
 	SND_JACK_BTN_4		= 0x0400,
 	SND_JACK_BTN_5		= 0x0200,
 };
+/* headset key feature   WJ  22/11/13 */
+ //if want enable multi key ,enable it
+//#define MULTI_KEY_FEATURE    
 
+#ifdef MULTI_KEY_FEATURE
+#define JACK_KEY_NUM 7
+#else
+#define JACK_KEY_NUM 3
+#endif
+/* headset key feature   WJ  22/11/13 */
 /* Keep in sync with definitions above */
 #define SND_JACK_SWITCH_TYPES 6
 
@@ -62,7 +71,9 @@ struct snd_jack {
 	int type;
 	const char *id;
 	char name[100];
-	unsigned int key[6];   /* Keep in sync with definitions above */
+/* headset key feature   WJ  22/11/13 */
+	unsigned int key[JACK_KEY_NUM];   /* Keep in sync with definitions above */
+/* headset key feature   WJ  22/11/13 */
 	void *private_data;
 	void (*private_free)(struct snd_jack *);
 };
