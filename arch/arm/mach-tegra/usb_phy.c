@@ -41,6 +41,7 @@
 #include "tegra_usb_phy.h"
 #include "fuse.h"
 #include "common.h"
+#include "board.h"
 
 #define ERR(stuff...)		pr_err("usb_phy: " stuff)
 #define WARNING(stuff...)	pr_warning("usb_phy: " stuff)
@@ -242,8 +243,12 @@ static int tegra_usb_phy_get_clocks(struct tegra_usb_phy *phy)
 		goto fail_emc;
 	}
 
-	if(phy->pdata->has_hostpc)
-		clk_set_rate(phy->emc_clk, 100000000);
+	if(phy->pdata->has_hostpc){
+		if( get_androidboot_mode_charger() )
+			clk_set_rate(phy->emc_clk, 10000000);
+		else
+			clk_set_rate(phy->emc_clk, 100000000);
+	}
 	else
 		clk_set_rate(phy->emc_clk, 300000000);
 
