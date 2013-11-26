@@ -759,9 +759,6 @@ static struct platform_device *otm1283a_gfx_devices[] __initdata = {
 
 static int __init dsi_otm1283a_720p_register_bl_dev(void)
 {
-	struct i2c_board_info *bl_info;
-	struct board_info board_info;
-#ifdef TINNO_PHONE_CONFIG	
 	dsi_otm1283a_720p_max8831_bl_data.edp_states =
 		dsi_l_ceres_edp_states;
 	dsi_otm1283a_720p_max8831_bl_data.edp_brightness =
@@ -779,44 +776,7 @@ static int __init dsi_otm1283a_720p_register_bl_dev(void)
 	platform_add_devices(otm1283a_trgra_pwm_bl_devices,
 		ARRAY_SIZE(otm1283a_trgra_pwm_bl_devices));		
 */
-	return 0;	
-#endif
-			
-	tegra_get_board_info(&board_info);
-
-	switch (board_info.board_id) {
-	case BOARD_E1670: /* Atlantis ERS */
-	case BOARD_E1671: /* Atlantis POP Socket */
-		lm3528_pdata.edp_states = dsi_l_atlantis_edp_states;
-		lm3528_pdata.edp_brightness = dsi_l_atlantis_edp_brightness;
-		bl_info = &lm3528_dsi_otm1283a_720p_i2c_led_info;
-		dsi_otm1283a_720p_bl_response_curve =
-			dsi_otm1283a_720p_lm3528_bl_response_curve;
-		break;
-	case BOARD_E1680: /* Ceres ERS */
-	case BOARD_E1681: /* Ceres DSC Socket */
-		dsi_otm1283a_720p_max8831_bl_data.edp_states =
-			dsi_l_ceres_edp_states;
-		dsi_otm1283a_720p_max8831_bl_data.edp_brightness =
-				dsi_l_ceres_edp_brightness;
-		bl_info = &dsi_otm1283a_720p_i2c_led_info;
-		dsi_otm1283a_720p_bl_response_curve =
-				dsi_otm1283a_720p_max8831_bl_response_curve;
-		break;
-	case BOARD_E1580: /* Pluto */
-	/* fall through */
-	default:
-		dsi_otm1283a_720p_max8831_bl_data.edp_states =
-			dsi_l_pluto_edp_states;
-		dsi_otm1283a_720p_max8831_bl_data.edp_brightness =
-				dsi_l_pluto_edp_brightness;
-		bl_info = &dsi_otm1283a_720p_i2c_led_info;
-		dsi_otm1283a_720p_bl_response_curve =
-				dsi_otm1283a_720p_max8831_bl_response_curve;
-		break;
-	}
-
-	return i2c_register_board_info(1, bl_info, 1);
+	return 0;
 }
 
 //1366 (V) 1062 (H) 65281140
@@ -1150,15 +1110,7 @@ static void dsi_otm1283a_720p_sd_settings_init(struct tegra_dc_sd_settings *sett
 {
 	struct board_info bi;
 	tegra_get_display_board_info(&bi);
-#ifdef TINNO_PHONE_CONFIG
 	settings->bl_device_name = "pwm-backlight";
-
-#else
-	if (bi.board_id == BOARD_E1563)
-		settings->bl_device_name = "lm3528_display_bl";
-	else
-		settings->bl_device_name = "max8831_display_bl";
-#endif
 }
 
 static void dsi_otm1283a_720p_set_disp_device(

@@ -24,7 +24,7 @@
 #include <linux/delay.h>
 #include <linux/gpio.h>
 #include "board-touch-synaptics-i2c.h"
-#include "board-ceres.h"
+//#include "board-ceres.h"
 #include <linux/input/synaptics_dsx.h> 
 #include "board.h"
 

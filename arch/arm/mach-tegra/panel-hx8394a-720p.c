@@ -404,12 +404,10 @@ static int __init dsi_hx8394a_720p_register_bl_dev(void)
 	struct i2c_board_info *bl_info;
 	struct board_info board_info;
 
-#ifdef TINNO_PHONE_CONFIG	
 	dsi_hx8394a_720p_max8831_bl_data.edp_states =
 		dsi_l_ceres_edp_states;
 	dsi_hx8394a_720p_max8831_bl_data.edp_brightness =
 			dsi_l_ceres_edp_brightness;
-#endif
 			
 	tegra_get_board_info(&board_info);
 

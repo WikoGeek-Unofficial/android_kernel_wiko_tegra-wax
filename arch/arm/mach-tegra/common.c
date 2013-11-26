@@ -150,11 +150,6 @@ static struct board_info button_board_info;
 static struct board_info joystick_board_info;
 static struct board_info rightspeaker_board_info;
 static struct board_info leftspeaker_board_info;
-
-#ifdef TINNO_PHONE_CONFIG
-//static struct board_info ld_board_info;
-#endif
-
 #ifdef CONFIG_TEGRA_USE_NCT
 unsigned long tegra_nck_start;
 unsigned long tegra_nck_size;
@@ -1408,7 +1403,8 @@ void tegra_get_board_info(struct board_info *bi)
 	int err;
 #endif
 
-#ifdef TINNO_PHONE_CONFIG	
+// Ivan
+#ifdef CONFIG_MACH_S8515
 	memset(bi, 0, sizeof(*bi));
 	bi->board_id = 0x690;
 	bi->sku = 0x3e9;		//Ivan 1001
@@ -1469,28 +1465,8 @@ void tegra_get_board_info(struct board_info *bi)
 #ifdef CONFIG_OF
 	}
 #endif
-//Ivan
-//      printk("Ivan tegra_get_board_info: board_id = %x, sku = %x, fab = %x, major_revision = %x, minor_revision = %x \n",
-//	bi->board_id, bi->sku, bi->fab, bi->major_revision, bi->minor_revision );
-
 }
 
-/*
-#ifdef TINNO_PHONE_CONFIG
-static int __init tegra_ld_board_info(char *info)
-{
-	char *p = info;
-	ld_board_info.board_id = memparse(p, &p);
-	ld_board_info.sku = memparse(p+1, &p);
-	ld_board_info.fab = memparse(p+1, &p);
-	ld_board_info.major_revision = memparse(p+1, &p);
-	ld_board_info.minor_revision = memparse(p+1, &p);
-	return 1;
-}
-
-__setup("board_info=", tegra_ld_board_info);
-#endif
-*/
 static int __init tegra_pmu_board_info(char *info)
 {
 	char *p = info;

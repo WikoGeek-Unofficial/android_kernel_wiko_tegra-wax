@@ -1,6 +1,6 @@
 GCOV_PROFILE := y
 
-subdir-ccflags-y := -Werror
+#subdir-ccflags-y := -Werror
 
 obj-y                                   += tegra_rst_reason.o
 obj-y                                   += board-pinmux.o
@@ -269,10 +269,8 @@ obj-${CONFIG_MACH_CARDHU}               += board-cardhu-sensors.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-memory.o
 obj-${CONFIG_MACH_CARDHU}               += board-cardhu-powermon.o
 
-obj-${CONFIG_DISABLE}	               	+= board-touch-raydium_spi.o
-obj-${CONFIG_DISABLE}                   += board-touch-synaptics-spi.o
-#obj-y                                   += board-touch-syn320x-i2c.o
-obj-y                                   += board-touch-synaptics-i2c.o
+obj-${CONFIG_MACH_CERES}                += board-touch-raydium_spi.o
+obj-${CONFIG_MACH_CERES}                += board-touch-synaptics-spi.o
 
 obj-${CONFIG_MACH_P1852}               += board-p1852.o
 obj-${CONFIG_MACH_P1852}               += board-p1852-power.o
@@ -378,8 +376,24 @@ obj-${CONFIG_MACH_CERES}                += panel-l-720p-5.o
 obj-${CONFIG_MACH_CERES}                += panel-j-720p-4-7.o
 obj-${CONFIG_MACH_CERES}                += panel-s-1080p-5.o
 obj-${CONFIG_MACH_CERES}                += panel-j-720p-4-7.o
-obj-${CONFIG_MACH_CERES}                += panel-hx8394a-720p.o
-obj-${CONFIG_MACH_CERES}                += panel-otm1283a-720p.o
+
+obj-${CONFIG_MACH_S8515}                += board-s8515.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-kbc.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-sdhci.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-power.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-powermon.o
+obj-${CONFIG_MACH_S8515}                += board-atlantis-power.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-pinmux.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-sensors.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-panel.o
+obj-${CONFIG_MACH_S8515}                += board-s8515-memory.o
+obj-${CONFIG_MACH_S8515}                += panel-l-720p-5.o
+obj-${CONFIG_MACH_S8515}                += panel-j-720p-4-7.o
+obj-${CONFIG_MACH_S8515}                += panel-s-1080p-5.o
+obj-${CONFIG_MACH_S8515}                += panel-j-720p-4-7.o
+obj-${CONFIG_MACH_S8515}                += board-touch-synaptics-i2c.o
+obj-${CONFIG_MACH_S8515}                += panel-hx8394a-720p.o
+obj-${CONFIG_MACH_S8515}                += panel-otm1283a-720p.o
 
 obj-${CONFIG_TEGRA_BB_XMM_POWER}        += baseband-xmm-power.o
 obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
