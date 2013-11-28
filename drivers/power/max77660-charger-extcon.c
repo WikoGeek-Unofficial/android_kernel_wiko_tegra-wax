@@ -44,6 +44,7 @@
 #include <linux/timer.h>
 #include <linux/power_supply.h>
 #include <linux/power/battery-charger-gauge-comm.h>
+#include <../../arch/arm/mach-tegra/board.h>
 
 #define CHARGER_USB_EXTCON_REGISTRATION_DELAY	5000
 #define CHARGER_TYPE_DETECTION_DEBOUNCE_TIME_MS	500
@@ -484,6 +485,19 @@ static int max77660_chg_extcon_cable_update(
 		dev_err(chg_extcon->dev, "CHSTAT read failed: %d\n", ret);
 		return ret;
 	}
+	/*if( get_androidboot_mode_charger() ){
+		if( ( status & MAX77660_CHG_CHGINT_DC_UVP ) ){
+			dev_err(chg_extcon->dev, "charge debug, in charge mode, but charge disconnected!\n");
+			if( pm_power_off )
+					pm_power_off();
+		}
+		else{
+			dev_err(chg_extcon->dev, "charge debug, in charge mode, charge connect!\n");
+		}
+	}
+	else{
+			dev_err(chg_extcon->dev, "charge debug, normal mode!\n");
+	}*/
 	if (status & MAX77660_CHG_CHGINT_DC_UVP)
 		extcon_set_cable_state(chg_extcon->edev, "USB", false);
 	else

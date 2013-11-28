@@ -1259,6 +1259,24 @@ static int __init tegra_memory_type(char *options)
 }
 __setup("memtype=", tegra_memory_type);
 
+static bool androidboot_mode_charger;
+
+bool get_androidboot_mode_charger(void)
+{
+        //return androidboot_mode_charger;
+		if(tegra_get_bootmode_id() == 8) return true;
+		else return false;
+}
+static int __init tegra_androidboot_mode(char *options)
+{
+        if (!strcmp(options, "charger"))
+                androidboot_mode_charger = true;
+        else
+                androidboot_mode_charger = false;
+        return 1;
+}
+__setup("androidboot.mode=", tegra_androidboot_mode);
+
 static int __init tegra_debug_uartport(char *info)
 {
 	char *p = info;

@@ -31,7 +31,7 @@
 
 //Ivan added
 #define TINNO_PHONE_CONFIG
-#define TINNO_TP_2_CAM  
+#define TINNO_TP_2_CAM
 #ifdef CONFIG_TEGRA_NVDUMPER
 #define NVDUMPER_RESERVED_SIZE 4096UL
 #endif
@@ -241,3 +241,4 @@ extern void tegra_set_usb_vbus_internal_wake(bool enable);
 extern void tegra_set_usb_id_internal_wake(bool enable);
 int tegra_get_pmic_rst_reason(void);
 #endif
+bool get_androidboot_mode_charger(void);
