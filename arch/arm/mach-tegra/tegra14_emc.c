@@ -70,6 +70,8 @@ static struct emc_iso_usage tegra14_emc_iso_usage[] = {
 #define TEGRA_EMEM_DEV_DEVSIZE_SHIFT	16
 #define TEGRA_EMEM_DEV_DEVSIZE_MASK	0xF
 
+#define MR_REVISION_ID1_MASK		0xFF
+
 enum {
 	DLL_CHANGE_NONE = 0,
 	DLL_CHANGE_ON,
@@ -307,6 +309,8 @@ static void __iomem *emc1_base = IO_ADDRESS(TEGRA_EMC1_BASE);
 static void __iomem *mc_base = IO_ADDRESS(TEGRA_MC_BASE);
 static void __iomem *clk_base = IO_ADDRESS(TEGRA_CLK_RESET_BASE);
 static void __iomem *pmc_base = IO_ADDRESS(TEGRA_PMC_BASE);
+
+static int emc_read_mrr(int dev, int addr);
 
 static inline void emc_writel(u32 val, unsigned long addr)
 {
@@ -1703,9 +1707,19 @@ module_param_cb(pasr_enable, &tegra14_pasr_enable_ops, &pasr_enable, 0644);
 
 static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 {
-	struct tegra14_emc_pdata *pdata;
 	struct resource *res;
 	u32 padctrl;
+#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
+#ifdef TINNO_DISABLE_DVFS
+	struct tegra14_emc_pdata *pdata;
+#else
+	int mr_revision_id1 = 0;
+	struct tegra14_emc_dual_pdata *pdata;
+#endif
+#else
+	struct tegra14_emc_pdata *pdata;
+#endif
+	struct tegra14_emc_pdata *emc_pdata;
 
 	pasr_enable = 0;
 
@@ -1728,9 +1742,27 @@ static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 	emc_writel(padctrl, EMC_XM2CMDPADCTRL);
 #endif
 
-	return init_emc_table(pdata->tables, pdata->tables_derated,
-		pdata->tables_low_latency, pdata->tables_low_latency_derated,
-		pdata->num_tables);
+#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
+#ifdef TINNO_DISABLE_DVFS
+	emc_pdata = pdata;	
+#else
+	mr_revision_id1 = emc_read_mrr(0, 6);
+	mr_revision_id1 &= MR_REVISION_ID1_MASK;
+	pr_info("%s: mr_revision_id1 = %d\n", __func__, mr_revision_id1);
+	/* C-version */
+	if (mr_revision_id1 == 2) {
+		emc_pdata = pdata->emc_ext_pdata;
+	} else {	/* A-version */
+		emc_pdata = pdata->emc_pdata;
+	}
+#endif
+#else
+	emc_pdata = pdata;
+#endif
+
+	return init_emc_table(emc_pdata->tables, emc_pdata->tables_derated,
+		emc_pdata->tables_low_latency, emc_pdata->tables_low_latency_derated,
+		emc_pdata->num_tables);
 }
 
 static struct platform_driver tegra14_emc_driver = {

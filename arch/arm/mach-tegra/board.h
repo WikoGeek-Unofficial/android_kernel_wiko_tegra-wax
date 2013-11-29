@@ -31,7 +31,9 @@
 
 //Ivan added
 #define TINNO_PHONE_CONFIG
-#define TINNO_TP_2_CAM
+#define TINNO_TP_2_CAM  
+//#define TINNO_DISABLE_DVFS
+
 #ifdef CONFIG_TEGRA_NVDUMPER
 #define NVDUMPER_RESERVED_SIZE 4096UL
 #endif

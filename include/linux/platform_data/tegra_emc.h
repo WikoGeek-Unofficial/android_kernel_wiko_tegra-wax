@@ -147,4 +147,11 @@ struct tegra14_emc_pdata {
 	struct tegra14_emc_table *tables_low_latency_derated;
 };
 
+#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
+struct tegra14_emc_dual_pdata {
+	struct tegra14_emc_pdata *emc_pdata;
+	struct tegra14_emc_pdata *emc_ext_pdata;
+};
+#endif
+
 #endif
