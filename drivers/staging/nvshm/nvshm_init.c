@@ -125,8 +125,11 @@ static void __exit nvshm_exit(void)
 {
 	struct nvshm_handle *handle = nvshm_get_handle();
 	pr_debug("%s\n", __func__);
-	nvshm_tty_cleanup();
+	nvshm_tty_cleanup(handle);
 	nvshm_net_cleanup(handle);
+	nvshm_stats_cleanup(handle);
+	nvshm_rpc_dispatcher_cleanup();
+	nvshm_rpc_cleanup(handle);
 	nvshm_unregister_ipc(handle);
 	wake_lock_destroy(&handle->dl_lock);
 	wake_lock_destroy(&handle->ul_lock);

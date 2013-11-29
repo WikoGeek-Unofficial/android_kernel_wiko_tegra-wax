@@ -444,7 +444,36 @@ static ssize_t store_tegra_bb_reset(struct device *dev,
 				      struct device_attribute *attr,
 				      const char *buf, size_t count)
 {
-	int ret, value;
+	int value;
+
+	if (sscanf(buf, "%d", &value) != 1)
+		return -1;
+
+	return tegra_bb_set_reset(dev, value);
+}
+
+static ssize_t show_tegra_bb_reset(struct device *dev,
+				      struct device_attribute *attr,
+				      char *buf)
+{
+	int sts;
+	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
+	/* reset is active low - sysfs interface assume reset is active high */
+
+	sts = readl(pmc + PMC_IPC_STS_0);
+	dev_dbg(dev, "%s IPC_STS=0x%x\n", __func__, (unsigned int)sts);
+	sts = ~sts >> AP2BB_RESET_SHIFT;
+	sts &= AP2BB_RESET_DEFAULT_MASK;
+
+	dev_dbg(dev, "%s reset=%d\n", __func__, (unsigned int)sts);
+	return sprintf(buf, "%d\n", (int)sts);
+}
+
+static DEVICE_ATTR(reset, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP,
+		   show_tegra_bb_reset, store_tegra_bb_reset);
+
+int tegra_bb_set_reset(struct device *dev, int value)
+{
 	static bool regulator_status;
 	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
 	struct tegra_bb *bb = dev_get_drvdata(dev);
@@ -453,11 +482,6 @@ static ssize_t store_tegra_bb_reset(struct device *dev,
 		dev_err(dev, "%s tegra_bb not found!\n", __func__);
 		return 0;
 	}
-
-	ret = sscanf(buf, "%d", &value);
-
-	if (ret != 1)
-		return -1;
 
 	if ((value < 0) || (value > 1))
 		return -EINVAL;
@@ -499,29 +523,9 @@ static ssize_t store_tegra_bb_reset(struct device *dev,
 		writel(1 << AP2BB_RESET_SHIFT | 1 << AP2BB_MEM_STS_SHIFT,
 			pmc + PMC_IPC_SET_0);
 	}
-
-	return ret;
+	return 1;
 }
-
-static ssize_t show_tegra_bb_reset(struct device *dev,
-				      struct device_attribute *attr,
-				      char *buf)
-{
-	int sts;
-	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
-	/* reset is active low - sysfs interface assume reset is active high */
-
-	sts = readl(pmc + PMC_IPC_STS_0);
-	dev_dbg(dev, "%s IPC_STS=0x%x\n", __func__, (unsigned int)sts);
-	sts = ~sts >> AP2BB_RESET_SHIFT;
-	sts &= AP2BB_RESET_DEFAULT_MASK;
-
-	dev_dbg(dev, "%s reset=%d\n", __func__, (unsigned int)sts);
-	return sprintf(buf, "%d\n", (int)sts);
-}
-
-static DEVICE_ATTR(reset, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP,
-		   show_tegra_bb_reset, store_tegra_bb_reset);
+EXPORT_SYMBOL(tegra_bb_set_reset);
 
 static ssize_t show_tegra_bb_state(struct device *dev,
 				      struct device_attribute *attr,

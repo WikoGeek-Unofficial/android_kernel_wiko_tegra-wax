@@ -49,7 +49,7 @@ module_param(emc_enable, bool, 0644);
 
 u8 tegra_emc_bw_efficiency = 100;
 static struct emc_iso_usage tegra14_emc_iso_usage[] = {
-	{ BIT(EMC_USER_DC1),				80 },
+	{ BIT(EMC_USER_DC1),				65 },
 	{ BIT(EMC_USER_DC2),				80 },
 	{ BIT(EMC_USER_DC1) | BIT(EMC_USER_DC2),	50 },
 	{ BIT(EMC_USER_DC1) | BIT(EMC_USER_VI),		50 },

@@ -177,7 +177,7 @@ void nvshm_iobuf_process_freed(struct nvshm_iobuf *desc)
 		spin_lock_irqsave(&alloc.lock, f);
 		/* update rate counter */
 		if ((chan >= 0) &&
-		    (chan < NVSHM_MAX_CHANNELS)) {
+		    (chan < priv->chan_count)) {
 			if ((priv->chan[chan].rate_counter++ ==
 			     NVSHM_RATE_LIMIT_TRESHOLD)
 			    && (priv->chan[chan].xoff)) {
@@ -232,7 +232,7 @@ void nvshm_iobuf_free(struct nvshm_iobuf *desc)
 		if (desc->pool_id >= NVSHM_AP_POOL_ID) {
 			/* update rate counter */
 			if ((chan >= 0) &&
-			    (chan < NVSHM_MAX_CHANNELS)) {
+			    (chan < priv->chan_count)) {
 				if ((priv->chan[chan].rate_counter++ ==
 				     NVSHM_RATE_LIMIT_TRESHOLD)
 				    && (priv->chan[chan].xoff)) {

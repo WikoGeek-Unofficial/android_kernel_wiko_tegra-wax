@@ -71,6 +71,7 @@ struct nvshm_handle {
 	int bb_irq;
 	int errno;
 	struct nvshm_config *conf;
+	int chan_count;       /* channels count */
 	int ipc_bb2ap;
 	void *ipc_base_virt;
 	void *mb_base_virt;
@@ -85,8 +86,7 @@ struct nvshm_handle {
 	struct nvshm_iobuf *shared_queue_head; /* shared desc list */
 	struct nvshm_iobuf *shared_queue_tail; /* shared desc list */
 	struct nvshm_iobuf *free_pool_head;    /* free desc list */
-	struct nvshm_channel chan[NVSHM_MAX_CHANNELS];
-	void *ifdev[NVSHM_MAX_CHANNELS];
+	struct nvshm_channel *chan; /* Array of configured channels */
 	struct work_struct nvshm_work;
 	struct workqueue_struct *nvshm_wq;
 	struct hrtimer wake_timer;
@@ -101,16 +101,16 @@ struct nvshm_handle {
 extern struct nvshm_handle *nvshm_get_handle(void);
 
 extern int nvshm_tty_init(struct nvshm_handle *handle);
-extern void nvshm_tty_cleanup(void);
+extern void nvshm_tty_cleanup(struct nvshm_handle *handle);
 
 extern int nvshm_net_init(struct nvshm_handle *handle);
 extern void nvshm_net_cleanup(struct nvshm_handle *handle);
 
 extern int nvshm_rpc_init(struct nvshm_handle *handle);
-extern void nvshm_rpc_cleanup(void);
+extern void nvshm_rpc_cleanup(struct nvshm_handle *handle);
 
 extern void nvshm_stats_init(struct nvshm_handle *handle);
-extern void nvshm_stats_cleanup(void);
+extern void nvshm_stats_cleanup(struct nvshm_handle *handle);
 
 extern int nvshm_rpc_dispatcher_init(void);
 extern void nvshm_rpc_dispatcher_cleanup(void);

@@ -22,6 +22,7 @@
 #include "nvshm_queue.h"
 
 #include <linux/interrupt.h>
+#include <linux/skbuff.h>
 #include <asm/mach/map.h>
 #include <mach/tegra_bb.h>
 #include <asm/cacheflush.h>
@@ -37,38 +38,42 @@ static int ipc_readconfig(struct nvshm_handle *handle)
 	pr_debug("%s\n", __func__);
 
 	conf = (struct nvshm_config *)(handle->mb_base_virt
-				       + NVSHM_CONFIG_OFFSET);
-	/* No change in v2.x kernel prevents from running v1.3 modems, so let's
-	 * ensure some continuity of service.
-	 */
-	if ((conf->version == NVSHM_CONFIG_VERSION_1_3) &&
-	    (NVSHM_MAJOR(NVSHM_CONFIG_VERSION) == 2)) {
-		pr_warn("%s BBC version 1.3, statistics not available\n",
-			__func__);
-	} else if (NVSHM_MAJOR(conf->version) !=
-					NVSHM_MAJOR(NVSHM_CONFIG_VERSION)) {
-		pr_err("%s SHM version mismatch: BBC: %d.%d / AP: %d.%d\n",
-		       __func__,
-		       NVSHM_MAJOR(conf->version),
-		       NVSHM_MINOR(conf->version),
-		       NVSHM_MAJOR(NVSHM_CONFIG_VERSION),
-		       NVSHM_MINOR(NVSHM_CONFIG_VERSION));
-		return -1;
-	} else if (NVSHM_MINOR(conf->version) !=
-					NVSHM_MINOR(NVSHM_CONFIG_VERSION)) {
-		pr_warn("%s SHM versions differ: BBC: %d.%d / AP: %d.%d\n",
-			__func__,
-			NVSHM_MAJOR(conf->version),
-			NVSHM_MINOR(conf->version),
-			NVSHM_MAJOR(NVSHM_CONFIG_VERSION),
-			NVSHM_MINOR(NVSHM_CONFIG_VERSION));
+					   + NVSHM_CONFIG_OFFSET);
+
+	if (NVSHM_MAJOR(conf->version) <= 2) {
+		pr_warn("SHM: Modem config < 3.0 found\n");
+	} else {
+		/* Perform major/minor test for conf > 2 only */
+		/* As 2.1 and 1.3 are compatible */
+		if (NVSHM_MAJOR(conf->version) !=
+		    NVSHM_MAJOR(NVSHM_CONFIG_VERSION)) {
+			pr_err("%s SHM version mismatch: BBC:%d.%d/AP:%d.%d\n",
+			       __func__,
+			       NVSHM_MAJOR(conf->version),
+			       NVSHM_MINOR(conf->version),
+			       NVSHM_MAJOR(NVSHM_CONFIG_VERSION),
+			       NVSHM_MINOR(NVSHM_CONFIG_VERSION));
+			return -1;
+		}
+
+		if (NVSHM_MINOR(conf->version) !=
+		    NVSHM_MINOR(NVSHM_CONFIG_VERSION)) {
+			pr_warn("%s SHM versions differ: BBC:%d.%d/AP:%d.%d\n",
+				__func__,
+				NVSHM_MAJOR(conf->version),
+				NVSHM_MINOR(conf->version),
+				NVSHM_MAJOR(NVSHM_CONFIG_VERSION),
+				NVSHM_MINOR(NVSHM_CONFIG_VERSION));
+		}
 	}
 
 	if (handle->ipc_size != conf->shmem_size) {
-		pr_warn("%s shmem mapped/reported not matching: 0x%x/0x%x\n",
-			__func__, (unsigned int)handle->ipc_size,
-			conf->shmem_size);
+		pr_err("%s shmem mapped/reported differs: 0x%x/0x%x\n",
+		       __func__, (unsigned int)handle->ipc_size,
+		       conf->shmem_size);
+		return -1;
 	}
+
 	handle->desc_base_virt = handle->ipc_base_virt
 		+ conf->region_ap_desc_offset;
 	pr_debug("%s desc_base_virt=0x%p\n",
@@ -86,19 +91,6 @@ static int ipc_readconfig(struct nvshm_handle *handle)
 
 	handle->data_size = conf->region_ap_data_size;
 	pr_debug("%s data_size=%d\n", __func__, (int)handle->data_size);
-
-	if (NVSHM_MAJOR(conf->version) < 2) {
-		handle->stats_base_virt = 0;
-		handle->stats_size = 0;
-	} else {
-		handle->stats_base_virt = handle->mb_base_virt
-			+ conf->region_dxp1_stats_offset;
-		pr_debug("%s stats_base_virt=0x%p\n",
-			 __func__, handle->stats_base_virt);
-
-		handle->stats_size = conf->region_dxp1_stats_size;
-		pr_debug("%s stats_size=%lu\n", __func__, handle->stats_size);
-	}
 
 #ifndef CONFIG_TEGRA_BASEBAND_SIMU
 	handle->shared_queue_head =
@@ -122,17 +114,69 @@ static int ipc_readconfig(struct nvshm_handle *handle)
 		 __func__, (long)handle->shared_queue_tail -
 		 (long)handle->ipc_base_virt);
 
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
-		handle->chan[chan].index = chan;
-		handle->chan[chan].map = conf->chan_map[chan];
-		if (handle->chan[chan].map.type != NVSHM_CHAN_UNMAP) {
-			pr_debug("%s chan[%d]=%s\n",
-				 __func__, chan, handle->chan[chan].map.name);
+	/* From here conf 2.0 and 3.0 diverge - also take care of < 2.0 */
+
+	if (NVSHM_MAJOR(conf->version) <= 2) {
+		/* Serial number (e.g BBC PCID) */
+		tegra_bb_set_ipc_serial(handle->tegra_bb,
+					conf->compat.v2.serial);
+
+		if (NVSHM_MAJOR(conf->version) < 2) {
+			handle->stats_base_virt = 0;
+			handle->stats_size = 0;
+		} else {
+			handle->stats_base_virt = handle->mb_base_virt
+				+ conf->compat.v2.region_dxp1_stats_offset;
+			pr_debug("%s stats_base_virt=0x%p\n",
+				 __func__, handle->stats_base_virt);
+
+			handle->stats_size =
+				conf->compat.v2.region_dxp1_stats_size;
+			pr_debug("%s stats_size=%lu\n", __func__,
+				 handle->stats_size);
 		}
+
+		handle->chan_count = 0;
+		for (chan = 0; chan < NVSHM_MAX_CHANNELS_2_0; chan++) {
+			if (conf->compat.v2.chan_map[chan].type !=
+			    NVSHM_CHAN_UNMAP)
+				handle->chan_count++;
+		}
+	} else {
+		/* Serial number (e.g BBC PCID) */
+		tegra_bb_set_ipc_serial(handle->tegra_bb,
+					conf->compat.v3.serial);
+		pr_debug("%s channel map offset=0x%x\n",
+			 __func__, conf->compat.v3.chan_map_offset);
+		handle->stats_base_virt = handle->mb_base_virt
+			+ conf->compat.v3.region_dxp1_stats_offset;
+		pr_debug("%s stats_base_virt=0x%p\n",
+			 __func__, handle->stats_base_virt);
+
+		handle->stats_size = conf->compat.v3.region_dxp1_stats_size;
+		pr_debug("%s stats_size=%lu\n", __func__, handle->stats_size);
+
+		handle->chan_count = conf->compat.v3.chan_count;
 	}
 
-	/* Serial number (e.g BBC PCID) */
-	tegra_bb_set_ipc_serial(handle->tegra_bb, conf->serial);
+	handle->chan = kzalloc(sizeof(struct nvshm_channel)
+			       * handle->chan_count, GFP_KERNEL);
+
+	if (NVSHM_MAJOR(conf->version) <= 2) {
+		for (chan = 0; chan < handle->chan_count; chan++) {
+			handle->chan[chan].index = chan;
+			handle->chan[chan].map = conf->compat.v2.chan_map[chan];
+		}
+	} else {
+		struct nvshm_chan_map *map;
+		map = (struct nvshm_chan_map *)(handle->mb_base_virt +
+					conf->compat.v3.chan_map_offset);
+		for (chan = 0; chan < handle->chan_count; chan++) {
+			handle->chan[chan].index = chan;
+			handle->chan[chan].map = *map;
+			map++;
+		}
+	}
 
 	/* Invalidate cache for IPC region before use */
 	INV_CPU_DCACHE(handle->ipc_base_virt, handle->ipc_size);
@@ -146,7 +190,7 @@ static int init_interfaces(struct nvshm_handle *handle)
 	int nlog = 0, ntty = 0, nnet = 0, nrpc = 0;
 	int chan;
 
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
+	for (chan = 0; chan < handle->chan_count; chan++) {
 		handle->chan[chan].xoff = 0;
 		switch (handle->chan[chan].map.type) {
 		case NVSHM_CHAN_UNMAP:
@@ -204,7 +248,7 @@ static int cleanup_interfaces(struct nvshm_handle *handle)
 	 */
 	handle->configured = 0;
 
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
+	for (chan = 0; chan < handle->chan_count; chan++) {
 		switch (handle->chan[chan].map.type) {
 		case NVSHM_CHAN_TTY:
 		case NVSHM_CHAN_LOG:
@@ -223,7 +267,7 @@ static int cleanup_interfaces(struct nvshm_handle *handle)
 
 	if (ntty) {
 		pr_debug("%s cleanup %d tty channels\n", __func__, ntty);
-		nvshm_tty_cleanup();
+		nvshm_tty_cleanup(handle);
 	}
 
 	if (nlog)
@@ -237,11 +281,11 @@ static int cleanup_interfaces(struct nvshm_handle *handle)
 	if (nrpc) {
 		pr_debug("%s cleanup %d rpc channels\n", __func__, nrpc);
 		nvshm_rpc_dispatcher_cleanup();
-		nvshm_rpc_cleanup();
+		nvshm_rpc_cleanup(handle);
 	}
 
 	pr_debug("%s cleanup statistics support\n", __func__);
-	nvshm_stats_cleanup();
+	nvshm_stats_cleanup(handle);
 
 	/* Remove serial sysfs entry */
 	tegra_bb_set_ipc_serial(handle->tegra_bb, NULL);
@@ -328,17 +372,6 @@ ipc_exit:
 	enable_irq(handle->bb_irq);
 }
 
-static void start_tx_worker(struct work_struct *work)
-{
-	struct nvshm_channel *chan = container_of(work,
-						  struct nvshm_channel,
-						  start_tx_work);
-
-	pr_warn("%s: start tx on chan %d\n", __func__, chan->index);
-	if (chan->ops)
-		chan->ops->start_tx(chan);
-}
-
 static void nvshm_ipc_handler(void *data)
 {
 	struct nvshm_handle *handle = (struct nvshm_handle *)data;
@@ -370,15 +403,10 @@ static enum hrtimer_restart nvshm_ipc_timer_func(struct hrtimer *timer)
 
 int nvshm_register_ipc(struct nvshm_handle *handle)
 {
-	int chan;
-
 	pr_debug("%s\n", __func__);
 	snprintf(handle->wq_name, 15, "nvshm_queue%d", handle->instance);
 	handle->nvshm_wq = create_singlethread_workqueue(handle->wq_name);
 	INIT_WORK(&handle->nvshm_work, ipc_work);
-
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++)
-		INIT_WORK(&handle->chan[chan].start_tx_work, start_tx_worker);
 
 	hrtimer_init(&handle->wake_timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
 	handle->wake_timer.function = nvshm_ipc_timer_func;

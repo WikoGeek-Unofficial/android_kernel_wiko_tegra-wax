@@ -64,6 +64,7 @@ struct tegra_bbc_proxy {
 	struct regulator *sim1;
 	struct regulator *rf1v7;
 	struct regulator *rf2v65;
+	struct regulator *bb_efuse;
 	int fpwm; /* rf regulators operate in fpwm or auto mode */
 };
 
@@ -753,6 +754,25 @@ int tegra_bbc_proxy_set_rf_mode(struct device *dev, bool fpwm)
 }
 EXPORT_SYMBOL(tegra_bbc_proxy_set_rf_mode);
 
+int tegra_bbc_proxy_bb_fusing_voltage(struct device *dev, bool enabled)
+{
+	struct tegra_bbc_proxy *bbc = dev_get_drvdata(dev);
+
+	if (!bbc)
+		return -EAGAIN;
+
+	if (!bbc->bb_efuse)
+		return -EINVAL;
+
+	if (enabled)
+		regulator_enable(bbc->bb_efuse);
+	else
+		regulator_disable(bbc->bb_efuse);
+
+	return 0;
+}
+EXPORT_SYMBOL(tegra_bbc_proxy_bb_fusing_voltage);
+
 REG_ATTR(sim0);
 REG_ATTR(sim1);
 REG_ATTR(rf1v7);
@@ -919,6 +939,13 @@ static int tegra_bbc_proxy_probe(struct platform_device *pdev)
 		}
 	}
 
+	bbc->bb_efuse = regulator_get(&pdev->dev, "vpp_bb_fuse");
+	if (IS_ERR(bbc->bb_efuse)) {
+		dev_info(&pdev->dev,
+			 "vpp_bb_fuse regulator not available\n");
+		bbc->bb_efuse = NULL;
+	}
+
 	atomic_set(&bbc->mode, 0);
 	ret = device_create_file(&pdev->dev, &mode_attr);
 	if (ret) {
@@ -934,6 +961,7 @@ static int tegra_bbc_proxy_probe(struct platform_device *pdev)
 	return 0;
 
 mode_error:
+	regulator_put(bbc->bb_efuse);
 	attrs = rf_attributes;
 	while ((attr = *attrs++))
 		device_remove_file(&pdev->dev, attr);
@@ -976,6 +1004,9 @@ static int __exit tegra_bbc_proxy_remove(struct platform_device *pdev)
 	struct device_attribute *attr;
 
 	device_remove_file(&pdev->dev, &mode_attr);
+
+	if (bbc->bb_efuse)
+		regulator_put(bbc->bb_efuse);
 
 	if (bbc->rf1v7 && bbc->rf2v65) {
 		attrs = rf_attributes;

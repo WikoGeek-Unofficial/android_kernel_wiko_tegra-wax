@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 NVIDIA Corporation.
+ * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -23,6 +23,7 @@
 enum nvshm_rpc_programs {
 	NVSHM_RPC_PROGRAM_TEST,
 	NVSHM_RPC_PROGRAM_RSM,
+	NVSHM_RPC_PROGRAM_PMIC,
 	NVSHM_RPC_PROGRAMS_MAX
 };
 

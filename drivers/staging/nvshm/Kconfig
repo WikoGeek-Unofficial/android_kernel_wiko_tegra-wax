@@ -15,3 +15,13 @@ config NVSHM_RPC_RSM
 	help
 	    This provides the support for RSM (resource management) via the
 	    shared memory interface's RPC (remote procedure call) channel.
+
+config NVSHM_RPC_PMIC
+	bool "RPC mechanism for BBC PMIC access"
+	default y
+	depends on NVSHM
+	depends on TEGRA_BBC_PROXY
+	depends on TEGRA_BASEBAND
+	help
+	    This provides the support for any BBC PMIC access via the
+	    shared memory interface's RPC (remote procedure call) channel.

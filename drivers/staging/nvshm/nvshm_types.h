@@ -24,28 +24,25 @@
 
 /* Shared memory fixed offsets */
 
-#define NVSHM_IPC_BASE (0x0)              /* IPC mailbox base offset */
-#define NVSHM_IPC_MAILBOX (0x0)           /* IPC mailbox offset */
-#define NVSHM_IPC_RETCODE (0x4)           /* IPC mailbox return code offset */
-#define NVSHM_IPC_SIZE (4096)             /* IPC mailbox region size */
-#define NVSHM_CONFIG_OFFSET (8)           /* shared memory config offset */
-#define NVSHM_MAX_CHANNELS (12)           /* Maximum number of channels */
-#define NVSHM_CHAN_NAME_SIZE (27)         /* max channel name size in chars */
+#define NVSHM_IPC_BASE (0x0)         /* IPC mailbox base offset */
+#define NVSHM_IPC_MAILBOX (0x0)      /* IPC mailbox offset */
+#define NVSHM_IPC_RETCODE (0x4)      /* IPC mailbox return code offset */
+#define NVSHM_IPC_SIZE (4096)        /* IPC mailbox region size */
+#define NVSHM_CONFIG_OFFSET (8)      /* shared memory config offset */
+#define NVSHM_MAX_CHANNELS_2_0 (12)  /* Maximum number of channels (conf 2.0)*/
+#define NVSHM_CHAN_NAME_SIZE (27)    /* max channel name size in chars */
 
 /* Versions: */
 #define NVSHM_MAJOR(v) (v >> 16)
 #define NVSHM_MINOR(v) (v & 0xFFFF)
-/** Version 1.3 is supported. Keep until modem image has reached v2.x in main */
-#define NVSHM_CONFIG_VERSION_1_3 (0x00010003)
-/** Version with statistics export support, otherwise compatible with v1.3 */
-#define NVSHM_CONFIG_VERSION (0x00020001)
-
+/** Version with extended channels support - dual compatibility for now */
+#define NVSHM_CONFIG_VERSION     (0x00030000)
 
 #define NVSHM_AP_POOL_ID (128) /* IOPOOL ID - use 128-255 for AP */
 
-#define NVSHM_RATE_LIMIT_TTY (128)
+#define NVSHM_RATE_LIMIT_TTY (256)
 #define NVSHM_RATE_LIMIT_LOG (256)
-#define NVSHM_RATE_LIMIT_NET (512)
+#define NVSHM_RATE_LIMIT_NET (768)
 #define NVSHM_RATE_LIMIT_RPC (128)
 #define NVSHM_RATE_LIMIT_TRESHOLD (16)
 
@@ -90,7 +87,8 @@ struct nvshm_chan_map {
 	char name[NVSHM_CHAN_NAME_SIZE+1];
 };
 
-/*
+
+/* v2/v3 config
  * This structure is set by BB after boot to give AP its current shmem mapping
  * BB initialize all descriptor content and give initial empty element
  * for each queue
@@ -112,11 +110,23 @@ struct nvshm_config {
 	int region_bb_data_size;
 	int queue_ap_offset;
 	int queue_bb_offset;
-	struct nvshm_chan_map chan_map[NVSHM_MAX_CHANNELS];
-	char serial[NVSHM_SERIAL_BYTE_SIZE];
-	int region_dxp1_stats_offset;
-	int region_dxp1_stats_size;
-	int guard;
+	union {
+		struct {
+			int chan_count;
+			int chan_map_offset;
+			char serial[NVSHM_SERIAL_BYTE_SIZE];
+			int region_dxp1_stats_offset;
+			int region_dxp1_stats_size;
+			int guard;
+		} v3;
+		struct {
+			struct nvshm_chan_map chan_map[NVSHM_MAX_CHANNELS_2_0];
+			char serial[NVSHM_SERIAL_BYTE_SIZE];
+			int region_dxp1_stats_offset;
+			int region_dxp1_stats_size;
+			int guard;
+		} v2;
+	} compat;
 };
 
 /*
@@ -159,7 +169,6 @@ struct nvshm_channel {
 	void *data;
 	int rate_counter;
 	int xoff;
-	struct work_struct start_tx_work;
 };
 
 

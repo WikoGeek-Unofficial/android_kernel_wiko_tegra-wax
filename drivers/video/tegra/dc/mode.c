@@ -29,6 +29,8 @@
 #include "dc_reg.h"
 #include "dc_priv.h"
 
+#define DEBUG
+
 /* return non-zero if constraint is violated */
 static int calc_h_ref_to_sync(const struct tegra_dc_mode *mode, int *href)
 {
@@ -179,7 +181,14 @@ static void print_mode(struct tegra_dc *dc,
 			const struct tegra_dc_mode *mode, const char *note)
 {
 	if (mode) {
-		int refresh = tegra_dc_calc_refresh(mode);
+		int refresh;
+
+		/* panel working without smart mode */
+		if (dc->out->refresh_rate)
+			refresh = dc->out->refresh_rate;
+		else
+			refresh = tegra_dc_calc_refresh(mode);
+
 		dev_info(&dc->ndev->dev, "%s():MODE:%dx%d@%d.%03uHz pclk=%d\n",
 			note ? note : "",
 			mode->h_active, mode->v_active,

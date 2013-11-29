@@ -84,7 +84,7 @@ void nvshm_stats_init(struct nvshm_handle *handle)
 	raw_notifier_call_chain(&notifier_list, NVSHM_STATS_MODEM_UP, NULL);
 }
 
-void nvshm_stats_cleanup(void)
+void nvshm_stats_cleanup(struct nvshm_handle *handle)
 {
 	raw_notifier_call_chain(&notifier_list, NVSHM_STATS_MODEM_DOWN, NULL);
 }

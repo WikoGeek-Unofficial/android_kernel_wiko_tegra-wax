@@ -212,7 +212,7 @@ static struct regulator_consumer_supply max77660_ldo9_supply[] = {
 
 static struct regulator_consumer_supply max77660_ldo10_supply[] = {
 	REGULATOR_SUPPLY("vpp_fuse", NULL),
-	REGULATOR_SUPPLY("vpp_bb_fuse", NULL),
+	REGULATOR_SUPPLY("vpp_bb_fuse", "tegra_bbc_proxy"),
 };
 
 static struct regulator_consumer_supply max77660_ldo11_supply[] = {

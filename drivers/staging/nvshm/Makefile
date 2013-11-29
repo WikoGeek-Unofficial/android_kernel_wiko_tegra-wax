@@ -14,3 +14,4 @@ nvshm-objs += nvshm_stats.o
 
 obj-$(CONFIG_NVSHM) += nvshm.o
 obj-$(CONFIG_NVSHM_RPC_RSM) += nvshm_rpc_prog_rsm.o
+obj-$(CONFIG_NVSHM_RPC_PMIC) += nvshm_rpc_prog_pmic.o

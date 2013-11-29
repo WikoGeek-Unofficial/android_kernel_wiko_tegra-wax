@@ -460,10 +460,10 @@ int nvshm_net_init(struct nvshm_handle *handle)
 	pr_debug("%s()\n", __func__);
 
 	net_count = 0;
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
+	for (chan = 0; chan < handle->chan_count; chan++) {
 		if (handle->chan[chan].map.type == NVSHM_CHAN_NET) {
-			handle->ifdev[chan] =
-				nvshm_net_create(handle, chan, net_count);
+			handle->chan[chan].data =
+			nvshm_net_create(handle, chan, net_count);
 			net_count++;
 		}
 	}
@@ -476,9 +476,8 @@ void nvshm_net_cleanup(struct nvshm_handle *handle)
 
 	pr_debug("%s()\n", __func__);
 
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
+	for (chan = 0; chan < handle->chan_count; chan++) {
 		if (handle->chan[chan].map.type == NVSHM_CHAN_NET)
-			nvshm_net_remove(handle->ifdev[chan]);
+			nvshm_net_remove(handle->chan[chan].data);
 	}
 }
-

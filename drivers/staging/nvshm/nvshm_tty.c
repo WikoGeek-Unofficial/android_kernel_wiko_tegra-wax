@@ -249,6 +249,7 @@ static int nvshm_tty_write(struct tty_struct *tty, const unsigned char *buf,
 				return -ENOMEM;
 			} else {
 				pr_err("%s: Xoff condition\n", __func__);
+				tty_throttle(tty);
 				return 0;
 			}
 		}
@@ -371,13 +372,13 @@ int nvshm_tty_init(struct nvshm_handle *handle)
 
 	/* calculate number of lines for tty */
 	count = 0;
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
+	for (chan = 0; chan < handle->chan_count; chan++) {
 		if ((handle->chan[chan].map.type == NVSHM_CHAN_TTY)
 			|| (handle->chan[chan].map.type == NVSHM_CHAN_LOG)) {
 			count++;
 		}
 	}
-
+	tty_dev.nlines = count;
 	tty_dev.tty_wq = create_singlethread_workqueue("NVSHM_tty");
 	INIT_WORK(&tty_dev.tty_worker, nvshm_tty_rx_rewrite);
 
@@ -417,33 +418,30 @@ int nvshm_tty_init(struct nvshm_handle *handle)
 	}
 
 	/* map nvshm channels to tty lines */
-	for (chan = 0; chan < NVSHM_MAX_CHANNELS; chan++) {
+	for (chan = 0; chan < handle->chan_count; chan++) {
 		if ((handle->chan[chan].map.type == NVSHM_CHAN_TTY)
 			|| (handle->chan[chan].map.type == NVSHM_CHAN_LOG)) {
-			BUG_ON(tty_dev.nlines >= count);
-			tty_dev.line[tty_dev.nlines].nvshm_chan = chan;
-			tty_dev.line[tty_dev.nlines].ipc_bb2ap =
+			tty_dev.line[chan].nvshm_chan = chan;
+			tty_dev.line[chan].ipc_bb2ap =
 				handle->ipc_bb2ap;
-			tty_dev.nlines++;
 		}
 	}
 
 	/* register as tty for each tty line */
-	for (chan = 0; chan < tty_dev.nlines; chan++) {
+	for (chan = 0; chan < count; chan++) {
 		pr_debug("%s: register tty#%d cha %d\n",
 			 __func__, chan, tty_dev.line[chan].nvshm_chan);
 		spin_lock_init(&tty_dev.line[chan].lock);
 		tty_port_init(&tty_dev.line[chan].port);
 		tty_dev.line[chan].port.ops = &nvshm_tty_port_ops;
 		tty_register_device(tty_dev.tty_driver, chan, 0);
-		handle->ifdev[chan] = &tty_dev.line[chan].port;
 	}
 
 	tty_dev.up = NVSHM_TTY_UP;
 	return 0;
 }
 
-void nvshm_tty_cleanup(void)
+void nvshm_tty_cleanup(struct nvshm_handle *handle)
 {
 	int chan;
 

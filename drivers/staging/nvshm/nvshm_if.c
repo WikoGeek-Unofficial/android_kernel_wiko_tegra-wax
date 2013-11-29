@@ -55,8 +55,8 @@ void nvshm_close_channel(struct nvshm_channel *handle)
 	   the IPC */
 
 	spin_lock(&priv->lock);
+	/* Clear ops but not data as it may be used for cleanup */
 	priv->chan[handle->index].ops = NULL;
-	priv->chan[handle->index].data = NULL;
 	spin_unlock(&priv->lock);
 }
 
@@ -103,9 +103,8 @@ int nvshm_write(struct nvshm_channel *handle, struct nvshm_iobuf *iob)
 	return ret;
 }
 
-/* Defered to nvshm_wq because it can be called from atomic context */
 void nvshm_start_tx(struct nvshm_channel *handle)
 {
-	struct nvshm_handle *priv = nvshm_get_handle();
-	queue_work(priv->nvshm_wq, &handle->start_tx_work);
+	if (handle->ops)
+		handle->ops->start_tx(handle);
 }

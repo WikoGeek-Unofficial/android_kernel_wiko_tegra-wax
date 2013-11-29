@@ -44,6 +44,8 @@ int tegra_bbc_proxy_clear_iso(struct device *dev);
 
 int tegra_bbc_proxy_set_rf_mode(struct device *dev, bool fpwm);
 
+int tegra_bbc_proxy_bb_fusing_voltage(struct device *dev, bool enabled);
+
 /* values in KBps */
 #define BBC_ISO_CRASH_BW	500000
 #define BBC_ISO_BOOT_BW		1200000

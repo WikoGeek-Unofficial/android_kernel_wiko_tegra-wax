@@ -85,4 +85,11 @@ void tegra_bb_set_ipc_serial(struct platform_device *pdev, char *serial);
  */
 void tegra_bb_set_emc_floor(struct device *dev, unsigned long freq, u32 flags);
 
+/*
+ * tegra_bb_set_reset
+ * @param struct device pointer
+ * @param value
+ * @return 1 if OK
+ */
+int tegra_bb_set_reset(struct device *dev, int value);
 #endif

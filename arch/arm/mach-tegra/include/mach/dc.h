@@ -520,6 +520,7 @@ struct tegra_dc_out {
 	unsigned		n_out_sel_configs;
 	bool			user_needs_vblank;
 	struct completion	user_vblank_comp;
+	unsigned		refresh_rate;
 
 	int	(*enable)(struct device *);
 	int	(*postpoweron)(void);

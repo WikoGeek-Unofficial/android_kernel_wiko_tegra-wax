@@ -1103,4 +1103,12 @@ config TEGRA_SOC_TIMERS
 	help
 	  When enabled, cpu clock events will be using SOC timers instead
 	  of arm private timers.
+
+config TEGRA_T14x_DUAL_MEMORY
+	bool "Enable dual memory support for T14x chip"
+	depends on ARCH_TEGRA_14x_SOC
+	default n
+	help
+	  When enabled, T14x will support dula memory chip.
+
 endif
