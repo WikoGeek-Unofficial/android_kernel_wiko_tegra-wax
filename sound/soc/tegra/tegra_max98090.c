@@ -142,7 +142,6 @@ static int tegra_fm_mode_put(struct snd_kcontrol *kcontrol,
 	int new_fm_mode = ucontrol->value.integer.value[0];
 	int codec_index;
 	unsigned int i;
-	printk("%s\n", __func__);
 	if (current_fm_mode == new_fm_mode)
 		return 0;
 
@@ -212,7 +211,6 @@ static int tegra_call_mode_put(struct snd_kcontrol *kcontrol,
 	int is_call_mode_new = ucontrol->value.integer.value[0];
 	int codec_index;
 	unsigned int i;
-	printk("%s\n", __func__);
 
 	if (machine->is_call_mode == is_call_mode_new)
 		return 0;
@@ -932,7 +930,6 @@ static int tegra_fm_hw_params(struct snd_pcm_substream *substream,
 	struct tegra_asoc_platform_data *pdata = machine->pdata;
 	int srate, mclk, i2s_daifmt;
 	int err, rate, sample_size;
-	printk("@@@%s\n", __func__);
 
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
@@ -946,7 +943,6 @@ static int tegra_fm_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	srate = params_rate(params);
-	printk("srate %d\n", srate);
 	switch (srate) {
 	case 8000:
 	case 16000:
@@ -992,7 +988,6 @@ static int tegra_fm_hw_params(struct snd_pcm_substream *substream,
 		dev_err(card->dev, "Can't configure i2s format\n");
 		return -EINVAL;
 	}
-	printk("i2s_daifmt:%x\n", i2s_daifmt);
 
 	err = tegra_asoc_utils_set_rate(&machine->util_data, srate, mclk);
 	if (err < 0) {
@@ -1021,7 +1016,6 @@ static int tegra_fm_hw_params(struct snd_pcm_substream *substream,
 			return err;
 		}
 	}
-	printk("i2s_daifmt setting end\n");
 
 	err = snd_soc_dai_set_sysclk(codec_dai, 0, rate, SND_SOC_CLOCK_IN);
 	if (err < 0) {
@@ -1314,6 +1308,8 @@ static int tegra_max98090_init(struct snd_soc_pcm_runtime *rtd)
 
 	i2s->is_dam_used = false;
 	if (i2s->id == machine->codec_info[BT_SCO].i2s_id)
+		i2s->is_dam_used = true;
+	if (i2s->id == machine->codec_info[HIFI_CODEC].i2s_id)
 		i2s->is_dam_used = true;
 
 	if (machine->init_done)
