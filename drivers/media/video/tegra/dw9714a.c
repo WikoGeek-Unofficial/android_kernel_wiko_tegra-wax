@@ -1,6 +1,8 @@
-/* Copyright (C) 2011-2013 NVIDIA Corporation.
+/*
+ * dw9714a.c - dw9714a focuser driver
  *
- * This program is free software; you can redistribute it and/or modify
+ * Copyright (C) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  *
@@ -81,9 +83,6 @@
  * will be used in the regulator_get function in the _vreg_init function.
  * The board power file and <device>_vregs regulator ID strings must match.
  */
-
-#define DEBUG 1
-
 #include <linux/fs.h>
 #include <linux/i2c.h>
 #include <linux/miscdevice.h>
@@ -118,7 +117,6 @@ struct dw9714a_info {
 	struct miscdevice miscdev;
 	struct list_head list;
 	int pwr_dev;
-	//struct nvc_gpio gpio[ARRAY_SIZE(dw9714a_gpio)];
 	struct dw9714a_power_rail power;
 	int id_minor;
 	u32 pos;
@@ -352,8 +350,6 @@ static int dw9714a_power_get(struct dw9714a_info *info)
 	struct dw9714a_power_rail *pw = &info->power;
 
 	dw9714a_regulator_get(info, &pw->vdd, "af_vdd");
-	//dw9714a_regulator_get(info, &pw->vdd, "vdd_af_cam1");
-	//dw9714a_regulator_get(info, &pw->vdd_i2c, "vddio_cam_mb");
 
 	return 0;
 }
@@ -369,12 +365,10 @@ static void dw9714a_pm_exit(struct dw9714a_info *info)
 {
 	dw9714a_pm_wr(info, NVC_PWR_OFF_FORCE);
 	dw9714a_power_put(&info->power);
-	//dw9714a_gpio_exit(info);
 }
 
 static void dw9714a_pm_init(struct dw9714a_info *info)
 {
-	//dw9714a_gpio_init(info);
 	dw9714a_power_get(info);
 }
 
@@ -386,8 +380,7 @@ static int dw9714a_reset(struct dw9714a_info *info, u32 level)
 		dev_err(&info->i2c_client->dev, "%s SW reset not supported\n",
 			__func__);
 		err = -EINVAL;
-	}
-	else
+	} else
 		err = dw9714a_pm_wr(info, NVC_PWR_OFF_FORCE);
 
 	return err;
@@ -463,7 +456,8 @@ static int dw9714a_position_wr(struct dw9714a_info *info, s32 position)
 	return 0;
 
 dw9714a_set_position_fail:
-	dev_err(&info->i2c_client->dev, "[CAM] DW9714A: %s: set position failed\n", __func__);
+	dev_err(&info->i2c_client->dev,
+		"[CAM] DW9714A: %s: set position failed\n", __func__);
 	return err;
 }
 
@@ -666,8 +660,7 @@ static int dw9714a_param_wr(struct dw9714a_info *info, unsigned long arg)
 				if (!err) {
 					info->s_mode = u8val;
 					info->s_info->s_mode = u8val;
-				}
-				else {
+				} else {
 					if (info->s_mode != NVC_SYNC_STEREO)
 						dw9714a_pm_wr(info->s_info,
 						NVC_PWR_OFF);
@@ -687,8 +680,7 @@ static int dw9714a_param_wr(struct dw9714a_info *info, unsigned long arg)
 				if (!err) {
 					info->s_mode = u8val;
 					info->s_info->s_mode = u8val;
-				}
-				else {
+				} else {
 					if (info->s_mode != NVC_SYNC_SLAVE)
 						dw9714a_pm_wr(info->s_info,
 							NVC_PWR_OFF);
@@ -744,7 +736,7 @@ static long dw9714a_ioctl(struct file *file,
 	struct dw9714a_info *info = file->private_data;
 	int pwr;
 	int err = 0;
-        dev_dbg(&info->i2c_client->dev, "MCD :%d", cmd );
+	dev_dbg(&info->i2c_client->dev, "MCD :%d", cmd);
 	switch (cmd) {
 	case NVC_IOCTL_PARAM_WR:
 		dw9714a_pm_dev_wr(info, NVC_PWR_ON);

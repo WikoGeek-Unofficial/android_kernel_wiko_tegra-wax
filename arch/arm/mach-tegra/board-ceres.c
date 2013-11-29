@@ -915,7 +915,7 @@ static struct tegra_i2c_platform_data ceres_i2c2_platform_data = {
 };
 
 static struct tegra_i2c_platform_data ceres_i2c3_platform_data = {
-	.bus_clk_rate	= 400000,
+	.bus_clk_rate	= 100000,//400000
 	.scl_gpio	= -1,
 	.sda_gpio	= -1,
 };
@@ -927,7 +927,7 @@ static struct tegra_i2c_platform_data ceres_i2c4_platform_data = {
 };
 
 static struct tegra_i2c_platform_data ceres_i2c5_platform_data = {
-	.bus_clk_rate	= 400000,
+	.bus_clk_rate	= 100000,//400000
 	.scl_gpio	=  TEGRA_GPIO_PJ7,
 	.sda_gpio	= TEGRA_GPIO_PP0,
 	.needs_cl_dvfs_clock = true,

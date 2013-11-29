@@ -211,3 +211,10 @@ config VIDEO_CAMERA
         ---help---
           This is a driver for generic camera devices
           for use with the tegra isp.
+
+config FLASH_SGM3780
+        tristate "Tinno Flash Device support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the Tinno Flash Device SGM3780
+          for use with the tegra isp.

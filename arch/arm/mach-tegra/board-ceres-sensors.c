@@ -26,8 +26,9 @@
 #include <linux/pid_thermal_gov.h>
 #include <generated/mach-types.h>
 #include <mach/edp.h>
-#include <media/imx179.h> //luis
-#include "include/mach/pinmux-t14.h" //luis
+#include <media/imx179.h>
+#include "include/mach/pinmux-t14.h"
+#include <media/sgm3780.h>
 
 #include <media/camera.h>
 #include <media/imx091.h>
@@ -1132,6 +1133,7 @@ static struct nvc_imager_cap imx179_cap = {
 	.min_blank_time_width	= 16,
 	.min_blank_time_height	= 16,
 	.focuser_guid		= NVC_FOCUS_GUID(0),
+	.torch_guid		= NVC_TORCH_GUID(0),
 	.cap_version		= NVC_IMAGER_CAPABILITIES_VERSION2,
 };
 
@@ -1386,6 +1388,32 @@ static struct camera_platform_data ceres_pcl_pdatax = {
 };
 
 
+static unsigned tinno_flash_estates[] = {1200, 320, 0};
+static struct tinno_flash_platform_data tinno_flash_pdata = {
+	.dev_name = "torch",
+	.edpc_config = {
+		.states		= tinno_flash_estates,
+		.num_states	= ARRAY_SIZE(tinno_flash_estates),
+		.e0_index	= ARRAY_SIZE(tinno_flash_estates) - 1,
+		.priority	= EDP_MIN_PRIO - 2,
+	},
+	.gpio_en_torch = TEGRA_GPIO_PS5,
+	.gpio_en_flash = TEGRA_GPIO_PS1,
+	.pinstate	= {0x0000, 0x0000},
+	.edp_state_flash = 0,
+	.edp_state_torch = 1,
+	.cfg = 0,
+	.num = 0,
+};
+
+
+static struct platform_device tinno_flash_device = {
+	.name = "tinno_flash",
+	.id = -1,
+	.dev = {
+		.platform_data = &tinno_flash_pdata,
+	},
+};
 
 static int ceres_camera_init(void)
 {
@@ -1422,6 +1450,8 @@ static int ceres_camera_init(void)
 	platform_device_add_data(&ceres_camera_generic,
 		&ceres_pcl_pdatax, sizeof(ceres_pcl_pdatax));
 	platform_device_register(&ceres_camera_generic);
+
+	platform_device_register(&tinno_flash_device);
 
 	return 0;
 }

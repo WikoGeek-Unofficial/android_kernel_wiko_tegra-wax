@@ -40,17 +40,21 @@
 
 
 #include <media/ov5648.h>
+#include <ov5648_otp.h>
 
+#if 0
 #define SIZEOF_I2C_TRANSBUF 32
 #define OV5648_REG_GLOBAL_GAIN          0x350a
 #define OV5648_REG_GLOBAL_COARSE_TIME   0x3500
 #define OV5648_REG_GLOBAL_FRAME_LENGTH  0x380e
+#endif
 
 struct ov5648_reg {
 	u16 addr;
 	u16 val;
 };
 
+#if 0
 static struct nvc_regulator_init ov5648_vregs[] = {
 	{ OV5648_VREG_DVDD, "vdd_cam_1v2", },
 	{ OV5648_VREG_AVDD, "avdd_cam2", },
@@ -68,6 +72,7 @@ struct ov5648_info {
 	u8 i2c_trans_buf[SIZEOF_I2C_TRANSBUF];
 	u32 flag;
 };
+#endif
 
 static LIST_HEAD(ov5648_info_list);
 
@@ -721,6 +726,15 @@ static int ov5648_read_reg_bulk(struct i2c_client *client,
 	return 0;
 }
 
+int OV5648MIPI_read_cmos_sensor(struct ov5648_info *info, u16 reg)
+{
+	u8 val;
+	if(ov5648_read_reg(info->i2c_client, reg, &val))
+		return -EIO;
+	else
+		return val;
+}
+
 static int ov5648_write_reg(struct i2c_client *client, u16 addr, u8 val)
 {
 	int err;
@@ -777,6 +791,11 @@ static int ov5648_write_bulk_reg(
 		(int)data[0] << 8 | data[1]);
 
 	return err;
+}
+
+int OV5648MIPI_write_cmos_sensor(struct ov5648_info *info, u16 reg, u8 val)
+{
+	return ov5648_write_reg(info->i2c_client, reg, val);
 }
 
 static int ov5648_write_table(struct ov5648_info *info,
@@ -872,6 +891,8 @@ static int ov5648_set_mode(
 		return err;
 	}
 	info->mode = sensor_mode;
+
+	update_truly_otp_wb(info, OV5648_RoverG_dec_base, OV5648_BoverG_dec_base);
 	return 0;
 }
 static int ov5648_set_frame_length(
@@ -982,6 +1003,25 @@ static int ov5648_get_status(struct ov5648_info *info, u8 *status)
 	return err;
 }
 
+static u32 ov5648_get_fuse_id(struct ov5648_info *info)
+{
+	u32 ret;
+	if (info->fuse_id.size)
+		return 0;
+
+	ret = OV5648_ReadFuseIDFromOTP(info);
+
+	if (ret){
+		info->fuse_id.size = 4;
+		info->fuse_id.data[0] = ret >> 24;
+		info->fuse_id.data[1] = ret >> 16;
+		info->fuse_id.data[2] = ret >> 8;
+		info->fuse_id.data[3] = ret;
+		ret = 0;
+	}
+        dev_dbg(&info->i2c_client->dev, "%s mingji test: %d\n", __func__, ret);
+	return ret;
+}
 
 static long ov5648_ioctl(
 			struct file *file,
@@ -992,6 +1032,22 @@ static long ov5648_ioctl(
 	struct ov5648_info *info = file->private_data;
 
 	switch (cmd) {
+	case OV5648_IOCTL_GET_FUSEID:
+		dev_dbg(&info->i2c_client->dev, "%s mingji test!\n", __func__);
+		err = ov5648_get_fuse_id(info);
+		if (err) {
+			pr_err("%s %d %d\n", __func__, __LINE__, err);
+			return err;
+		}
+		if (copy_to_user((void __user *)arg,
+					&info->fuse_id,
+					sizeof(struct nvc_fuseid))) {
+			pr_err("%s: %d: fail copy fuse id to user space\n",
+					__func__, __LINE__);
+			return -EFAULT;
+		}
+		return 0;
+
 	case OV5648_IOCTL_SET_MODE:
 	{
 		struct ov5648_mode mode;

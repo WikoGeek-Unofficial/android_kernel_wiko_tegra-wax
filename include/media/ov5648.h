@@ -16,6 +16,7 @@
 #define OV5648_IOCTL_SET_GAIN           _IOW('o', 4, __u16)
 #define OV5648_IOCTL_GET_STATUS         _IOR('o', 5, __u8)
 #define OV5648_IOCTL_SET_GROUP_HOLD     _IOW('o', 6, struct ov5648_ae)
+#define OV5648_IOCTL_GET_FUSEID         _IOR('o', 7, struct nvc_fuseid)
 
 /* The enumeration must be in the order the regulators are to be enabled */
 /* See Power Requirements note in the driver */
