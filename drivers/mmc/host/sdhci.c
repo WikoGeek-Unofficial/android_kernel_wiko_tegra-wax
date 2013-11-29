@@ -1576,6 +1576,30 @@ static void sdhci_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	sdhci_runtime_pm_put(host);
 }
 
+static void sdhci_dumpcmds(struct sdhci_host *host)
+{
+	struct mmc_command *cmd = host->cmd;
+
+	pr_err(DRIVER_NAME ": =========== COMMAND DUMP (%s)===========\n",
+		mmc_hostname(host->mmc));
+
+	pr_err(DRIVER_NAME ": opcode:   0x%08x | arg:      0x%08x\n",
+		cmd->opcode, cmd->arg);
+	pr_err(DRIVER_NAME ": resp[0]:  0x%08x | resp[1]:  0x%08x\n",
+		cmd->resp[0], cmd->resp[1]);
+	pr_err(DRIVER_NAME ": resp[2]:  0x%08x | resp[3]:  0x%08x\n",
+		cmd->resp[2], cmd->resp[3]);
+	pr_err(DRIVER_NAME ": flags:    0x%08x | retries:  0x%08x\n",
+		cmd->flags, cmd->retries);
+	pr_err(DRIVER_NAME ": error:    0x%08x | data:    0x%08x\n",
+		cmd->error, cmd->data);
+	pr_err(DRIVER_NAME ": cmd_timeout_ms: 0x%08x\n", cmd->cmd_timeout_ms);
+	pr_err(DRIVER_NAME ": mrq:      0x%08x\n", cmd->mrq);
+
+	pr_err(DRIVER_NAME ": ===========================================\n");
+}
+
+
 static int sdhci_check_ro(struct sdhci_host *host)
 {
 	unsigned long flags;
@@ -2317,6 +2341,7 @@ static void sdhci_timeout_timer(unsigned long data)
 	if (host->mrq) {
 		pr_err("%s: Timeout waiting for hardware "
 			"interrupt.\n", mmc_hostname(host->mmc));
+		sdhci_dumpcmds(host);		//Ivan NV added
 		sdhci_dumpregs(host);
 
 		if (host->data) {
@@ -2959,6 +2984,7 @@ int sdhci_add_host(struct sdhci_host *host)
 		host->flags &= ~SDHCI_USE_ADMA;
 	}
 
+	pr_info("%s: +++\n", __func__);
 	if (host->flags & (SDHCI_USE_SDMA | SDHCI_USE_ADMA)) {
 		if (host->ops->enable_dma) {
 			if (host->ops->enable_dma(host)) {
@@ -3417,6 +3443,7 @@ untasklet:
 	tasklet_kill(&host->card_tasklet);
 	tasklet_kill(&host->finish_tasklet);
 
+	pr_info("%s: ---\n", __func__);
 	return ret;
 }
 

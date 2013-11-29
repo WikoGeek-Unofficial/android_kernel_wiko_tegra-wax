@@ -2318,17 +2318,20 @@ static int mmc_blk_resume(struct mmc_card *card)
 	struct mmc_blk_data *part_md;
 	struct mmc_blk_data *md = mmc_get_drvdata(card);
 
+	pr_info("%s: +++\n", __func__);
 	if (md) {
 		/*
 		 * Resume involves the card going into idle state,
 		 * so current partition is always the main one.
 		 */
+		pr_info("%s: md = 0x%08X\n", __func__, md);
 		md->part_curr = md->part_type;
 		mmc_queue_resume(&md->queue);
 		list_for_each_entry(part_md, &md->part, part) {
 			mmc_queue_resume(&part_md->queue);
 		}
 	}
+	pr_info("%s: ---\n", __func__);
 	return 0;
 }
 #else

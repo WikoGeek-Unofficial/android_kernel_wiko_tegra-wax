@@ -2665,6 +2665,7 @@ static int tegra_sdhci_resume(struct sdhci_host *sdhci)
 	struct tegra_sdhci_platform_data *plat;
 	int err;
 
+	pr_info("%s: +++\n", __func__);
 	pdev = to_platform_device(mmc_dev(sdhci->mmc));
 	plat = pdev->dev.platform_data;
 
@@ -2698,10 +2699,13 @@ static int tegra_sdhci_resume(struct sdhci_host *sdhci)
 
 	/* Reset the controller and power on if MMC_KEEP_POWER flag is set*/
 	if (sdhci->mmc->pm_flags & MMC_PM_KEEP_POWER) {
+		pr_info("%s: SDHCI_RESET_ALL and SDHCI_POWER_ON -> SDHCI_POWER_CONTROL\n",
+			__func__);
 		tegra_sdhci_reset(sdhci, SDHCI_RESET_ALL);
 		sdhci_writeb(sdhci, SDHCI_POWER_ON, SDHCI_POWER_CONTROL);
 		sdhci->pwr = 0;
 	}
+	pr_info("%s: ---\n", __func__);
 
 	return 0;
 }

@@ -2878,6 +2878,7 @@ int mmc_resume_host(struct mmc_host *host)
 {
 	int err = 0;
 
+	pr_info("%s: +++\n", __func__);
 	mmc_bus_get(host);
 	if (mmc_bus_manual_resume(host)) {
 		host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
@@ -2923,6 +2924,7 @@ int mmc_resume_host(struct mmc_host *host)
 #endif
 
 	mmc_bus_put(host);
+	pr_info("%s: ---\n", __func__);
 
 	return err;
 }
@@ -2939,7 +2941,7 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 		notify_block, struct mmc_host, pm_notify);
 	unsigned long flags;
 
-
+	pr_info("%s: mode = 0x%08X\n", __func__, mode);
 	switch (mode) {
 	case PM_HIBERNATION_PREPARE:
 	case PM_SUSPEND_PREPARE:

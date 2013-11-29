@@ -415,6 +415,8 @@ void mmc_queue_resume(struct mmc_queue *mq)
 	struct request_queue *q = mq->queue;
 	unsigned long flags;
 
+	pr_info("%s: +++\n", __func__);
+	pr_info("%s: flags = 0x%08X\n", __func__, mq->flags);
 	if (mq->flags & MMC_QUEUE_SUSPENDED) {
 		mq->flags &= ~MMC_QUEUE_SUSPENDED;
 
@@ -424,6 +426,7 @@ void mmc_queue_resume(struct mmc_queue *mq)
 		blk_start_queue(q);
 		spin_unlock_irqrestore(q->queue_lock, flags);
 	}
+	pr_info("%s: ---\n", __func__);
 }
 
 static unsigned int mmc_queue_packed_map_sg(struct mmc_queue *mq,
