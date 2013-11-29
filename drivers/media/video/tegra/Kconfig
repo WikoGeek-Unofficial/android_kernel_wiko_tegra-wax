@@ -191,6 +191,13 @@ config VIDEO_DW9718
           This is a driver for the DW9718 focuser
           for use with the tegra isp.
 
+config VIDEO_DW9714A
+        tristate "DW9714A focuser support"
+        depends on I2C && ARCH_TEGRA
+        ---help---
+          This is a driver for the DW9714A focuser
+          for use with the tegra isp.
+
 config VIDEO_AR0833
         tristate "AR0833 camera sensor support"
         depends on I2C && ARCH_TEGRA

@@ -44,6 +44,7 @@
 #include <media/dw9718.h>
 #include <media/max77387.h>
 #include <media/lm3565.h>
+#include <media/dw9714a.h>
 
 
 #include <linux/kernel.h>
@@ -1130,6 +1131,7 @@ static struct nvc_imager_cap imx179_cap = {
 	.cil_threshold_settle	= 0x0,
 	.min_blank_time_width	= 16,
 	.min_blank_time_height	= 16,
+	.focuser_guid		= NVC_FOCUS_GUID(0),
 	.cap_version		= NVC_IMAGER_CAPABILITIES_VERSION2,
 };
 
@@ -1154,6 +1156,57 @@ static struct imx179_platform_data imx179_pdata = {
 		},
 	.power_on		= pluto_imx179_power_on,
 	.power_off		= pluto_imx179_power_off,
+};
+
+
+
+static int ceres_dw9714a_power_on(struct dw9714a_power_rail *pw)
+{
+	int err;
+
+	if (unlikely(WARN_ON(!pw || !pw->vdd )))
+		return -EFAULT;
+
+	err = regulator_enable(pw->vdd);
+	if (unlikely(err))
+		goto dw9714a_vdd_fail;
+
+	gpio_set_value(CAM_AF_PWDN, 1);
+	msleep(12);
+
+	return 0;
+
+dw9714a_vdd_fail:
+	pr_err("%s FAILED\n", __func__);
+
+	return -ENODEV;
+}
+
+static int ceres_dw9714a_power_off(struct dw9714a_power_rail *pw)
+{
+	if (unlikely(WARN_ON(!pw || !pw->vdd )))
+		return -EFAULT;
+
+	gpio_set_value(CAM_AF_PWDN, 0);
+	regulator_disable(pw->vdd);
+
+	return 0;
+}
+
+
+
+static struct dw9714a_platform_data ceres_dw9714a_pdata = {
+	.cfg		= 0,
+	.num		= 0,
+	.sync		= 0,
+	.dev_name	= "focuser",
+	.power_on	= ceres_dw9714a_power_on,
+	.power_off	= ceres_dw9714a_power_off,
+};
+
+static struct i2c_board_info ceres_i2c_board_info_dw9714a = {
+	I2C_BOARD_INFO("dw9714a", 0x18>>1),
+	.platform_data = &ceres_dw9714a_pdata,
 };
 
 static struct i2c_board_info ceres_i2c_board_info_imx179 = {
@@ -1318,6 +1371,7 @@ static struct camera_module ceres_camera_module_infox[] = {
 	{
 		/* rear camera */
         .sensor = &ceres_i2c_board_info_imx179,
+        .focuser = &ceres_i2c_board_info_dw9714a,
 	},
 	{
 		.sensor = &ceres_i2c_board_info_ov5648,

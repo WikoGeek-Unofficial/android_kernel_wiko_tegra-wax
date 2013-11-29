@@ -150,9 +150,8 @@ static struct regulator_consumer_supply max77660_ldo2_supply[] = {
 	REGULATOR_SUPPLY("avdd", "2-003c"),
 	REGULATOR_SUPPLY("vdd", "2-000e"),
 	REGULATOR_SUPPLY("vdd", "2-000c"),
-	REGULATOR_SUPPLY("af_vdd", "2-0010"),
-	REGULATOR_SUPPLY("af_vdd", "2-004a"),
-    REGULATOR_SUPPLY("vana", "2-0010"),
+	REGULATOR_SUPPLY("af_vdd", NULL),
+	REGULATOR_SUPPLY("vana", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo3_supply[] = {

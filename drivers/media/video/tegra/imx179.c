@@ -7,7 +7,7 @@
 * version 2. This program is licensed "as is" without any warranty of any
 * kind, whether express or implied.
 */
-
+#define DEBUG
 #include <linux/fs.h>
 #include <linux/i2c.h>
 #include <linux/miscdevice.h>
@@ -44,6 +44,16 @@
 #define IMX179_LENS_VIEW_ANGLE_V	75600 /* / _INT2FLOAT_DIVISOR */
 #define IMX179_WAIT_MS 3
 #define IMX179_I2C_TABLE_MAX_ENTRIES	400
+
+
+#define NV_ODM_GUID(a,b,c,d,e,f,g,h) \
+    ((u64) ((((a)&0xffULL)<<56ULL) | (((b)&0xffULL)<<48ULL) | \
+              (((c)&0xffULL)<<40ULL) | (((d)&0xffULL)<<32ULL) | \
+              (((e)&0xffULL)<<24ULL) | (((f)&0xffULL)<<16ULL) | \
+              (((g)&0xffULL)<< 8ULL) | (((h)&0xffULL))))
+
+#define FOCUSER_NVC_GUID            NV_ODM_GUID('f', '_', 'N', 'V', 'C', 'A', 'M', '0')
+
 
 static u16 imx179_ids[] = {
 	0x0179,
@@ -2287,8 +2297,8 @@ static long imx179_ioctl(struct file *file,
 		return 0;
 
 	case NVC_IOCTL_CAPS_RD:
-		dev_dbg(&info->i2c_client->dev, "%s CAPS_RD n=%d\n",
-			__func__, sizeof(imx179_dflt_cap));
+		dev_dbg(&info->i2c_client->dev, "%s CAPS_RD n=%d focuser GUID:%llx\n ",
+			__func__, sizeof(imx179_dflt_cap), info->cap->focuser_guid );
 		data_ptr = info->cap;
 		if (copy_to_user((void __user *)arg,
 				 data_ptr,
