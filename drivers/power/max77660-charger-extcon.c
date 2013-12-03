@@ -1106,6 +1106,10 @@ static int __devinit max77660_chg_extcon_probe(struct platform_device *pdev)
 	if (!bcharger_pdata) {
 		dev_info(chg_extcon->dev,
 			"Battery not connected, charging not supported\n");
+		max77660_reg_clr_bits(chg_extcon->parent, MAX77660_CHG_SLAVE,
+				MAX77660_CHARGER_CHGCTRL1,
+				MAX77660_CHARGER_BUCK_EN_MASK);
+
 		goto skip_bcharger_init;
 	}
 
