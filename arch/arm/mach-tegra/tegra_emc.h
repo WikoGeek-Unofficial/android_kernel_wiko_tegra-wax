@@ -21,7 +21,7 @@
 #ifndef _MACH_TEGRA_TEGRA_EMC_H
 #define _MACH_TEGRA_TEGRA_EMC_H
 
-#define TEGRA_EMC_ISO_USE_CASES_MAX_NUM		8
+#define TEGRA_EMC_ISO_USE_CASES_MAX_NUM		21
 
 extern u8 tegra_emc_bw_efficiency;
 extern u8 tegra_emc_iso_share;

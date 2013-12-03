@@ -369,7 +369,7 @@ int __init ceres_sdhci_init(void)
 	else {
 		tegra_sdhci_platform_data2.max_clk_limit = 204000000;
 		tegra_sdhci_platform_data2.en_freq_scaling = true;
-		tegra_sdhci_platform_data0.max_clk_limit = 192000000;
+		tegra_sdhci_platform_data0.max_clk_limit = 136000000;
 	}
 
 	platform_device_register(&tegra_sdhci_device3);

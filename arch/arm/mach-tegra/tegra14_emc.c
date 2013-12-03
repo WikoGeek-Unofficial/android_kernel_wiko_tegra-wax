@@ -47,16 +47,119 @@ static bool emc_enable;
 #endif
 module_param(emc_enable, bool, 0644);
 
-u8 tegra_emc_bw_efficiency = 100;
-static struct emc_iso_usage tegra14_emc_iso_usage[] = {
-	{ BIT(EMC_USER_DC1),				65 },
-	{ BIT(EMC_USER_DC2),				80 },
-	{ BIT(EMC_USER_DC1) | BIT(EMC_USER_DC2),	50 },
-	{ BIT(EMC_USER_DC1) | BIT(EMC_USER_VI),		50 },
-	{ BIT(EMC_USER_DC2) | BIT(EMC_USER_VI),		50 },
-	{ BIT(EMC_USER_BB),	50 },
+static u32 bw_calc_freqs[] = {
+	5,  10, 20, 30, 40, 60, 80, 100, 120, 140, 160, 180
 };
 
+static u32 tegra14_lpddr3_emc_usage_share_default[] = {
+	20, 26, 35, 43, 50, 50, 50, 50,  50,  50,  50,  50, 50
+};
+
+static u32 tegra14_lpddr3_emc_usage_share_dc[] = {
+	21, 30, 43, 48, 51, 61, 62, 66,  71,  74,  70,  60, 60
+};
+
+static u32 tegra14_lpddr3_emc_usage_share_bb[] = {
+	20, 26, 35, 43, 50, 50, 50, 50,  50,  50,  50,  50, 50
+};
+
+static u8 iso_share_calc_t148_lpddr3_default(unsigned long iso_bw);
+static u8 iso_share_calc_t148_lpddr3_dc(unsigned long iso_bw);
+static u8 iso_share_calc_t148_lpddr3_bb(unsigned long iso_bw);
+
+u8 tegra_emc_bw_efficiency = 100;
+
+static struct emc_iso_usage tegra14_lpddr3_emc_iso_usage[] = {
+	{
+		BIT(EMC_USER_DC1),
+		80, iso_share_calc_t148_lpddr3_dc
+	},
+	{
+		BIT(EMC_USER_DC2),
+		80, iso_share_calc_t148_lpddr3_dc
+	},
+
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_DC2),
+		45, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_VI),
+		45, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_MSENC),
+		50, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_3D),
+		50, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_VDE),
+		45, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_VI),
+		45, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_MSENC),
+		50, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_3D),
+		50, iso_share_calc_t148_lpddr3_default
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_VDE),
+		45, iso_share_calc_t148_lpddr3_default
+	},
+
+	{
+		BIT(EMC_USER_BB),
+		45, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_DC2) | BIT(EMC_USER_BB),
+		45, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_VI) | BIT(EMC_USER_BB),
+		45, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_MSENC) | BIT(EMC_USER_BB),
+		50, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_3D) | BIT(EMC_USER_BB),
+		50, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC1) | BIT(EMC_USER_VDE) | BIT(EMC_USER_BB),
+		45, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_VI) | BIT(EMC_USER_BB),
+		45, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_MSENC) | BIT(EMC_USER_BB),
+		50, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_3D) | BIT(EMC_USER_BB),
+		50, iso_share_calc_t148_lpddr3_bb
+	},
+	{
+		BIT(EMC_USER_DC2) | BIT(EMC_USER_VDE) | BIT(EMC_USER_BB),
+		45, iso_share_calc_t148_lpddr3_bb
+	},
+};
+
+#define MHZ 1000000
+#define TEGRA_EMC_ISO_USE_FREQ_MAX_NUM 12
 #define PLL_C_DIRECT_FLOOR		333500000
 #define EMC_STATUS_UPDATE_TIMEOUT	100
 #define TEGRA_EMC_TABLE_MAX_SIZE	16
@@ -1777,8 +1880,8 @@ int __init tegra14_emc_init(void)
 {
 	int ret = platform_driver_register(&tegra14_emc_driver);
 	if (!ret) {
-		tegra_emc_iso_usage_table_init(tegra14_emc_iso_usage,
-			ARRAY_SIZE(tegra14_emc_iso_usage));
+		tegra_emc_iso_usage_table_init(tegra14_lpddr3_emc_iso_usage,
+			ARRAY_SIZE(tegra14_lpddr3_emc_iso_usage));
 		if (emc_enable) {
 			unsigned long rate = tegra_emc_round_rate_updown(
 				emc->boot_rate, false);
@@ -2090,6 +2193,44 @@ int tegra_emc_set_low_latency_mode(bool ll_mode)
 _out:
 	clk_unlock_restore(emc, &flags);
 	return ret;
+}
+
+static inline int bw_calc_get_freq_idx(unsigned long bw)
+{
+	int idx = 0;
+
+	if (bw > bw_calc_freqs[TEGRA_EMC_ISO_USE_FREQ_MAX_NUM-1] * MHZ)
+		idx = TEGRA_EMC_ISO_USE_FREQ_MAX_NUM;
+
+	for (; idx < TEGRA_EMC_ISO_USE_FREQ_MAX_NUM; idx++) {
+		u32 freq = bw_calc_freqs[idx] * MHZ;
+		if (bw < freq) {
+			if (idx)
+				idx--;
+			break;
+		} else if (bw == freq)
+			break;
+	}
+
+	return idx;
+}
+
+static u8 iso_share_calc_t148_lpddr3_default(unsigned long iso_bw)
+{
+	int freq_idx = bw_calc_get_freq_idx(iso_bw);
+	return tegra14_lpddr3_emc_usage_share_default[freq_idx];
+}
+
+static u8 iso_share_calc_t148_lpddr3_dc(unsigned long iso_bw)
+{
+	int freq_idx = bw_calc_get_freq_idx(iso_bw);
+	return tegra14_lpddr3_emc_usage_share_dc[freq_idx];
+}
+
+static u8 iso_share_calc_t148_lpddr3_bb(unsigned long iso_bw)
+{
+	int freq_idx = bw_calc_get_freq_idx(iso_bw);
+	return tegra14_lpddr3_emc_usage_share_bb[freq_idx];
 }
 
 #ifdef CONFIG_DEBUG_FS

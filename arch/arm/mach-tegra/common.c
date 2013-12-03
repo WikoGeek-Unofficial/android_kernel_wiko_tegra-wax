@@ -1791,6 +1791,9 @@ void __tegra_move_framebuffer(struct platform_device *pdev,
 	if (!pdev)
 		goto out;
 
+	if (!IS_ENABLED(CONFIG_PLATFORM_ENABLE_IOMMU))
+		goto out;
+
 	for (i = 0; i < ARRAY_SIZE(addr); i++)
 		dma_map_linear(&pdev->dev, addr[i], size, DMA_TO_DEVICE);
 out:
