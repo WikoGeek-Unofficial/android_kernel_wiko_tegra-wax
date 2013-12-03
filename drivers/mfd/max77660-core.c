@@ -23,9 +23,9 @@
 #include <linux/delay.h>
 #include <linux/uaccess.h>
 #include <linux/module.h>
-
+#include <linux/reboot.h>
+#include "../../arch/arm/mach-tegra/common.h"
 #include <linux/mfd/max77660/max77660-core.h>
-
 
 struct max77660_chip *max77660_chip;
 
@@ -257,9 +257,15 @@ static void max77660_power_off(void)
 	 * ES1.0 errata suggest that in place of doing read modify write,
 	 * write direct valid value.
 	 */
+/*
 	max77660_reg_write(chip->dev, MAX77660_PWR_SLAVE,
 			MAX77660_REG_GLOBAL_CFG0,
 			GLBLCNFG0_SFT_OFF_OFFRST_MASK);
+*/
+	poweroff = 1;
+	dev_info(chip->dev, "%s: Shutdown has been replace with forced reboot\n",
+		__func__);
+	kernel_restart(NULL);
 }
 
 static void max77660_power_reset(void)
@@ -555,7 +561,6 @@ static int max77660_probe(struct i2c_client *client,
 	int ret = 0;
 	int i;
 	u8 rcm;
-
 	if (!pdata) {
 		dev_err(&client->dev, "probe: Invalid platform_data\n");
 		return -ENODEV;

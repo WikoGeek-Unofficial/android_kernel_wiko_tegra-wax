@@ -81,6 +81,7 @@
 #define   RECOVERY_MODE	BIT(31)
 #define   BOOTLOADER_MODE	BIT(30)
 #define   FORCED_RECOVERY_MODE	BIT(1)
+#define   POWEROFF_MODE  BIT(29)
 
 #define AHB_GIZMO_USB		0x1c
 #define AHB_GIZMO_USB2		0x78
@@ -136,6 +137,7 @@ unsigned long nvdumper_reserved;
 unsigned long tegra_tzram_start;
 unsigned long tegra_tzram_size;
 #endif
+unsigned int poweroff;
 bool tegra_lp0_vec_relocate;
 unsigned long tegra_grhost_aperture = ~0ul;
 static   bool is_tegra_debug_uart_hsport;
@@ -224,6 +226,8 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 		/* Clearing SCRATCH0 31:30:1 on default reboot */
 		reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE);
 	}
+	if (poweroff)
+		reg |= POWEROFF_MODE;
 	writel_relaxed(reg, reset + PMC_SCRATCH0);
 	if (!cmd && pm_power_reset) {
 		pm_power_reset();

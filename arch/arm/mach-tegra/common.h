@@ -13,7 +13,7 @@ extern unsigned long tegra_tsec_size;
 extern unsigned long tegra_tzram_start;
 extern unsigned long tegra_tzram_size;
 #endif
-
+extern unsigned int poweroff;
 #ifdef CONFIG_CACHE_L2X0
 void tegra_init_cache(bool init);
 #else
