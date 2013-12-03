@@ -33,10 +33,13 @@ int IMX179MIPI_write_cmos_sensor(struct imx179_info *info, u16 reg, u8 val);
 int ReadOTPIMX179(struct imx179_info *info)
 {
 	printk("[IMX179_OTP] enter ReadOTPIMX179 func\n");
+	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x00);//stream off
 	if (false == IMX179_ReadWbFromOtp(info)) {
 		printk("[IMX179_OTP] update_otp fail!\n");
 		return 0;
 	}
+	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x01);//stream on
+
 	printk("[IMX179_OTP] update_otp sucess!\n");
 	return 1;
 }
@@ -187,12 +190,12 @@ int IMX179_ReadOtp(struct imx179_info *info, u16 tempbank, u16 address,
 	IMX179MIPI_write_cmos_sensor(info, 0x3400, 0x01);
 	IMX179MIPI_write_cmos_sensor(info, 0x3402, tempbank);
 
-	//reVal = IMX179MIPI_read_cmos_sensor(info, 0x3401);
-	//if(reVal){
-	//	printk("[IMX179_OTP] KERN_ERR otp is not ready \n");
-	//	mdelay(1000);
-	//}
-	//printk("[IMX179_OTP] enter IMX179_ReadOtp func.reVal == %d\n",reVal);
+	reVal = IMX179MIPI_read_cmos_sensor(info, 0x3401);
+	if(reVal){
+		printk("[IMX179_OTP] KERN_ERR otp is not ready \n");
+		//mdelay(1000);
+	}
+
 	for (i = 0; i < buffersize; i++) {
 		reVal = IMX179MIPI_read_cmos_sensor(info, address + i);
 		*(iBuffer + i) = reVal;

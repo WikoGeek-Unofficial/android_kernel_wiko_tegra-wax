@@ -610,9 +610,18 @@ static int tinno_flash_set_leds(struct tinno_flash_info *info,
 	if (info->op_mode == MAXFLASH_MODE_FLASH) {
 		info->flash_level = curr1;
 
+		#if 0
 		if (info->flash_level == 0) {
 			tinno_flash_set_flash (info, 0);
 		}
+		#else
+		if (info->flash_level != 0) {
+			tinno_flash_set_flash (info, 1);
+		}else{
+			tinno_flash_set_flash (info, 0);
+		}
+		#endif
+
 	} else if (info->op_mode == MAXFLASH_MODE_TORCH) {
 		if (curr1 && mask) {
 			tinno_flash_set_torch (info, 1);
