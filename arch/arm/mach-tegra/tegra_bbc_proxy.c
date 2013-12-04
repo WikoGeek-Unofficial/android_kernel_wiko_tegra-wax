@@ -635,11 +635,15 @@ field ## _store_state(struct device *dev, struct device_attribute *attr,\
 	if (!bbc)							\
 		return -EAGAIN;						\
 									\
-	if (sysfs_streq(buf, "enabled\n") || sysfs_streq(buf, "1"))	\
-		regulator_enable(bbc->field);				\
+	if (sysfs_streq(buf, "enabled\n") || sysfs_streq(buf, "1")) {	\
+		if (!regulator_is_enabled(bbc->field))			\
+			regulator_enable(bbc->field);			\
+	}								\
 	else if (sysfs_streq(buf, "disabled\n") ||			\
-		 sysfs_streq(buf, "0"))					\
-		regulator_disable(bbc->field);				\
+		 sysfs_streq(buf, "0"))	{				\
+		if (regulator_is_enabled(bbc->field))			\
+			regulator_disable(bbc->field);			\
+	}								\
 									\
 	return count;							\
 }									\
