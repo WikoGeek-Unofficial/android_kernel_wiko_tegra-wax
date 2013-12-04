@@ -79,6 +79,8 @@
 #define AP2BB_MSC_STS_SHIFT		(4)
 #define BB2AP_INT1_STS_SHIFT		(3)
 #define BB2AP_INT0_STS_SHIFT		(2)
+#define AP2BB_INT1_STS_SHIFT		(1)
+#define AP2BB_INT1_STS_MASK		(0x1)
 #define AP2BB_INT0_STS_SHIFT		(0)
 
 #define FLOW_IPC_SET_0			(0x504)
@@ -163,6 +165,25 @@ static const struct file_operations tegra_bb_ipc_fops = {
 static const struct vm_operations_struct tegra_bb_vm_ops = {
 	.fault = tegra_bb_vm_fault,
 };
+
+static void tegra_bb_set_ap2bb_int1(void)
+{
+	void __iomem *fctrl = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
+
+	/* raise AP2BB INT1 */
+	u32 sts = readl(fctrl + FLOW_IPC_STS_0);
+	sts |= 1 << AP2BB_INT1_STS_SHIFT;
+	writel(sts, fctrl + FLOW_IPC_SET_0);
+
+}
+
+static void tegra_bb_clear_ap2bb_int1(void)
+{
+	void __iomem *fctrl = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
+
+	/* clear AP2BB INT1 status */
+	writel(1 << AP2BB_INT1_STS_SHIFT, fctrl + FLOW_IPC_CLR_0);
+}
 
 void tegra_bb_register_ipc(struct platform_device *pdev,
 			   void (*cb)(void *data), void *cb_data)
@@ -439,6 +460,45 @@ static ssize_t show_tegra_bb_ipc_size(struct device *dev,
 	return sprintf(buf, "%d\n", (int)bb->ipc_size);
 }
 static DEVICE_ATTR(ipc_size, S_IRUSR | S_IRGRP, show_tegra_bb_ipc_size, NULL);
+
+static ssize_t store_tegra_bb_fault(struct device *dev,
+				      struct device_attribute *attr,
+				      const char *buf, size_t count)
+{
+	int value;
+
+	if (sscanf(buf, "%d", &value) != 1)
+		return -1;
+
+	if ((value != 0) && (value != 1))
+		return -EINVAL;
+
+	if (value) {
+		dev_warn(dev, "%s: generate BB fault\n", __func__);
+		tegra_bb_set_ap2bb_int1();
+	} else {
+		dev_warn(dev, "%s: clear BB fault\n", __func__);
+		tegra_bb_clear_ap2bb_int1();
+	}
+
+	return 1;
+}
+
+static ssize_t show_tegra_bb_fault(struct device *dev,
+				      struct device_attribute *attr,
+				      char *buf)
+{
+	u32 sts;
+	void __iomem *flow = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
+
+	sts = readl(flow + FLOW_IPC_STS_0);
+	sts = (sts >> AP2BB_INT1_STS_SHIFT) & AP2BB_INT1_STS_MASK;
+
+	return sprintf(buf, "%d\n", (int)sts);
+}
+
+static DEVICE_ATTR(fault, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP,
+		   show_tegra_bb_fault, store_tegra_bb_fault);
 
 static ssize_t store_tegra_bb_reset(struct device *dev,
 				      struct device_attribute *attr,
@@ -1089,6 +1149,7 @@ static int tegra_bb_probe(struct platform_device *pdev)
 	ret = device_create_file(&pdev->dev, &dev_attr_ipc_size);
 	ret = device_create_file(&pdev->dev, &dev_attr_reset);
 	ret = device_create_file(&pdev->dev, &dev_attr_state);
+	ret = device_create_file(&pdev->dev, &dev_attr_fault);
 
 	bb->sd = sysfs_get_dirent(pdev->dev.kobj.sd, NULL, "status");
 
@@ -1198,6 +1259,9 @@ static int tegra_bb_probe(struct platform_device *pdev)
 
 	bb->pm_notifier.notifier_call = tegra_bb_pm_notifier_event;
 	register_pm_notifier(&bb->pm_notifier);
+
+	/* initially clear 2nd AP2BB irq */
+	tegra_bb_clear_ap2bb_int1();
 #endif
 	bb->is_suspending = false;
 
