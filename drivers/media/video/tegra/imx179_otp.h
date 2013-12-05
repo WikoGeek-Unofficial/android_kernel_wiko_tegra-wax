@@ -69,6 +69,7 @@ struct imx179_info {
 #endif
 	struct nvc_fuseid fuse_id;
 };
+
 u32 IMX179_ReadFuseIDFromOTP(struct imx179_info *info);
 int ReadOTPIMX179(struct imx179_info *info);
 #endif

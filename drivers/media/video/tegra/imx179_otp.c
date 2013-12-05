@@ -10,7 +10,6 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
-
 #include "imx179_otp.h"
 u8 MID_Sunny = 0x01;
 u8 LensID_Sunny = 0x03;
@@ -39,7 +38,6 @@ int ReadOTPIMX179(struct imx179_info *info)
 		return 0;
 	}
 	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x01);//stream on
-
 	printk("[IMX179_OTP] update_otp sucess!\n");
 	return 1;
 }

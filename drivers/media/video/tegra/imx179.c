@@ -25,30 +25,6 @@
 #include <linux/clk.h>
 #include "imx179_otp.h"
 
-#if 0 //move to imx179_otp.h
-#define IMX179_ID			0x0179
-#define IMX179_ID_ADDRESS		0x0000
-#define IMX179_STREAM_CONTROL_REG	0x0100
-#define IMX179_STREAM_ENABLE		0x01
-#define IMX179_STREAM_DISABLE		0x00
-#define IMX179_SENSOR_TYPE		NVC_IMAGER_TYPE_RAW
-#define IMX179_STARTUP_DELAY_MS		50
-#define IMX179_RES_CHG_WAIT_TIME_MS	100
-#define IMX179_SIZEOF_I2C_BUF		16
-#define IMX179_TABLE_WAIT_MS		0
-#define IMX179_TABLE_END		1
-#define IMX179_NUM_MODES		ARRAY_SIZE(imx179_mode_table)
-#define IMX179_MODE_UNKNOWN		(IMX179_NUM_MODES + 1)
-#define IMX179_LENS_MAX_APERTURE	0 /* / _INT2FLOAT_DIVISOR */
-#define IMX179_LENS_FNUMBER		0 /* / _INT2FLOAT_DIVISOR */
-#define IMX179_LENS_FOCAL_LENGTH	3700 /* / _INT2FLOAT_DIVISOR */
-#define IMX179_LENS_VIEW_ANGLE_H	75600 /* / _INT2FLOAT_DIVISOR */
-#define IMX179_LENS_VIEW_ANGLE_V	75600 /* / _INT2FLOAT_DIVISOR */
-#define IMX179_WAIT_MS 3
-#define IMX179_I2C_TABLE_MAX_ENTRIES	400
-#endif
-
-
 static u16 imx179_ids[] = {
 	0x0179,
 };
@@ -64,38 +40,6 @@ static struct nvc_regulator_init imx179_vregs[] = {
 	{ IMX179_VREG_AVDD, "vana", },
 	{ IMX179_VREG_IOVDD, "vif", },
 };
-
-#if 0 //move to imx179_otp.h
-struct imx179_info {
-	atomic_t in_use;
-	struct i2c_client *i2c_client;
-	struct imx179_platform_data *pdata;
-	struct nvc_imager_cap *cap;
-	struct miscdevice miscdev;
-	struct list_head list;
-	struct nvc_gpio gpio[ARRAY_SIZE(imx179_gpios)];
-	struct nvc_regulator vreg[ARRAY_SIZE(imx179_vregs)];
-	struct edp_client *edpc;
-	unsigned edp_state;
-	int pwr_api;
-	int pwr_dev;
-	u8 s_mode;
-	struct imx179_info *s_info;
-	u32 mode_index;
-	bool mode_valid;
-	bool mode_enable;
-	bool reset_flag;
-	struct clk			*mclk;
-	unsigned test_pattern;
-	struct nvc_imager_static_nvc sdata;
-	u8 i2c_buf[IMX179_SIZEOF_I2C_BUF];
-	u8 bin_en;
-#ifdef CONFIG_DEBUG_FS
-	struct dentry *debugfs_root;
-	u16	i2c_reg;
-#endif
-};
-#endif
 
 struct imx179_reg {
 	u16 addr;
@@ -194,8 +138,6 @@ static struct imx179_reg *test_patterns[] = {
 
 static struct imx179_reg imx179_3280x2464_i2c[] = {
 	/*stand by*/
-	{0x41C0, 0x01},
-	{0x0104, 0x01},
 	{0x0100, 0x00},
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 
@@ -259,8 +201,6 @@ static struct imx179_reg imx179_3280x2464_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0104, 0x01},
-	{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -268,8 +208,6 @@ static struct imx179_reg imx179_3280x2464_i2c[] = {
 
 static struct imx179_reg imx179_1640x1232_i2c[] = {
 	/*stand by*/
-	{0x41C0, 0x01},
-	{0x0104, 0x01},
 	{0x0100, 0x00},
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 
@@ -333,8 +271,6 @@ static struct imx179_reg imx179_1640x1232_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0104, 0x01},
-	{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -342,8 +278,6 @@ static struct imx179_reg imx179_1640x1232_i2c[] = {
 
 static struct imx179_reg imx179_1920x1080_i2c[] = {
 	/*stand by*/
-	{0x41C0, 0x01},
-	{0x0104, 0x01},
 	{0x0100, 0x00},
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 
@@ -407,17 +341,13 @@ static struct imx179_reg imx179_1920x1080_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0104, 0x01},
-	{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
 };
-
+#if 0
 static struct imx179_reg imx179_1280x720_i2c[] = {
 	/*stand by*/
-	{0x41C0, 0x01},
-	{0x0104, 0x01},
 	{0x0100, 0x00},
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 
@@ -481,17 +411,12 @@ static struct imx179_reg imx179_1280x720_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0104, 0x01},
-	{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
 };
-
 static struct imx179_reg imx179_640x480_i2c[] = {
 	/*stand by*/
-	{0x41C0, 0x01},
-	{0x0104, 0x01},
 	{0x0100, 0x00},
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 
@@ -555,12 +480,11 @@ static struct imx179_reg imx179_640x480_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0104, 0x01},
-	{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
 };
+#endif
 /* Each resolution requires the below data table setup and the corresponding
  * I2C data table.
  * If more NVC data is needed for the NVC driver, be sure and modify the
@@ -625,7 +549,7 @@ static struct imx179_mode_data imx179_1640x1232 = {
 		.active_stary_y		= 0,
 		.peak_frame_rate	= 30000, /* / _INT2FLOAT_DIVISOR */
 		.pixel_aspect_ratio	= 1000, /* / _INT2FLOAT_DIVISOR */
-		.pll_multiplier		= 11000, /* / _INT2FLOAT_DIVISOR */
+		.pll_multiplier		= 8000, /* / _INT2FLOAT_DIVISOR */
 		.crop_mode		= NVC_IMAGER_CROPMODE_NONE,
 	},
 	.sensor_dnvc = {
@@ -659,7 +583,6 @@ static struct imx179_mode_data imx179_1640x1232 = {
 	},
 	.p_mode_i2c			= imx179_1640x1232_i2c,
 };
-
 static struct imx179_mode_data imx179_1920x1080 = {
 	.sensor_mode = {
 		.res_x			= 1920,
@@ -668,7 +591,7 @@ static struct imx179_mode_data imx179_1920x1080 = {
 		.active_stary_y		= 0,
 		.peak_frame_rate	= 30000, /* / _INT2FLOAT_DIVISOR */
 		.pixel_aspect_ratio	= 1000, /* / _INT2FLOAT_DIVISOR */
-		.pll_multiplier		= 11000, /* / _INT2FLOAT_DIVISOR */
+		.pll_multiplier		= 8000, /* / _INT2FLOAT_DIVISOR */
 		.crop_mode		= NVC_IMAGER_CROPMODE_NONE,
 	},
 	.sensor_dnvc = {
@@ -702,7 +625,7 @@ static struct imx179_mode_data imx179_1920x1080 = {
 	},
 	.p_mode_i2c			= imx179_1920x1080_i2c,
 };
-
+#if 0
 static struct imx179_mode_data imx179_1280x720 = {
 	.sensor_mode = {
 		.res_x			= 1280,
@@ -745,7 +668,6 @@ static struct imx179_mode_data imx179_1280x720 = {
 	},
 	.p_mode_i2c			= imx179_1280x720_i2c,
 };
-
 static struct imx179_mode_data imx179_640x480 = {
 	.sensor_mode = {
 		.res_x			= 640,
@@ -788,13 +710,15 @@ static struct imx179_mode_data imx179_640x480 = {
 	},
 	.p_mode_i2c			= imx179_640x480_i2c,
 };
-
+#endif
 static struct imx179_mode_data *imx179_mode_table[] = {
 	&imx179_3280x2464,
 	&imx179_1640x1232,
 	&imx179_1920x1080,
+	/*
 	&imx179_1280x720,
 	&imx179_640x480,
+	*/
 };
 
 static int imx179_i2c_rd8(struct imx179_info *info, u16 reg, u8 *val)
@@ -817,6 +741,7 @@ static int imx179_i2c_rd8(struct imx179_info *info, u16 reg, u8 *val)
 		return -EIO;
 
 	*val = buf[2];
+
 	return 0;
 }
 
@@ -1746,7 +1671,6 @@ static int imx179_mode_wr(struct imx179_info *info,
 			return err;
 		}
 	}
-
 	if (!info->mode_valid || (info->mode_index != mode_index))
 		err = imx179_mode_wr_full(info, mode_index);
 	else
@@ -2187,6 +2111,7 @@ static int imx179_param_wr(struct imx179_info *info, unsigned long arg)
 	}
 }
 
+
 static int imx179_get_fuse_id(struct imx179_info *info)
 {
 	int ret = 0;
@@ -2292,7 +2217,7 @@ static long imx179_ioctl(struct file *file,
 				__func__, __LINE__);
 			return -EFAULT;
 		}
-		dev_dbg(&info->i2c_client->dev,
+		dev_err(&info->i2c_client->dev,
 			"%s MODE_WR x=%d y=%d coarse=%u frame=%u gain=%u\n",
 			__func__, mode.res_x, mode.res_y,
 			mode.coarse_time, mode.frame_length, mode.gain);
@@ -2506,7 +2431,6 @@ static int imx179_open(struct inode *inode, struct file *file)
 	struct imx179_info *pos = NULL;
 	int err;
 	
-	
 	rcu_read_lock();
 	list_for_each_entry_rcu(pos, &imx179_info_list, list) {
 		if (pos->miscdev.minor == iminor(inode)) {
@@ -2542,7 +2466,7 @@ static int imx179_open(struct inode *inode, struct file *file)
 
 	file->private_data = info;
 	dev_dbg(&info->i2c_client->dev, "%s -----\n", __func__);
-    
+
 	return 0;
 }
 
