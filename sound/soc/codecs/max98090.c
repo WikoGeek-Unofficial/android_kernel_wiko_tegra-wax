@@ -1445,7 +1445,7 @@ static int max98090_mic1_mux_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		/* If turning on, set to selected channel */
-		max98090->extmic_mux = 0;
+//Ivan		max98090->extmic_mux = 0;
 		val = max98090->extmic_mux + 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
@@ -1480,7 +1480,7 @@ static int max98090_mic2_mux_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		/* If turning on, set to selected channel */
-		max98090->extmic_mux = 1;
+//Ivan		max98090->extmic_mux = 1;
 		val = max98090->extmic_mux + 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
