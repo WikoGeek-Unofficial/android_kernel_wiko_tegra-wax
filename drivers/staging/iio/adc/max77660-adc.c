@@ -1,7 +1,7 @@
 /*
  * max77660-adc.c -- MAXIM MAX77660 ADC.
  *
- * Copyright (c) 2013, NVIDIA Corporation.
+ * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * Author: Laxman Dewangan <ldewangan@nvidia.com>
  *
@@ -86,7 +86,7 @@ static inline int max77660_is_valid_channel(struct  max77660_adc *adc, int chan)
 	/*
 	 * ES1.0: Do not convert ADC0 channel otherwise it will shutdown system.
 	 */
-	if (max77660_is_es_1_0(adc->parent) &&
+	if (max77660_is_es_1_0(adc->dev) &&
 			(chan == MAX77660_ADC_CH_ADC0))  {
 		dev_err(adc->dev, "ES1.0 verion errata: do not convert ADC0\n");
 		return false;
