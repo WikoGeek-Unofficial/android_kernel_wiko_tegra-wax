@@ -39,7 +39,7 @@
 
 #define BMA_NAME			"bma222e"
 #define BMA_POLL_DELAY_MS_DFLT		(200)
-#define BMA_INPUT_DELAY_MS_MIN		(50)
+#define BMA_INPUT_DELAY_MS_MIN		(20)
 
 #define BMA_DEBUG_ON	1
 
@@ -697,7 +697,9 @@ static ssize_t bma_delay_store(struct device *dev,
 //		    __func__, delay_us);	
 	if (err)
 		return -EINVAL;
-
+	
+	delay_us = delay_us * 1000;
+	
 	if (delay_us < (BMA_INPUT_DELAY_MS_MIN * 1000))
 		delay_us = (BMA_INPUT_DELAY_MS_MIN * 1000);
 	if ((bma->mode == BMA222E_MODE_NORMAL) && (delay_us != bma->poll_delay_us))
