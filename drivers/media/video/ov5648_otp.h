@@ -23,8 +23,8 @@
 #define OV5648_REG_GLOBAL_COARSE_TIME   0x3500
 #define OV5648_REG_GLOBAL_FRAME_LENGTH  0x380e
 
-#define OV5648_RoverG_dec_base  0x14b	//R/G_Typical eg
-#define OV5648_BoverG_dec_base  0x142	//B/G_Typical eg
+#define OV5648_RoverG_dec_base  0x14b	/* R/G_Typical eg */
+#define OV5648_BoverG_dec_base  0x142	/* B/G_Typical eg */
 
 static struct nvc_regulator_init ov5648_vregs[] = {
 	{ OV5648_VREG_DVDD, "vdd_cam_1v2", },

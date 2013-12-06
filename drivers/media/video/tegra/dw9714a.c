@@ -99,7 +99,7 @@
 #define DW9714A_FNUMBER			(2.2f)
 #define DW9714A_SLEW_RATE		1
 #define DW9714A_ACTUATOR_RANGE		1023
-#define DW9714A_SETTLETIME		30
+#define DW9714A_SETTLETIME		25
 #define DW9714A_FOCUS_MACRO		620
 #define DW9714A_FOCUS_INFINITY		70
 #define DW9714A_POS_LOW_DEFAULT		0
@@ -426,6 +426,12 @@ static int dw9714a_position_rd(struct dw9714a_info *info, unsigned *position)
 	return err;
 }
 
+/*
+	CodeSteps=2,
+	Mode=1 (LSC)
+	StepPeriod=2
+	TSRC=2
+*/
 static int dw9714a_position_wr(struct dw9714a_info *info, s32 position)
 {
 	int err;
@@ -433,22 +439,22 @@ static int dw9714a_position_wr(struct dw9714a_info *info, s32 position)
 
 	if (position < info->config.pos_low || position > info->config.pos_high)
 		return -EINVAL;
-
+	/* LSC mode */
 	err = dw9714a_i2c_wr16(info, 0xECA3);
 	if (err)
 		goto dw9714a_set_position_fail;
-
-	err = dw9714a_i2c_wr16(info, 0xF200|(0x0F<<3));
+	/*  TSRC */
+	err = dw9714a_i2c_wr16(info, 0xF200|(0x02<<3));
 	if (err)
 		goto dw9714a_set_position_fail;
-
+	/* protected on */
 	err = dw9714a_i2c_wr16(info, 0xDC51);
 	if (err)
 		goto dw9714a_set_position_fail;
 
 	data = ((position & 0x3FF) << 4) |
-		(0x3 << 2) |
-		(0x0 << 0);
+		(0x2 << 2) |   /* code per step */
+		(0x2 << 0);    /* step period */
 	err = dw9714a_i2c_wr16(info, data);
 	if (err)
 		goto dw9714a_set_position_fail;

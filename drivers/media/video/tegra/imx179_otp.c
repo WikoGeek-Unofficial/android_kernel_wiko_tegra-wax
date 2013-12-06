@@ -1,3 +1,12 @@
+/*
+* imx179_otp.c - imx179 sensor otp driver
+*
+* Copyright (c) 2012-2013 NVIDIA Corporation. All Rights Reserved.
+*
+* This file is licensed under the terms of the GNU General Public License
+* version 2. This program is licensed "as is" without any warranty of any
+* kind, whether express or implied.
+*/
 #include <linux/types.h>
 #include <linux/fs.h>
 #include <linux/i2c.h>
@@ -10,13 +19,14 @@
 #include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/of_gpio.h>
+
 #include "imx179_otp.h"
 u8 MID_Sunny = 0x01;
 u8 LensID_Sunny = 0x03;
 u8 VcmID_Sunny = 0;
 
-u16 RoverG_dec_base = 0x249;	//R/G_Typical eg
-u16 BoverG_dec_base = 0x232;	//B/G_Typical eg
+u16 RoverG_dec_base = 0x249;	/*R/G_Typical eg */
+u16 BoverG_dec_base = 0x232;	/*B/G_Typical eg */
 
 int ReadOTPIMX179(struct imx179_info *info);
 int IMX179_ReadWbFromOtp(struct imx179_info *info);
@@ -28,17 +38,15 @@ int IMX179MIPI_read_cmos_sensor(struct imx179_info *info, u16 reg);
 int IMX179MIPI_write_cmos_sensor(struct imx179_info *info, u16 reg, u8 val);
 
 /**************************** otp start ************************/
-//read otp
 int ReadOTPIMX179(struct imx179_info *info)
 {
-	printk("[IMX179_OTP] enter ReadOTPIMX179 func\n");
-	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x00);//stream off
+	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x00);/* stream off */
 	if (false == IMX179_ReadWbFromOtp(info)) {
-		printk("[IMX179_OTP] update_otp fail!\n");
+		pr_err("[IMX179_OTP] update_otp fail!\n");
 		return 0;
 	}
-	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x01);//stream on
-	printk("[IMX179_OTP] update_otp sucess!\n");
+	IMX179MIPI_write_cmos_sensor(info, 0x0100, 0x01);/* stream on */
+
 	return 1;
 }
 
@@ -54,21 +62,18 @@ int IMX179_ReadWbFromOtp(struct imx179_info *info)
 	int index = -1;
 	int tempbank = 0;
 
-	printk("[IMX179_OTP] enter IMX179_ReadWbFromOtp func\n");
-	for (i = 0; i < 3; i++)	//?? otp ????
+	for (i = 0; i < 3; i++)
 	{
 		IMX179MIPI_write_cmos_sensor(info, 0x3380, 0x00);	//ECC OFF
 		IMX179MIPI_write_cmos_sensor(info, 0x3400, 0x01);	//enable RW
 		IMX179MIPI_write_cmos_sensor(info, 0x3402, awbGroupbank[i]);	// pages address
 		temp3 = IMX179MIPI_read_cmos_sensor(info, 0x3404);	//0x3404 ~0x3443 64bytes pages map
-		printk("[IMX179_OTP] check temp3=%d\n", temp3);
-		if (temp3 == 1)	//?????
+		if (temp3 == 1)
 		{
 			index = i;
 			break;
 		}
 	}
-	printk("[IMX179_OTP] check index=%d\n", index);
 	if (index == -1) {
 		return false;
 	}
@@ -76,20 +81,13 @@ int IMX179_ReadWbFromOtp(struct imx179_info *info)
 
 	IMX179_ReadOtp(info, tempbank, address, Temp, 42);
 
-	printk("[IMX179_OTP] Temp[6] == 0x%x\n",Temp[6]);
-	printk("[IMX179_OTP] Temp[7] == 0x%x\n",Temp[7]);
-	printk("[IMX179_OTP] Temp[8] == 0x%x\n",Temp[8]);
-
-	if (Temp[6] != MID_Sunny || Temp[7] != LensID_Sunny || Temp[8] != VcmID_Sunny)	//????MID
+	if (Temp[6] != MID_Sunny || Temp[7] != LensID_Sunny || Temp[8] != VcmID_Sunny)
 	{
 		return false;
 	}
 	r = (Temp[15] << 8) | Temp[16];
 	b = (Temp[17] << 8) | Temp[18];
 	g = (Temp[19] << 8) | Temp[20];
-	printk("[IMX179_OTP] test r == 0x%x\n",r);
-	printk("[IMX179_OTP] test b == 0x%x\n",b);
-	printk("[IMX179_OTP] test g == 0x%x\n",g);
 
 	updateAWBIMX179(info, r, b, g);
 
@@ -108,21 +106,18 @@ int IMX179_ReadAfmacroFromOtp(struct imx179_info *info)
 	int tempbank = 0;
 	int af_macro = 0;
 
-	printk("[IMX179_OTP] enter IMX179_ReadAfmacroFromOtp func\n");
-	for (i = 0; i < 3; i++)	//?? otp ????
+	for (i = 0; i < 3; i++)
 	{
 		IMX179MIPI_write_cmos_sensor(info, 0x3380, 0x00);	//ECC OFF
 		IMX179MIPI_write_cmos_sensor(info, 0x3400, 0x01);	//enable RW
 		IMX179MIPI_write_cmos_sensor(info, 0x3402, awbGroupbank[i]);	// pages address
 		temp3 = IMX179MIPI_read_cmos_sensor(info, 0x3404);	//0x3404 ~0x3443 64bytes pages map
-		printk("[IMX179_OTP] check temp3=%d\n", temp3);
-		if (temp3 != 0)	//?????
+		if (temp3 != 0)
 		{
 			index = i;
 			break;
 		}
 	}
-	printk("[IMX179_OTP] check index=%d\n", index);
 	if (index == -1) {
 		return false;
 	}
@@ -147,21 +142,18 @@ int IMX179_ReadAfinfFromOtp(struct imx179_info *info)
 	int tempbank = 0;
 	int af_inf = 0;
 
-	printk("[IMX179_OTP] enter IMX179_ReadAfinfFromOtp func\n");
-	for (i = 0; i < 3; i++)	//?? otp ????
+	for (i = 0; i < 3; i++)
 	{
 		IMX179MIPI_write_cmos_sensor(info, 0x3380, 0x00);	//ECC OFF
 		IMX179MIPI_write_cmos_sensor(info, 0x3400, 0x01);	//enable RW
 		IMX179MIPI_write_cmos_sensor(info, 0x3402, awbGroupbank[i]);	// pages address
 		temp3 = IMX179MIPI_read_cmos_sensor(info, 0x3404);	//0x3404 ~0x3443 64bytes pages map
-		printk("[IMX179_OTP] check temp3=%d\n", temp3);
-		if (temp3 != 0)	//?????
+		if (temp3 != 0)
 		{
 			index = i;
 			break;
 		}
 	}
-	printk("[IMX179_OTP] check index=%d\n", index);
 	if (index == -1) {
 		return false;
 	}
@@ -189,15 +181,12 @@ int IMX179_ReadOtp(struct imx179_info *info, u16 tempbank, u16 address,
 	IMX179MIPI_write_cmos_sensor(info, 0x3402, tempbank);
 
 	reVal = IMX179MIPI_read_cmos_sensor(info, 0x3401);
-	if(reVal){
-		printk("[IMX179_OTP] KERN_ERR otp is not ready \n");
-		//mdelay(1000);
-	}
+	if(reVal)
+		pr_err("[IMX179_OTP] KERN_ERR otp is not ready \n");
 
 	for (i = 0; i < buffersize; i++) {
 		reVal = IMX179MIPI_read_cmos_sensor(info, address + i);
 		*(iBuffer + i) = reVal;
-		printk("[IMX179_OTP] address = %x , value = %x\n", address + i, reVal);
 	}
 	return true;
 }
@@ -209,7 +198,6 @@ void updateAWBIMX179(struct imx179_info *info, u16 RoverG_dec, u16 BoverG_dec,
 	u16 R_test, B_test, G_test;
 	u16 R_test_H3, R_test_L8, B_test_H3, B_test_L8, G_test_H3, G_test_L8;
 	u16 G_test_R, G_test_B;
-	printk("[IMX179_OTP] enter updateAWBIMX179 func\n");
 	if (BoverG_dec < BoverG_dec_base) {
 		if (RoverG_dec < RoverG_dec_base) {
 			G_test = 0x100;
@@ -253,7 +241,7 @@ void updateAWBIMX179(struct imx179_info *info, u16 RoverG_dec, u16 BoverG_dec,
 	G_test_H3 = (G_test >> 8) & 0x0F;
 	G_test_L8 = G_test & 0xFF;
 
-	//reset the digital gain
+	/* reset the digital gain */
 	IMX179MIPI_write_cmos_sensor(info, 0x020F, G_test_L8);
 
 	IMX179MIPI_write_cmos_sensor(info, 0x0211, R_test_L8);
@@ -274,21 +262,18 @@ u32 IMX179_ReadFuseIDFromOTP(struct imx179_info *info)
 	int index = -1;
 	int tempbank = 0;
 
-	printk("[IMX179_OTP] enter IMX179_ReadFuseIDFromOTP func\n");
-	for (i = 0; i < 3; i++)	//?? otp ????
+	for (i = 0; i < 3; i++)
 	{
 		IMX179MIPI_write_cmos_sensor(info, 0x3380, 0x00);	//ECC OFF
 		IMX179MIPI_write_cmos_sensor(info, 0x3400, 0x01);	//enable RW
 		IMX179MIPI_write_cmos_sensor(info, 0x3402, awbGroupbank[i]);	// pages address
 		temp3 = IMX179MIPI_read_cmos_sensor(info, 0x3404);	//0x3404 ~0x3443 64bytes pages map
-		printk("[IMX179_OTP] check temp3=%d\n", temp3);
-		if (temp3 != 0)	//?????
+		if (temp3 != 0)
 		{
 			index = i;
 			break;
 		}
 	}
-	printk("[IMX179_OTP] check index=%d\n", index);
 	if (index == -1) {
 		return false;
 	}
@@ -296,8 +281,9 @@ u32 IMX179_ReadFuseIDFromOTP(struct imx179_info *info)
 
 	IMX179_ReadOtp(info, tempbank, address, Temp, 15);
 
-	//fuse_id = (Temp[11]<<24) |( Temp[12]<<16) | (Temp[13]<<8) | (Temp[14]);
-        fuse_id = 32;//return value for test.
+	/*fuse_id = (Temp[11]<<24) |( Temp[12]<<16) |
+		(Temp[13]<<8) | (Temp[14]); */
+	fuse_id = 32;/* return value for test. */
 
 	return fuse_id;
 }
