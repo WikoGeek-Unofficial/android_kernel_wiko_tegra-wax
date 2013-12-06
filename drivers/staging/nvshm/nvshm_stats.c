@@ -14,6 +14,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define pr_fmt(fmt) "%s: " fmt, __func__
 
 #include <linux/err.h>
 #include <linux/nvshm_stats.h>
@@ -67,6 +68,7 @@ struct table_entry {
 struct nvshm_stats_private {
 	const struct nvshm_handle *handle;
 	void *address;
+	void *guard;
 	int records_no;
 };
 
@@ -76,10 +78,23 @@ static RAW_NOTIFIER_HEAD(notifier_list);
 /* priv gets reset at modem [re-]boot */
 static struct nvshm_stats_private priv;
 
+static bool ptr_is_in_range(const void *ptr, const char *func, int line)
+{
+	bool rc = ptr >= priv.address && ptr < priv.guard;
+	if (!rc)
+		pr_err("%s(%d): %p out of range, does not belong to [%p..%p[",
+			func, line, ptr, priv.address, priv.guard);
+
+	return rc;
+}
+
+#define PTR_IS_IN_RANGE(x) ptr_is_in_range(x, __func__, __LINE__)
+
 void nvshm_stats_init(struct nvshm_handle *handle)
 {
 	priv.handle = handle;
 	priv.address = handle->stats_base_virt;
+	priv.guard = priv.address + priv.handle->stats_size;
 	priv.records_no = 0;
 	raw_notifier_call_chain(&notifier_list, NVSHM_STATS_MODEM_UP, NULL);
 }
@@ -96,7 +111,7 @@ const u32 *nvshm_stats_top(const char *top_name,
 	const u32 *rc = ERR_PTR(-ENOENT);
 	unsigned int i, total_no;
 
-	if (!priv.handle->stats_size)
+	if (priv.address == priv.guard)
 		return ERR_PTR(-ENODATA);
 
 	total_no = *(const unsigned int *) priv.address;
@@ -108,9 +123,15 @@ const u32 *nvshm_stats_top(const char *top_name,
 			continue;
 
 		desc = B2A(priv.handle, entry->desc);
+		if (!PTR_IS_IN_RANGE(desc))
+			return ERR_PTR(-ERANGE);
+
 		if (!strcmp(desc->name, top_name)) {
 			it->desc = desc;
 			it->data = B2A(priv.handle, entry->data);
+			if (!PTR_IS_IN_RANGE(it->data))
+				return ERR_PTR(-ERANGE);
+
 			rc = (const u32 *) it->data;
 			it->data += sizeof(*rc);
 			break;
@@ -132,18 +153,32 @@ int nvshm_stats_sub(const struct nvshm_stats_iter *it,
 		return -ERANGE;
 
 	sub_it->desc = B2A(priv.handle, it->desc->sub);
+	if (!PTR_IS_IN_RANGE(sub_it->desc))
+		return -ERANGE;
+
 	sub_it->data = it->data + index * it->desc->elem_size;
+	if (!PTR_IS_IN_RANGE(sub_it->data))
+		return -ERANGE;
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(nvshm_stats_sub);
 
 int nvshm_stats_next(struct nvshm_stats_iter *it)
 {
+	/* Check type validity */
+	if ((it->desc->type < NVSHM_STATS_START) ||
+	    (it->desc->type > NVSHM_STATS_UINT64))
+		return -EINVAL;
+
 	if ((it->desc->type != NVSHM_STATS_START) &&
 	    (it->desc->type != NVSHM_STATS_END))
 		it->data += it->desc->size * it->desc->elem_size;
 
 	it->desc++;
+	if (!PTR_IS_IN_RANGE(it->desc))
+		return -ERANGE;
+
 	return 0;
 }
 EXPORT_SYMBOL_GPL(nvshm_stats_next);
@@ -156,6 +191,9 @@ EXPORT_SYMBOL_GPL(nvshm_stats_name);
 
 enum nvshm_stats_type nvshm_stats_type(const struct nvshm_stats_iter *it)
 {
+	if (!PTR_IS_IN_RANGE(it->desc))
+		return NVSHM_STATS_END;
+
 	return it->desc->type;
 }
 EXPORT_SYMBOL_GPL(nvshm_stats_type);
