@@ -151,7 +151,6 @@ static struct imx179_reg imx179_3280x2464_i2c[] = {
 	{0x030B, 0x01},
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
-	{0x030E, 0x01},
 	{0x0340, 0x09},
 	{0x0341, 0xB1},//0xD0
 	{0x0342, 0x0D},
@@ -201,6 +200,7 @@ static struct imx179_reg imx179_3280x2464_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
+	{0x0101, 0x00},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -221,7 +221,6 @@ static struct imx179_reg imx179_1640x1232_i2c[] = {
 	{0x030B, 0x01},
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
-	{0x030E, 0x01},
 	{0x0340, 0x09},
 	{0x0341, 0xB1},//0xD0
 	{0x0342, 0x0D},
@@ -271,6 +270,7 @@ static struct imx179_reg imx179_1640x1232_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
+	{0x0101, 0x00},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -291,7 +291,6 @@ static struct imx179_reg imx179_1920x1080_i2c[] = {
 	{0x030B, 0x01},
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
-	{0x030E, 0x01},
 	{0x0340, 0x09},
 	{0x0341, 0xB1},//0xD0
 	{0x0342, 0x0D},
@@ -341,6 +340,7 @@ static struct imx179_reg imx179_1920x1080_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
+	{0x0101, 0x00},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -361,7 +361,6 @@ static struct imx179_reg imx179_1280x720_i2c[] = {
 	{0x030B, 0x01},
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
-	{0x030E, 0x01},
 	{0x0340, 0x09},
 	{0x0341, 0xB1},//0xD0
 	{0x0342, 0x0D},
@@ -411,6 +410,7 @@ static struct imx179_reg imx179_1280x720_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
+	{0x0101, 0x00},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -430,7 +430,6 @@ static struct imx179_reg imx179_640x480_i2c[] = {
 	{0x030B, 0x01},
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
-	{0x030E, 0x01},
 	{0x0340, 0x09},
 	{0x0341, 0xB1},//0xD0
 	{0x0342, 0x0D},
@@ -480,6 +479,7 @@ static struct imx179_reg imx179_640x480_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
+	{0x0101, 0x00},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -520,14 +520,14 @@ static struct imx179_mode_data imx179_3280x2464 = {
 		.init_intra_frame_skip	= 0,
 		.ss_intra_frame_skip	= 2,
 		.ss_frame_number	= 3,
-		.coarse_time		= 0x09CC,
+		.coarse_time		= 0x09AD,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
 		.line_length		= 0x0D70,
-		.frame_length		= 0x09D0,
-		.min_frame_length	= 0x09D0,
+		.frame_length		= 0x09B1,
+		.min_frame_length	= 0x09B1,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */
@@ -535,7 +535,7 @@ static struct imx179_mode_data imx179_3280x2464 = {
 		.inherent_gain_bin_en	= 1000, /* / _INT2FLOAT_DIVISOR */
 		.support_bin_control	= 0,
 		.support_fast_mode	= 0,
-		.pll_mult		= 0xA2,
+		.pll_mult		= 0xA0,
 		.pll_div		= 0x06,
 	},
 	.p_mode_i2c			= imx179_3280x2464_i2c,
@@ -563,14 +563,14 @@ static struct imx179_mode_data imx179_1640x1232 = {
 		.init_intra_frame_skip	= 0,
 		.ss_intra_frame_skip	= 2,
 		.ss_frame_number	= 3,
-		.coarse_time		= 0x09CC,
+		.coarse_time		= 0x09AD,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
 		.line_length		= 0x0D70,
-		.frame_length		= 0x09D0,
-		.min_frame_length	= 0x09D0,
+		.frame_length		= 0x09B1,
+		.min_frame_length	= 0x09B1,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */
@@ -578,7 +578,7 @@ static struct imx179_mode_data imx179_1640x1232 = {
 		.inherent_gain_bin_en	= 1000, /* / _INT2FLOAT_DIVISOR */
 		.support_bin_control	= 0,
 		.support_fast_mode	= 0,
-		.pll_mult		= 0xA2,
+		.pll_mult		= 0xA0,
 		.pll_div		= 0x06,
 	},
 	.p_mode_i2c			= imx179_1640x1232_i2c,
@@ -605,14 +605,14 @@ static struct imx179_mode_data imx179_1920x1080 = {
 		.init_intra_frame_skip	= 0,
 		.ss_intra_frame_skip	= 2,
 		.ss_frame_number	= 3,
-		.coarse_time		= 0x09CC,
+		.coarse_time		= 0x09AD,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
 		.line_length		= 0x0D70,
-		.frame_length		= 0x09D0,
-		.min_frame_length	= 0x09D0,
+		.frame_length		= 0x09B1,
+		.min_frame_length	= 0x09B1,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */
@@ -620,7 +620,7 @@ static struct imx179_mode_data imx179_1920x1080 = {
 		.inherent_gain_bin_en	= 1000, /* / _INT2FLOAT_DIVISOR */
 		.support_bin_control	= 0,
 		.support_fast_mode	= 0,
-		.pll_mult		= 0xA2,
+		.pll_mult		= 0xA0,
 		.pll_div		= 0x06,
 	},
 	.p_mode_i2c			= imx179_1920x1080_i2c,
@@ -648,14 +648,14 @@ static struct imx179_mode_data imx179_1280x720 = {
 		.init_intra_frame_skip	= 0,
 		.ss_intra_frame_skip	= 2,
 		.ss_frame_number	= 3,
-		.coarse_time		= 0x09CC,
+		.coarse_time		= 0x09AD,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
 		.line_length		= 0x0D70,
-		.frame_length		= 0x09D0,
-		.min_frame_length	= 0x09D0,
+		.frame_length		= 0x09B1,
+		.min_frame_length	= 0x09B1,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */
@@ -663,7 +663,7 @@ static struct imx179_mode_data imx179_1280x720 = {
 		.inherent_gain_bin_en	= 1000, /* / _INT2FLOAT_DIVISOR */
 		.support_bin_control	= 0,
 		.support_fast_mode	= 0,
-		.pll_mult		= 0xA2,
+		.pll_mult		= 0xA0,
 		.pll_div		= 0x06,
 	},
 	.p_mode_i2c			= imx179_1280x720_i2c,
@@ -690,14 +690,14 @@ static struct imx179_mode_data imx179_640x480 = {
 		.init_intra_frame_skip	= 0,
 		.ss_intra_frame_skip	= 2,
 		.ss_frame_number	= 3,
-		.coarse_time		= 0x09CC,
+		.coarse_time		= 0x09AD,
 		.max_coarse_diff	= 5,
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
 		.line_length		= 0x0D70,
-		.frame_length		= 0x09D0,
-		.min_frame_length	= 0x09D0,
+		.frame_length		= 0x09B1,
+		.min_frame_length	= 0x09B1,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */
@@ -705,7 +705,7 @@ static struct imx179_mode_data imx179_640x480 = {
 		.inherent_gain_bin_en	= 1000, /* / _INT2FLOAT_DIVISOR */
 		.support_bin_control	= 0,
 		.support_fast_mode	= 0,
-		.pll_mult		= 0xA2,
+		.pll_mult		= 0xA0,
 		.pll_div		= 0x06,
 	},
 	.p_mode_i2c			= imx179_640x480_i2c,
