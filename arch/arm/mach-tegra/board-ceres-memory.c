@@ -14942,21 +14942,22 @@ static struct tegra14_emc_pdata ceres_emc_pdata = {
 	.description = "ceres_e1680_elpida_edf8132a1mc_tables",
 	.tables = ceres_e1680_elpida_edf8132a1mc_table,
 	.tables_derated = ceres_e1680_elpida_edf8132a1mc_table_der,
-#ifndef TINNO_DISABLE_DVFS	
 	.tables_low_latency = ceres_e1680_elpida_edf8132a1mc_table,
 	.tables_low_latency_derated = ceres_e1680_elpida_edf8132a1mc_table_der,
-#endif
 	.num_tables = ARRAY_SIZE(ceres_e1680_elpida_edf8132a1mc_table),
 };
 
-#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
-#ifndef TINNO_DISABLE_DVFS
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
 #include "board-ceres-memory-ext.h"
-static struct tegra14_emc_dual_pdata ceres_emc_dual_pdata = {
-	.emc_pdata = &ceres_emc_pdata,
-	.emc_ext_pdata = &ceres_emc_ext_pdata,
+#include "board-ceres-memory-sl440.h"
+#include "board-ceres-memory-sl440-ext.h"
+static struct tegra14_emc_multi_pdata ceres_emc_multi_pdata = {
+	.num_emc_pdata = NUM_EMC_TABLE_GROUPS,
+	.emc_pdata[NORMAL_EMC_TABLE_GROUP] = &ceres_emc_pdata,
+	.emc_pdata[EXTEND_EMC_TABLE_GROUP] = &ceres_emc_ext_pdata,
+	.emc_pdata[SL440_NORMAL_EMC_TABLE_GROUP] = &ceres_emc_sl440_pdata,
+	.emc_pdata[SL440_EXTEND_EMC_TABLE_GROUP] = &ceres_emc_sl440_ext_pdata,
 };
-#endif
 #endif
 
 static struct tegra14_emc_pdata ceres_2gb_emc_pdata = {
@@ -15028,14 +15029,12 @@ int __init ceres_emc_init(void)
 	case BOARD_E1690:
 		if (tegra_get_memory_type() == 0) {
 			pr_info("Loading Ceres EMC tables.\n");
-#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
-#ifdef TINNO_DISABLE_DVFS
-			tegra_emc_device.dev.platform_data = &ceres_emc_pdata;
-#else			
-			tegra_emc_device.dev.platform_data = &ceres_emc_dual_pdata;
-#endif
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
+			tegra_emc_device.dev.platform_data =
+					&ceres_emc_multi_pdata;
 #else
-			tegra_emc_device.dev.platform_data = &ceres_emc_pdata;
+			tegra_emc_device.dev.platform_data =
+					&ceres_emc_pdata;
 #endif
 		} else if (tegra_get_memory_type() == 1) {
 			pr_info("Loading Ceres 2GB EMC tables.\n");

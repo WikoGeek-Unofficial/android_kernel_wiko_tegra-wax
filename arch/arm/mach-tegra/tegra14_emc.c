@@ -39,6 +39,7 @@
 #include "dvfs.h"
 #include "board.h"
 #include "tegra14_emc.h"
+#include "fuse.h"
 
 #ifdef CONFIG_TEGRA_EMC_SCALING_ENABLE
 static bool emc_enable = true;
@@ -1812,13 +1813,11 @@ static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 {
 	struct resource *res;
 	u32 padctrl;
-#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
-#ifdef TINNO_DISABLE_DVFS
-	struct tegra14_emc_pdata *pdata;
-#else
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
 	int mr_revision_id1 = 0;
-	struct tegra14_emc_dual_pdata *pdata;
-#endif
+	int sku = tegra_sku_id;
+	enum tegra14_emc_table_group emc_table_group;
+	struct tegra14_emc_multi_pdata *pdata;
 #else
 	struct tegra14_emc_pdata *pdata;
 #endif
@@ -1845,27 +1844,35 @@ static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 	emc_writel(padctrl, EMC_XM2CMDPADCTRL);
 #endif
 
-#ifdef CONFIG_TEGRA_T14x_DUAL_MEMORY
-#ifdef TINNO_DISABLE_DVFS
-	emc_pdata = pdata;	
-#else
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
 	mr_revision_id1 = emc_read_mrr(0, 6);
 	mr_revision_id1 &= MR_REVISION_ID1_MASK;
-	pr_info("%s: mr_revision_id1 = %d\n", __func__, mr_revision_id1);
-	/* C-version */
-	if (mr_revision_id1 == 2) {
-		emc_pdata = pdata->emc_ext_pdata;
-	} else {	/* A-version */
-		emc_pdata = pdata->emc_pdata;
-	}
-#endif
+	/* C-version, T148-SL460 */
+	if (mr_revision_id1 == 0x2 && sku == 0x3)
+		emc_table_group = EXTEND_EMC_TABLE_GROUP;
+	/* C-version, T148-SL440 */
+	else if (mr_revision_id1 == 0x2 && sku == 0x7)
+		emc_table_group = SL440_EXTEND_EMC_TABLE_GROUP;
+	/* A-version, T148-SL460 */
+	else if (mr_revision_id1 == 0x0 && sku == 0x3)
+		emc_table_group = NORMAL_EMC_TABLE_GROUP;
+	/* A-version, T148-SL440 */
+	else if (mr_revision_id1 == 0x0 && sku == 0x7)
+		emc_table_group = SL440_NORMAL_EMC_TABLE_GROUP;
+	else	/* defaultly */
+		emc_table_group = NORMAL_EMC_TABLE_GROUP;
+
+	pr_info("%s: emc_table_group = 0x%02X\n", __func__, emc_table_group);
+	emc_pdata = pdata->emc_pdata[emc_table_group];
 #else
 	emc_pdata = pdata;
 #endif
 
-	return init_emc_table(emc_pdata->tables, emc_pdata->tables_derated,
-		emc_pdata->tables_low_latency, emc_pdata->tables_low_latency_derated,
-		emc_pdata->num_tables);
+	return init_emc_table(emc_pdata->tables,
+			emc_pdata->tables_derated,
+			emc_pdata->tables_low_latency,
+			emc_pdata->tables_low_latency_derated,
+			emc_pdata->num_tables);
 }
 
 static struct platform_driver tegra14_emc_driver = {
