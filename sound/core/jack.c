@@ -307,6 +307,70 @@ void snd_jack_report(struct snd_jack *jack, int status)
 }
 EXPORT_SYMBOL(snd_jack_report);
 
+/**
+ * snd_jack_report - Report the current status of a jack
+ *
+ * @jack:   The jack to report status for
+ * @status: The current status of the jack
+ */
+void snd_jack_report_mask(struct snd_jack *jack, int status,int mask)
+{
+	int i;
+	if (!jack)
+		return;
+        if(mask &0xFF00){
+/* headset key feature   WJ  22/11/13 */
+            if(jack->type &SND_JACK_BTN_0){
+                if(call_status!=0){
+                       if(is_long_press()) {
+                              printk("[Jack]long press remote button to end call! status = %x\n",status);
+                              input_report_key(jack->input_dev, KEY_HANGEUL, status &SND_JACK_BTN_0);
+                              input_report_key(jack->input_dev, KEY_HANGEUL, 0);
+                         } else {
+                             printk("[Jack]short press remote button to accept call! status = %x\n",status);
+                             input_report_key(jack->input_dev, KEY_SEND, status &SND_JACK_BTN_0);
+                             input_report_key(jack->input_dev, KEY_SEND, 0);
+                             switch_key_state(0, 0x7e00);
+                        }
+                }else{
+                             input_report_key(jack->input_dev, KEY_PLAYPAUSE, status &SND_JACK_BTN_0);
+                }
+     #ifdef MULTI_KEY_FEATURE
+               }else{
+                   /* for(i=1;i< (ARRAY_SIZE(jack->key)-2);i++){
+                        int testbit = SND_JACK_BTN_0 >> i;
+                        if (jack->type & testbit)
+        			input_report_key(jack->input_dev, jack->key[i],
+        					 status & testbit);
+                    }*/
+                    if(jack->type & SND_JACK_BTN_1){
+                        if(call_status!=0)
+                             input_report_key(jack->input_dev, KEY_VOLUMEUP, status &SND_JACK_BTN_1);
+                        else
+                             input_report_key(jack->input_dev, KEY_PREVIOUSSONG, status &SND_JACK_BTN_1);
+                    }
+                    if(jack->type & SND_JACK_BTN_2){
+                        if(call_status!=0)
+                             input_report_key(jack->input_dev, KEY_VOLUMEDOWN, status &SND_JACK_BTN_2);
+                        else
+                             input_report_key(jack->input_dev, KEY_NEXTSONG, status &SND_JACK_BTN_2);
+                    }
+#endif
+            }
+        }
+ /* headset key feature   WJ  22/11/13 */
+	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++) {
+		int testbit = 1 << i;
+		if (jack->type & testbit)
+			input_report_switch(jack->input_dev,
+					    jack_switch_types[i],
+					    status & testbit);
+	}
+
+	input_sync(jack->input_dev);
+}
+EXPORT_SYMBOL(snd_jack_report_mask);
+
 MODULE_AUTHOR("Mark Brown <broonie@opensource.wolfsonmicro.com>");
 MODULE_DESCRIPTION("Jack detection support for ALSA");
 MODULE_LICENSE("GPL");

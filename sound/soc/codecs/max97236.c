@@ -447,14 +447,13 @@ struct max97236_priv *g_max97236;
 bool is_sendkey_press(void)
 {
 	unsigned int status_reg;
-
 	regmap_read(g_max97236->regmap, M97236_REG_17_PASSIVE_MBH_KEYSCAN_DATA, &status_reg);    
         return (status_reg & M97236_PRESS_MASK) == M97236_PRESS_MASK;
 }
 EXPORT_SYMBOL_GPL(is_sendkey_press);
 void switch_key_state( int status, int mask ){
         g_max97236->jack->status &= ~mask;
-	g_max97236->jack->status |= status & mask;
+        g_max97236->jack->status |= status & mask;
 }
 
 EXPORT_SYMBOL_GPL(switch_key_state);

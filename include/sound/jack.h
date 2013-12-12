@@ -87,7 +87,7 @@ int snd_jack_set_key(struct snd_jack *jack, enum snd_jack_types type,
 		     int keytype);
 
 void snd_jack_report(struct snd_jack *jack, int status);
-
+void snd_jack_report_mask(struct snd_jack *jack, int status,int mask);
 #else
 
 static inline int snd_jack_new(struct snd_card *card, const char *id, int type,
@@ -104,7 +104,9 @@ static inline void snd_jack_set_parent(struct snd_jack *jack,
 static inline void snd_jack_report(struct snd_jack *jack, int status)
 {
 }
-
+void snd_jack_report_mask(struct snd_jack *jack, int status,int mask)
+{
+}
 #endif
 
 #endif

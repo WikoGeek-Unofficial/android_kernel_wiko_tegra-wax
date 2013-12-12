@@ -109,7 +109,10 @@ void snd_soc_jack_report(struct snd_soc_jack *jack, int status, int mask)
 /* fix headset key state bug   WJ  22/11/13 */
 	snd_soc_dapm_sync(dapm);
 
-	snd_jack_report(jack->jack, jack->status);
+/* fix headset key state bug   WJ  22/11/13 */
+        snd_jack_report_mask(jack->jack, jack->status,mask);
+//	snd_jack_report(jack->jack, jack->status);
+/* fix headset key state bug   WJ  22/11/13 */
 
 out:
 	mutex_unlock(&codec->mutex);
