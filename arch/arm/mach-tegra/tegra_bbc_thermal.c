@@ -69,7 +69,7 @@ static int bbc_thermal_install(void)
 	struct nvshm_stats_iter it;
 	unsigned int index;
 	const u32 *enabled_ptr;
-	int rc = 0;
+	int zones, ret = 0;
 
 	if (private.tzds) {
 		pr_warn("BBC thermal already registered, unregistering\n");
@@ -79,7 +79,7 @@ static int bbc_thermal_install(void)
 	/* Get iterator for top structure */
 	enabled_ptr = nvshm_stats_top("DrvTemperatureSysStats", &it);
 	if (IS_ERR(enabled_ptr)) {
-		pr_err("BBC thermal zones missing");
+		pr_err("BBC thermal zones missing\n");
 		return PTR_ERR(enabled_ptr);
 	}
 
@@ -89,27 +89,27 @@ static int bbc_thermal_install(void)
 		if (!strcmp(nvshm_stats_name(&it), "sensorStats"))
 			break;
 
+		/* Do not check rc, let nvshm_stats_type below fail */
 		nvshm_stats_next(&it);
 	}
 
 	if (nvshm_stats_type(&it) != NVSHM_STATS_SUB) {
-		pr_err("sensorStats not found or incorrect type: %d",
+		pr_err("sensorStats not found or incorrect type: %d\n",
 		       nvshm_stats_type(&it));
 		return -EINVAL;
 	}
 
 	/* Parse sensors */
-	private.tz_no = nvshm_stats_elems(&it);
-	pr_info("BBC can report temperatures from %d thermal zones",
-		private.tz_no);
-	private.tzds = kmalloc(private.tz_no * sizeof(*private.tzds),
-			       GFP_KERNEL);
+	private.tz_no = 0;
+	zones = nvshm_stats_elems(&it);
+	pr_info("BBC can report temperatures from %d thermal zones\n", zones);
+	private.tzds = kmalloc(zones * sizeof(*private.tzds), GFP_KERNEL);
 	if (!private.tzds) {
 		pr_err("failed to allocate array of sensors\n");
 		return -ENOMEM;
 	}
 
-	for (index = 0; index < private.tz_no; index++) {
+	for (index = 0; index < zones; index++) {
 		struct nvshm_stats_iter sub_it;
 		char name[16];
 
@@ -120,16 +120,16 @@ static int bbc_thermal_install(void)
 			if (!strcmp(nvshm_stats_name(&sub_it), "tempCelcius"))
 				break;
 
+			/* Do not check rc, let nvshm_stats_type below fail */
 			nvshm_stats_next(&sub_it);
 		}
 
 		/* This will either fail at first time or not at all */
 		if (nvshm_stats_type(&sub_it) != NVSHM_STATS_UINT32) {
-			pr_err("tempCelcius not found or incorrect type: %d",
+			pr_err("tempCelcius not found or incorrect type: %d\n",
 			       nvshm_stats_type(&sub_it));
-			kfree(private.tzds);
-			private.tzds = NULL;
-			return -EINVAL;
+			ret = -EINVAL;
+			goto failed;
 		}
 
 		/* Ok we got it, let's register a new thermal zone */
@@ -140,15 +140,18 @@ static int bbc_thermal_install(void)
 		if (IS_ERR(private.tzds)) {
 			pr_err("failed to register thermal zone #%d, abort\n",
 			       index);
-			rc = PTR_ERR(private.tzds);
-			break;
+			ret = PTR_ERR(private.tzds);
+			goto failed;
 		}
+
+		private.tz_no++;
 	}
 
-	if (rc)
-		bbc_thermal_remove();
+	return 0;
 
-	return rc;
+failed:
+	bbc_thermal_remove();
+	return ret;
 }
 
 static int bbc_thermal_notify(struct notifier_block *self,
