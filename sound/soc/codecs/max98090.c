@@ -681,7 +681,7 @@ static int max98090_extmic_mux_set(struct snd_kcontrol *kcontrol,
 	val = (val & M98090_EXTMIC_MASK) >> M98090_EXTMIC_SHIFT;
 
 	max98090->extmic_mux = sel;
-
+       printk("max98090_extmic_mux_set1 sel=%d, val=%d\n",sel,val);
 	/* Setting a channel is only valid if it is already On */
 	if ((val == 1) || (val == 2)) {
 		sel = sel + 1;
@@ -689,7 +689,7 @@ static int max98090_extmic_mux_set(struct snd_kcontrol *kcontrol,
 		/* Write what was already there */
 		sel = val;
 	}
-
+	printk("max98090_extmic_mux_set2 sel=%d, val=%d\n",sel,val);
 	snd_soc_update_bits(codec, M98090_REG_0F_CFG_LINE,
 		M98090_EXTMIC_MASK,
 		sel << M98090_EXTMIC_SHIFT);
@@ -705,7 +705,7 @@ static int max98090_extmic_mux_get(struct snd_kcontrol *kcontrol,
 	unsigned int val = snd_soc_read(codec, M98090_REG_0F_CFG_LINE);
 
 	val = (val & M98090_EXTMIC_MASK) >> M98090_EXTMIC_SHIFT;
-
+	printk("max98090_extmic_mux_get1 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
 	if ((val == 1) || (val == 2)) {
 		/* If on, return the channel */
 		val = val - 1;
@@ -714,7 +714,7 @@ static int max98090_extmic_mux_get(struct snd_kcontrol *kcontrol,
 		/* If off, return last stored value */
 		val = max98090->extmic_mux;
 	}
-
+	printk("max98090_extmic_mux_get2 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
 	ucontrol->value.integer.value[0] = val;
 	return 0;
 }
@@ -1436,7 +1436,7 @@ static int max98090_mic1_mux_event(struct snd_soc_dapm_widget *w,
 	unsigned int val = snd_soc_read(codec, M98090_REG_0F_CFG_LINE);
 
 	val = (val & M98090_EXTMIC_MASK) >> M98090_EXTMIC_SHIFT;
-
+       printk(" max98090_mic1_mux_event1 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
 	if ((val == (M98090_EXTMIC_MIC1 >> M98090_EXTMIC_SHIFT)) ||
 		(val == (M98090_EXTMIC_MIC2 >> M98090_EXTMIC_SHIFT))) {
 		max98090->extmic_mux = val - 1; /* Update for volatile */
@@ -1444,18 +1444,20 @@ static int max98090_mic1_mux_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		printk(" max98090_mic1_mux_event SND_SOC_DAPM_POST_PMU\n");
 		/* If turning on, set to selected channel */
-//Ivan		max98090->extmic_mux = 0;
+		max98090->extmic_mux = 0;
 		val = max98090->extmic_mux + 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
+		printk(" max98090_mic1_mux_event SND_SOC_DAPM_POST_PMD\n");
 		/* If turning off, turn off */
 		val = M98090_EXTMIC_NONE >> M98090_EXTMIC_SHIFT;
 		break;
 	default:
 		return -EINVAL;
 	}
-
+       printk(" max98090_mic1_mux_event2 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
 	snd_soc_update_bits(codec, M98090_REG_0F_CFG_LINE, M98090_EXTMIC_MASK,
 		val << M98090_EXTMIC_SHIFT);
 
@@ -1471,7 +1473,7 @@ static int max98090_mic2_mux_event(struct snd_soc_dapm_widget *w,
 	unsigned int val = snd_soc_read(codec, M98090_REG_0F_CFG_LINE);
 
 	val = (val & M98090_EXTMIC_MASK) >> M98090_EXTMIC_SHIFT;
-
+       printk(" max98090_mic2_mux_event1 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
 	if ((val == (M98090_EXTMIC_MIC1 >> M98090_EXTMIC_SHIFT)) ||
 		(val == (M98090_EXTMIC_MIC2 >> M98090_EXTMIC_SHIFT))) {
 		max98090->extmic_mux = val - 1; /* Update for volatile */
@@ -1479,18 +1481,20 @@ static int max98090_mic2_mux_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
+		printk(" max98090_mic2_mux_event SND_SOC_DAPM_POST_PMU\n");
 		/* If turning on, set to selected channel */
-//Ivan		max98090->extmic_mux = 1;
+		max98090->extmic_mux = 1;
 		val = max98090->extmic_mux + 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
+		printk(" max98090_mic2_mux_event SND_SOC_DAPM_POST_PMD\n");
 		/* If turning off, turn off */
 		val = M98090_EXTMIC_NONE >> M98090_EXTMIC_SHIFT;
 		break;
 	default:
 		return -EINVAL;
 	}
-
+      printk(" max98090_mic2_mux_event2 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
 	snd_soc_update_bits(codec, M98090_REG_0F_CFG_LINE, M98090_EXTMIC_MASK,
 		val << M98090_EXTMIC_SHIFT);
 
