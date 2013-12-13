@@ -246,7 +246,7 @@ static int max77660_charger_init(struct max77660_chg_extcon *chip, int enable)
 		ret = max77660_reg_write(chip->parent,
 				MAX77660_CHG_SLAVE,
 				MAX77660_CHARGER_BATREGCTRL,
-				MAX77660_MBATREG_4150MV);		//Ivan change to 4.15V MAX77660_MBATREG_4200MV
+				MAX77660_MBATREG_4200MV);		//Ivan change to 4.15V MAX77660_MBATREG_4200MV
 		if (ret < 0)
 			return ret;
 		/* set MBATREGMAX voltage */
@@ -864,12 +864,15 @@ static int max77660_charger_thermal_configure(
 	int temperature;
 	int battery_threshold_voltage;
 	int ret;
-
+//Ivan added
+	u8 status1,status2,status3,status4;
+	
 	if (!chip->cable_connected)
 		return 0;
 
 	temperature = temp;
 	dev_info(chip->dev, "Battery temp %d\n", temperature);
+	
 	if (enable_charger) {
 		if (!enable_charg_half_current &&
 			chip->charging_state != ENABLED_FULL_IBAT) {
@@ -898,6 +901,25 @@ static int max77660_charger_thermal_configure(
 						BATTERY_DISCHARGING);
 		}
 	}
+//Ivan added debug info
+    ret = max77660_reg_read(chip->parent,
+		    MAX77660_CHG_SLAVE,
+		    MAX77660_CHARGER_BATREGCTRL, &status1);
+    
+    ret = max77660_reg_read(chip->parent,
+		    MAX77660_CHG_SLAVE,
+		    MAX77660_CHARGER_CHGSTAT, &status2);
+    
+    ret = max77660_reg_read(chip->parent,
+		    MAX77660_CHG_SLAVE,
+		    MAX77660_CHARGER_DETAILS1, &status3);
+
+    ret = max77660_reg_read(chip->parent,
+		    MAX77660_CHG_SLAVE,
+		    MAX77660_CHARGER_DETAILS2, &status4);
+    
+	dev_info(chip->dev, "Battery BATREGCTRL[%x], CHGSTAT[%x], DETAILS1[%x], DETAILS2[%x] \n", status1,status2,status3,status4);
+    
 	return 0;
 }
 
