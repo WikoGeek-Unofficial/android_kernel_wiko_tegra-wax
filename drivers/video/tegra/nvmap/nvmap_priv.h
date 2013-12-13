@@ -375,7 +375,11 @@ struct tegra_iommu_area {
 	size_t			iovm_length;
 	pgprot_t		pgprot;
 	struct device		*dev;
+	u32			flags; /* for internal consistency */
 };
+
+#define TEGRA_IOMMU_IOVA	BIT(0) /* only IOVA allocted */
+#define TEGRA_IOMMU_MAP		BIT(1) /* create map between IOVA and pages */
 
 #define tegra_iommu_vm_insert_pfn(area, handle, pfn)			\
 	({								\
@@ -383,10 +387,22 @@ struct tegra_iommu_area {
 		struct device *dev = area->dev;				\
 		const struct dma_map_ops *ops = get_dma_ops(dev);	\
 		DEFINE_DMA_ATTRS(attrs);				\
+									\
+		if (WARN_ON(!(area->flags & TEGRA_IOMMU_IOVA) ||	\
+			    (area->flags & TEGRA_IOMMU_MAP))) {		\
+			pr_err("%s(): wrong area flags: %08x\n",	\
+			       __func__, area->flags);			\
+			return -EINVAL;					\
+		}							\
+									\
 		dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);		\
 		da = ops->map_page_at(dev, pfn_to_page(pfn), handle,	\
 				 PAGE_SIZE, 0, 0, &attrs);		\
-		dma_mapping_error(dev, da) ? -ENOMEM : 0;		\
+		if (dma_mapping_error(dev, da))				\
+			return -ENOMEM;					\
+									\
+		area->flags |= TEGRA_IOMMU_MAP;				\
+		return 0;						\
 	})
 
 static inline int tegra_iommu_vm_insert_pages(struct tegra_iommu_area *area,
@@ -398,9 +414,19 @@ static inline int tegra_iommu_vm_insert_pages(struct tegra_iommu_area *area,
 	const struct dma_map_ops *ops = get_dma_ops(dev);
 	DEFINE_DMA_ATTRS(attrs);
 
+	if (WARN_ON(!(area->flags & TEGRA_IOMMU_IOVA) ||
+		    (area->flags & TEGRA_IOMMU_MAP))) {
+		pr_err("%s(): area flags: %08x\n", __func__, area->flags);
+		return -EINVAL;
+	}
+
 	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
 	da = ops->map_pages(dev, pages, va, count, 0, &attrs);
-	return dma_mapping_error(dev, da) ? -ENOMEM : 0;
+	if (dma_mapping_error(dev, da))
+		return -ENOMEM;
+
+	area->flags |= TEGRA_IOMMU_MAP;
+	return 0;
 }
 
 struct tegra_iommu_area *tegra_iommu_create_vm(struct device *dev,

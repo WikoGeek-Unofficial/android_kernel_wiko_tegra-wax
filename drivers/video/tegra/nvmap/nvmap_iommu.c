@@ -29,7 +29,7 @@ struct tegra_iommu_area *tegra_iommu_create_vm(struct device *dev,
 	struct tegra_iommu_area *area;
 	dma_addr_t iova;
 
-	area = kmalloc(sizeof(*area), GFP_KERNEL);
+	area = kzalloc(sizeof(*area), GFP_KERNEL);
 	if (!area)
 		return NULL;
 
@@ -44,6 +44,7 @@ struct tegra_iommu_area *tegra_iommu_create_vm(struct device *dev,
 	area->iovm_length = size;
 	area->pgprot = prot;
 	area->dev = dev;
+	area->flags |= TEGRA_IOMMU_IOVA;
 	return area;
 
 err_out:
@@ -54,6 +55,14 @@ err_out:
 void tegra_iommu_free_vm(struct tegra_iommu_area *area)
 {
 	DEFINE_DMA_ATTRS(attrs);
+	u32 flags = TEGRA_IOMMU_IOVA | TEGRA_IOMMU_MAP;
+
+	if (WARN_ON((area->flags & flags) != flags)) {
+		pr_err("%s(): area flags: %08x != %08x\n",
+		       __func__, area->flags, flags);
+		return;
+	}
+
 	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
 	dma_unmap_single_attrs(area->dev, area->iovm_start, area->iovm_length,
 			       0, &attrs);
@@ -63,10 +72,19 @@ void tegra_iommu_free_vm(struct tegra_iommu_area *area)
 void tegra_iommu_zap_vm(struct tegra_iommu_area *area)
 {
 	DEFINE_DMA_ATTRS(attrs);
+	u32 flags = TEGRA_IOMMU_IOVA | TEGRA_IOMMU_MAP;
+
+	if (WARN_ON((area->flags & flags) != flags)) {
+		pr_err("%s(): area flags: %08x != %08x\n",
+		       __func__, area->flags, flags);
+		return;
+	}
+
 	dma_set_attr(DMA_ATTR_SKIP_CPU_SYNC, &attrs);
 	dma_set_attr(DMA_ATTR_SKIP_FREE_IOVA, &attrs);
 	dma_unmap_single_attrs(area->dev, area->iovm_start, area->iovm_length,
 			       0, &attrs);
+	area->flags &= ~TEGRA_IOMMU_MAP;
 }
 
 #ifdef CONFIG_PLATFORM_ENABLE_IOMMU
