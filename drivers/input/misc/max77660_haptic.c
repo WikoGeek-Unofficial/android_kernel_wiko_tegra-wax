@@ -196,18 +196,25 @@ static void max77660_haptic_configure(struct max77660_haptic *chip)
 
 static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 {
+//  printk("Ivan max77660_haptic_enable = %d \n", enable);
 	if (chip->enabled == enable)
 		return;
 
 	chip->enabled = enable;
 
 	if (enable) {
+//  printk("Ivan max77660_haptic_enable ENABLE! \n");	  
 		regulator_enable(chip->regulator);
 		max77660_haptic_configure(chip);
 		if (chip->mode == MAX77660_EXTERNAL_MODE)
 			pwm_enable(chip->pwm);
 	} else {
+//  printk("Ivan max77660_haptic_enable DISABLE! \n");	  
 		max77660_haptic_configure(chip);
+		
+	max77660_reg_write(chip->dev->parent, MAX77660_HAPTIC_SLAVE,
+		MAX77660_HAPTIC_REG_CONF2, 2);
+	
 		if (chip->mode == MAX77660_EXTERNAL_MODE)
 			pwm_disable(chip->pwm);
 		regulator_disable(chip->regulator);
@@ -562,6 +569,8 @@ static int max77660_haptic_suspend(struct device *dev)
 	int ret;
 
 	/* Disable device before releasing E-state request */
+//Ivan added
+	cancel_delayed_work(&chip->work);
 	max77660_haptic_enable(chip, false);
 	if (chip->haptic_edp_client) {
 		ret = edp_update_client_request(chip->haptic_edp_client,
