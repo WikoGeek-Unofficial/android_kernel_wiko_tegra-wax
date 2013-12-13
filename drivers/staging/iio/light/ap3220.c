@@ -109,6 +109,7 @@
 #define AP3220_PS_SETTING_INTG_TIME_2	0x01
 #define AP3220_PS_SETTING_INTG_TIME_3	0x02
 #define AP3220_PS_SETTING_INTG_TIME_4	0x03
+#define AP3220_PS_SETTING_INTG_TIME_8	0x07
 #define AP3220_PS_SETTING_INTG_TIME_16	0x0F
 #define AP3220_PS_SETTING_GAIN_1	0x00
 #define AP3220_PS_SETTING_GAIN_2	0x01
@@ -360,7 +361,8 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 //	data = (AP3220_PS_SETTING_LED_PULSE_1 << AP3220_PS_LED_PULSE_SHIFT) & AP3220_PS_LED_PULSE_MASK;
 //	data2 = (AP3220_PS_SETTING_LED_RATIO_66 << AP3220_PS_LED_RATIO_SHIFT) & AP3220_PS_LED_RATIO_MASK;
 	data = (AP3220_PS_SETTING_LED_PULSE_2 << AP3220_PS_LED_PULSE_SHIFT) & AP3220_PS_LED_PULSE_MASK;
-	data2 = (AP3220_PS_SETTING_LED_RATIO_100 << AP3220_PS_LED_RATIO_SHIFT) & AP3220_PS_LED_RATIO_MASK;
+	data2 = (AP3220_PS_SETTING_LED_RATIO_33 << AP3220_PS_LED_RATIO_SHIFT) & AP3220_PS_LED_RATIO_MASK;
+	
 	data |= data2;
 	res = ap3220_write(chip, AP3220_REG_PS_LED,data);
 	if(res < 0)
@@ -704,7 +706,7 @@ int ap3220_read_ps(struct ap3220_chip *chip, u16 *data)
 	ps_h = ps_val >> 8;
 	*data = (ps_h << 2) | (ps_l & 0x03);
 //Ivan
-//	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
+	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
 	
 	return 0;
 READ_PS_EXIT_ERR:
