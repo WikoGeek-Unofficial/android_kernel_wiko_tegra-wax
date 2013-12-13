@@ -171,10 +171,7 @@ static void tegra_bb_set_ap2bb_int1(void)
 	void __iomem *fctrl = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
 
 	/* raise AP2BB INT1 */
-	u32 sts = readl(fctrl + FLOW_IPC_STS_0);
-	sts |= 1 << AP2BB_INT1_STS_SHIFT;
-	writel(sts, fctrl + FLOW_IPC_SET_0);
-
+	writel(1 << AP2BB_INT1_STS_SHIFT, fctrl + FLOW_IPC_SET_0);
 }
 
 static void tegra_bb_clear_ap2bb_int1(void)
@@ -227,9 +224,7 @@ void tegra_bb_generate_ipc(struct platform_device *pdev)
 	}
 #else
 	{
-		u32 sts = readl(flow + FLOW_IPC_STS_0);
-		sts |= 1 << AP2BB_INT0_STS_SHIFT;
-		writel(sts, flow + FLOW_IPC_SET_0);
+		writel(1 << AP2BB_INT0_STS_SHIFT, flow + FLOW_IPC_SET_0);
 	}
 #endif
 }
@@ -306,14 +301,13 @@ static int tegra_bb_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 static inline void tegra_bb_enable_mem_req_soon(void)
 {
 	void __iomem *fctrl = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
-	int val = readl(fctrl + FLOW_IPC_STS_0);
 
 	/* AP2BB_MSC_STS[3] is to mask or unmask
 	 * mem_req_soon interrupt to interrupt controller */
-	val = val | (0x8 << AP2BB_MSC_STS_SHIFT);
-	writel(val, fctrl + FLOW_IPC_SET_0);
+	writel((0x8 << AP2BB_MSC_STS_SHIFT), fctrl + FLOW_IPC_SET_0);
 
-	pr_debug("%s: fctrl ipc_sts = %x\n", __func__, val);
+	pr_debug("%s: fctrl ipc_sts = %x\n", __func__,
+		readl(fctrl + FLOW_IPC_STS_0));
 }
 
 static int tegra_bb_map(struct file *filp, struct vm_area_struct *vma)
