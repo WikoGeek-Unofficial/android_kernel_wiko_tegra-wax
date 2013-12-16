@@ -570,7 +570,7 @@ static int max77660_haptic_suspend(struct device *dev)
 
 	/* Disable device before releasing E-state request */
 //Ivan added
-	cancel_delayed_work(&chip->work);
+//	cancel_delayed_work(&chip->work);
 	max77660_haptic_enable(chip, false);
 	if (chip->haptic_edp_client) {
 		ret = edp_update_client_request(chip->haptic_edp_client,
