@@ -1069,6 +1069,7 @@ static void palmas_power_off(void)
 
 	/* Do not expect control here */
 	dev_err(palmas_dev->dev, "Powering off of device failed\n");
+	do { } while (1);
 }
 
 static int palmas_read_version_information(struct palmas *palmas)
