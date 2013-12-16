@@ -3,7 +3,7 @@
  * Max77660 mfd driver (I2C bus access)
  *
  * Copyright 2011 Maxim Integrated Products, Inc.
- * Copyright (C) 2011-2012 NVIDIA Corporation
+ * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -266,6 +266,7 @@ static void max77660_power_off(void)
 	dev_info(chip->dev, "%s: Shutdown has been replace with forced reboot\n",
 		__func__);
 	kernel_restart(NULL);
+	do { } while (1);
 }
 
 void max77660_power_forceoff(void)
@@ -302,6 +303,7 @@ static void max77660_power_reset(void)
 	 */
 	max77660_reg_write(chip->dev, MAX77660_PWR_SLAVE,
 			MAX77660_REG_GLOBAL_CFG0, 1);
+	do { } while (1);
 }
 
 static int max77660_32kclk_init(struct max77660_chip *chip,
