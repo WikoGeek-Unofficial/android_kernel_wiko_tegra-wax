@@ -36,6 +36,9 @@
 /* Below name is matched with the haptic driver name in Max77660 core driver */
 #define MAX77660_HAPTIC_DRIVER_MATCHED_NAME "max77660-vibrator"
 
+//Ivan add static flag
+static int haptic_enable_processing = 0;
+
 struct max77660_haptic {
 	struct device *dev;
 	struct i2c_client *client;
@@ -196,20 +199,21 @@ static void max77660_haptic_configure(struct max77660_haptic *chip)
 
 static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 {
-//  printk("Ivan max77660_haptic_enable = %d \n", enable);
+  printk("Ivan max77660_haptic_enable = %d \n", enable);
 	if (chip->enabled == enable)
 		return;
 
 	chip->enabled = enable;
 
 	if (enable) {
-//  printk("Ivan max77660_haptic_enable ENABLE! \n");	  
+  printk("Ivan max77660_haptic_enable ENABLE! \n");	  
 		regulator_enable(chip->regulator);
 		max77660_haptic_configure(chip);
 		if (chip->mode == MAX77660_EXTERNAL_MODE)
 			pwm_enable(chip->pwm);
+		haptic_enable_processing = 0;		//Ivan
 	} else {
-//  printk("Ivan max77660_haptic_enable DISABLE! \n");	  
+  printk("Ivan max77660_haptic_enable DISABLE! \n");	  
 		max77660_haptic_configure(chip);
 		
 	max77660_reg_write(chip->dev->parent, MAX77660_HAPTIC_SLAVE,
@@ -247,12 +251,14 @@ static void max77660_haptic_play_effect_work(struct work_struct *work)
 				dev_err(chip->dev,
 					"E state high transition failed, error=%d, approved=%d\n",
 					ret, approved);
+				haptic_enable_processing = 0;		//Ivan
 				return;
 			}
 		}
 		ret = max77660_haptic_set_duty_cycle(chip);
 		if (ret) {
 			dev_err(chip->dev, "set_pwm_cycle failed\n");
+			haptic_enable_processing = 0;			//Ivan
 			return;
 		}
 
@@ -344,11 +350,17 @@ static ssize_t max77660_haptic_vibrator_ctrl(struct device *dev,
 	int var;
 
 	sscanf(buf, "%d", &var);
-	if (var == 0) {			/* stop vibrator */
-		chip->level = 0;
-		schedule_work(&chip->work);
+	if (var == 0) {			/* stop vibrator */		  
+		if (haptic_enable_processing == 1)
+		  flush_scheduled_work();
+//		  schedule_delayed_work(&chip->work,msecs_to_jiffies(5));
+//		else
+		  chip->level = 0;
+		  schedule_work(&chip->work);
+		haptic_enable_processing = 0;
 	} else if (var == 1) {
 		chip->level = 100;
+		haptic_enable_processing = 1;			//Ivan setup flag to indicate enable processing...
 		schedule_work(&chip->work);
 	}
 
