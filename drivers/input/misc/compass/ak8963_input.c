@@ -786,7 +786,7 @@ static ssize_t akm_resolution_store(struct device *dev,
 	if (kstrtouint(buf, 10, &resolution))
 		return -EINVAL;
 
-	dev_dbg(&inf->i2c->dev, "%s %u\n", __func__, resolution);
+//Ivan	dev_dbg(&inf->i2c->dev, "%s %u\n", __func__, resolution);
 	inf->resolution = resolution;
 	return count;
 }
@@ -818,7 +818,7 @@ static ssize_t akm_max_range_store(struct device *dev,
 	if (err)
 		return -EINVAL;
 
-	dev_dbg(&inf->i2c->dev, "%s %u\n", __func__, range_i);
+//Ivan	dev_dbg(&inf->i2c->dev, "%s %u\n", __func__, range_i);
 	if (inf->dev_id == COMPASS_ID_AK8963) {
 		if (range_i > 1)
 			return -EINVAL;
@@ -878,7 +878,7 @@ static ssize_t akm_data_store(struct device *dev,
 	if (data_info >= AKM_DATA_INFO_LIMIT_MAX)
 		return -EINVAL;
 
-	dev_dbg(&inf->i2c->dev, "%s %u\n", __func__, data_info);
+//Ivan	dev_dbg(&inf->i2c->dev, "%s %u\n", __func__, data_info);
 	inf->data_info = data_info;
 	switch (data_info) {
 	case AKM_DATA_INFO_DATA:
@@ -1005,7 +1005,7 @@ static ssize_t akm_mpu_fifo_enable_store(struct device *dev,
 		inf->fifo_enable = true;
 	else
 		inf->fifo_enable = false;
-	dev_dbg(&inf->i2c->dev, "%s %x\n", __func__, inf->fifo_enable);
+//Ivan	dev_dbg(&inf->i2c->dev, "%s %x\n", __func__, inf->fifo_enable);
 	return count;
 }
 
@@ -1416,7 +1416,8 @@ static int akm_probe(struct i2c_client *client,
 	if (err)
 		goto akm_probe_err;
 //Ivan	
-	inf->dbg = 0xFFFF;
+//Ivan	inf->dbg = 0xFFFF;
+	inf->dbg = 0;
 	printk("Ivan akm_probe AK8963 OK!! \n");
 	return 0;
 
