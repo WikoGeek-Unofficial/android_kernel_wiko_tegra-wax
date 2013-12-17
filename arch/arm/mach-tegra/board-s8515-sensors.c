@@ -1613,9 +1613,12 @@ static void mpuirq_init(void)
 //Ivan
 	i2c_register_board_info(gyro_bus_num, bma222e_acce_i2c1_board_info,
 		ARRAY_SIZE(bma222e_acce_i2c1_board_info));	
-	
+//Ivan FIXME
+//Remove compass as I2C conflict...
+#if 0	
 	i2c_register_board_info(gyro_bus_num, ak8963_mag_i2c1_board_info,
 		ARRAY_SIZE(ak8963_mag_i2c1_board_info));		
+#endif	
 	return;
 	
 	ret = gpio_request(gyro_irq_gpio, gyro_name);
