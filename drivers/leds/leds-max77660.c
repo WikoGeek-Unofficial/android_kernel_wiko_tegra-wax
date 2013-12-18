@@ -19,6 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307, USA
  */
+#define DEBUG 1
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -26,6 +27,10 @@
 #include <linux/ctype.h>
 #include <linux/pm.h>
 #include <linux/mfd/max77660/max77660-core.h>
+
+//edit by Magnum 
+#include <linux/leds.h>
+#include <linux/workqueue.h>
 
 //static int gOn_time;
 struct max77660_leds {
@@ -37,6 +42,46 @@ struct max77660_ledblnk_map {
 	unsigned long bits_val;
 	unsigned long time_ms;
 };
+
+//edit by Magnum 
+/*** As all current sources share the same blink on-time and period settings with a common register.
+****  blink led through set timer to turn on && off.
+****  so a blink need 3 values, enabl + onms+ offms, all of them should be sensitve.
+****  
+*************/
+
+/*  led enable bit	 */
+#define BUTTON0_ENABLE 		1
+#define GREEN_ENABLE			2
+#define RED_ENABLE 			4
+#define BUTTON1_ENABLE   		8
+/*  led  disable bit	*/
+#define RED_DISABLE			0xF - RED_ENABLE
+#define GREEN_DISABLE		0xF - GREEN_ENABLE
+#define BUTTON0_DISABLE		0xF - BUTTON0_ENABLE
+#define BUTTON1_DISABLE		0xF - BUTTON1_ENABLE
+
+#define MAX77660_DOUBLE_BUTTON_LIGHT
+
+static DEFINE_MUTEX(max77660_leds_mutex);
+static struct work_struct set_leds_work;
+
+enum max77660_LED{
+	RED_LED,
+	GREEN_LED,
+	BLUE_LED,
+	BUTTON0_LED,
+	BUTTON1_LED,
+};
+
+static int currentLedPower = 0;
+static unsigned long g_leds_brt= 0;
+static struct device *g_max77660_dev;
+static int g_led_type = 8;
+static int g_led_index = 0;
+static int g_enable = 0;
+static int g_disable = 0;
+//static int led_current_enable = 0;
 
 struct max77660_ledblnk_map max77660_ledblnkp[] = {
 	{ 0x0, 1000  },
@@ -131,7 +176,7 @@ static ssize_t max77660_leds_enable_show(struct device *dev,
 {
 	int ret;
 	unsigned long leds_en = 0;
-	printk("Ivan max77660_leds_enable_show \n");
+	dev_dbg(dev,"Ivan max77660_leds_enable_show \n");
 
 	ret = max77660_reg_read(dev->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_LEDEN, &leds_en);
@@ -152,7 +197,7 @@ static ssize_t max77660_leds_enable_store(struct device *dev,
 
 	if (isspace(*after))
 		count++;
-	printk("Ivan max77660_leds_enable_store leds_en = %x\n",leds_en);
+	dev_dbg(dev,"Ivan max77660_leds_enable_store leds_en = %x\n",leds_en);
 
 	if (count == size) {
 	    
@@ -161,13 +206,14 @@ static ssize_t max77660_leds_enable_store(struct device *dev,
 		/* switch the led0 control to LED0EN bit */
 		leds_en |= 0x80;
 		/* enable leds */
+		dev_dbg(dev,"Magnum max77660_leds_enable_store leds_en = 0x%x\n",leds_en);
 		ret = max77660_reg_write(dev->parent, MAX77660_PWR_SLAVE,
 				MAX77660_REG_LEDEN, leds_en);
 		if (ret < 0) {
 			dev_err(dev, "LEDEN write failed: %d\n", ret);
 			goto out;
 		}
-	    printk("Ivan max77660_leds_enable_store OK!\n");
+	    dev_dbg(dev,"Ivan max77660_leds_enable_store OK!\n");
 		
 	} else {
 		ret = -EINVAL;
@@ -184,7 +230,7 @@ static ssize_t max77660_leds_brightness_show(struct device *dev,
 	int ret;
 	unsigned long val = 0;
 	unsigned long leds_brt = 0;
-	printk("Ivan max77660_leds_brightness_show \n");
+	dev_dbg(dev->parent,"Ivan max77660_leds_brightness_show \n");
 
 	ret = max77660_reg_read(dev->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_LED0BRT, &val);
@@ -225,7 +271,7 @@ static ssize_t max77660_leds_brightness_store(struct device *dev,
 	char *after;
 	unsigned long leds_brt = simple_strtoul(buf, &after, 10);
 	size_t count = after - buf;
-	printk("Ivan max77660_leds_brightness_store leds_brt = %d \n",leds_brt);
+	dev_dbg(dev,"Ivan max77660_leds_brightness_store leds_brt = %d \n",leds_brt);
 
 	if (isspace(*after))
 		count++;
@@ -262,7 +308,7 @@ static ssize_t max77660_leds_brightness_store(struct device *dev,
 			dev_err(dev, "LED3BRT write failed: %d\n", ret);
 			goto out;
 		}
-	    printk("Ivan max77660_leds_brightness_store OK! \n");
+	    dev_dbg(dev,"Ivan max77660_leds_brightness_store OK! \n");
 		
 	} else {
 		ret = -EINVAL;
@@ -281,7 +327,7 @@ static ssize_t max77660_leds_onms_show(struct device *dev,
 	int i;
 	unsigned long val = 0;
 	unsigned long leds_blnkd = 0;
-	printk("Ivan max77660_leds_onms_show \n");
+	dev_dbg(dev,"Ivan max77660_leds_onms_show \n");
 
 	ret = max77660_reg_read(dev->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_LEDBLNK, &val);
@@ -310,7 +356,7 @@ static ssize_t max77660_leds_onms_store(struct device *dev,
 	unsigned long leds_onms = simple_strtoul(buf, &after, 10);
 	unsigned long val = 0;
 	size_t count = after - buf;
-	printk("Ivan max77660_leds_onms_store leds_onms = %d\n",leds_onms);
+	dev_dbg(dev,"Ivan max77660_leds_onms_store leds_onms = %d\n",leds_onms);
 
 	if (isspace(*after))
 		count++;
@@ -345,7 +391,7 @@ static ssize_t max77660_leds_onms_store(struct device *dev,
 			dev_err(dev, "LEDBLNK write failed: %d\n", ret);
 			goto out;
 		}
-	    printk("Ivan max77660_leds_onms_store OK!!\n");
+	    dev_dbg(dev,"Ivan max77660_leds_onms_store OK!!\n");
 		
 	} else {
 		ret = -EINVAL;
@@ -364,7 +410,7 @@ static ssize_t max77660_leds_offms_show(struct device *dev,
 	unsigned long val = 0;
 	unsigned long leds_blnk = 0;
 	unsigned long offms = 0;
-	printk("Ivan max77660_leds_offms_show \n");
+	dev_dbg(dev,"Ivan max77660_leds_offms_show \n");
 
 	ret = max77660_reg_read(dev->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_LEDBLNK, &val);
@@ -407,7 +453,7 @@ static ssize_t max77660_leds_offms_store(struct device *dev,
 	unsigned long leds_blnkd = 0;
 	unsigned long val = 0;
 	size_t count = after - buf;
-	printk("Ivan max77660_leds_offms_store leds_offms = %d\n",leds_offms);
+	dev_dbg(dev,"Ivan max77660_leds_offms_store leds_offms = %d\n",leds_offms);
 
 	if (isspace(*after))
 		count++;
@@ -449,7 +495,6 @@ static ssize_t max77660_leds_offms_store(struct device *dev,
 
 		val &= 0xF0;
 		val |= max77660_ledblnkp[i].bits_val;
-		    
 		/* write max77660 ledblnk register */
 		ret = max77660_reg_write(dev->parent, MAX77660_PWR_SLAVE,
 				MAX77660_REG_LEDBLNK, val);
@@ -459,14 +504,14 @@ static ssize_t max77660_leds_offms_store(struct device *dev,
 		{
 		    ret = max77660_reg_write(dev->parent, MAX77660_PWR_SLAVE,
 				    MAX77660_REG_LEDBLNK, 0xF0);		//Ivan always on
-	    	    printk("Ivan max77660_leds_offms_store ALWAYS ON!!\n");
+	    	    dev_dbg(dev,"Ivan max77660_leds_offms_store ALWAYS ON!!\n");
 		}
 */
 		if (ret < 0) {
 			dev_err(dev, "LEDBLNK write failed: %d\n", ret);
 			goto out;
 		}
-	    printk("Ivan max77660_leds_offms_store OK!!\n");
+	    dev_dbg(dev,"Ivan max77660_leds_offms_store OK!!\n");
 		
 	} else {
 		ret = -EINVAL;
@@ -485,13 +530,186 @@ static struct device_attribute max77660_leds_attrs[] = {
 	__ATTR_NULL,
 };
 
+//edit by Magnum 2013-12-12
+static int  check_max77660_led_enable(enum max77660_LED led,int enable){
+	int ret = 0;
+	ret = enable&0xF;
+	
+	switch (led) {
+		case RED_LED:
+		 	  return ret&RED_ENABLE;
+			  
+		case GREEN_LED:
+		 	  return ret&GREEN_ENABLE;
+			  
+	        case BUTTON0_LED:
+		 	  return ret&BUTTON0_ENABLE;
+			  
+		case BUTTON1_LED:
+		 	  return ret&BUTTON1_ENABLE;
+			  
+		default:
+			return LED_OFF;
+	}
+}
+ 
+static void set_leds_work_func(struct work_struct *work)
+{
+	int ret;
+	int led_current_enable;
+	unsigned long val = 0xF0;
+	unsigned long leds_en = 0;
+	mutex_lock(&max77660_leds_mutex);
+
+	dev_dbg(g_max77660_dev,"Magnum %s() ..value == %d, type == %d, index = %d,  enable == %d, disable == %d\n",
+		__func__,
+		g_leds_brt,g_led_type,g_led_index,g_enable,g_disable);
+	if(g_leds_brt > LED_FULL)
+		g_leds_brt = LED_FULL;
+	int is_on = (g_leds_brt == LED_OFF) ? 0 : 1;
+	
+	ret = max77660_reg_read(g_max77660_dev->parent, MAX77660_PWR_SLAVE,
+			MAX77660_REG_LEDEN, &leds_en);
+	if (ret < 0) {
+		dev_err(g_max77660_dev,"LEDEN read failed: %d\n", ret);
+		return ;
+	}
+	leds_en = leds_en & 0xF;
+	dev_dbg(g_max77660_dev,"Magnum  ..current leds_en == 0x%x\n",leds_en);
+
+	led_current_enable = check_max77660_led_enable(g_led_type,leds_en);
+	
+	if(led_current_enable == is_on){
+		currentLedPower = leds_en;
+	}
+	else{
+		if(is_on)
+			currentLedPower = leds_en |g_enable;
+		else
+			currentLedPower = leds_en&g_disable;		
+	}
+	
+	dev_dbg(g_max77660_dev,"Magnum max77660_set  brightness == %d, val == 0x%x ,currentPower == 0x%x\n",g_leds_brt,g_leds_brt >> 
+	1,currentLedPower);
+	
+	ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,g_led_index, g_leds_brt >> 1);
+	if (ret < 0) {
+		dev_err(g_max77660_dev, "LEDEN read failed: %d\n", ret);
+		goto err ;
+	}
+
+	//turn led into one-shot mode 
+	ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,
+				MAX77660_REG_LEDBLNK, val);
+	
+	if(currentLedPower != leds_en){
+		dev_dbg(g_max77660_dev->parent,"Magnum pdev->dev->parent\n");
+		ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,MAX77660_REG_LEDEN, currentLedPower);
+		if (ret < 0) {
+			dev_err(g_max77660_dev, "LEDEN write failed: %d\n", ret);
+			goto err ;
+		}
+	     	dev_dbg(g_max77660_dev,"Ivan max77660_leds_enable_store OK!\n");
+	}
+
+err:
+	mutex_unlock(&max77660_leds_mutex);
+	
+}
+
+static void max77660_red_set(struct led_classdev *led_cdev,enum led_brightness value){
+	g_leds_brt = value;
+	g_led_type = RED_LED;
+	g_led_index = MAX77660_REG_LED1BRT;
+	g_enable = RED_ENABLE;
+	g_disable = RED_DISABLE;
+	dev_dbg(g_max77660_dev,"Magnum %s() ..value == %d\n",__func__,value);
+	schedule_work(&set_leds_work);
+}
+
+static void max77660_green_set(struct led_classdev *led_cdev,enum led_brightness value){
+	g_leds_brt = value;
+	g_led_type = GREEN_LED;
+	g_led_index = MAX77660_REG_LED2BRT;
+	g_enable = GREEN_ENABLE;
+	g_disable = GREEN_DISABLE;
+	dev_dbg(g_max77660_dev,"Magnum %s() ..value == %d\n",__func__,value);
+	schedule_work(&set_leds_work);
+ }
+ 
+static void max77660_button1_set(struct led_classdev *led_cdev,enum led_brightness value){
+	g_leds_brt = value;
+	g_led_type = BUTTON1_LED;
+	g_led_index = MAX77660_REG_LED3BRT;
+	g_enable = BUTTON1_ENABLE;
+	g_disable = BUTTON1_DISABLE;
+	dev_dbg(g_max77660_dev,"Magnum %s() ..value == %d\n",__func__,value);
+	schedule_work(&set_leds_work); 
+ }
+
+#if 0
+static enum led_brightness max77660_get_brightness(){
+	int ret;
+	unsigned long val = 0;
+	unsigned long leds_brt = 0;
+	dev_dbg(g_max77660_dev,"Ivan max77660_leds_brightness_show \n");
+
+	ret = max77660_reg_read(g_max77660_dev->parent, MAX77660_PWR_SLAVE,
+			g_led_index, &val);
+	if (ret < 0) {
+		dev_err(g_max77660_dev, "LED0BRT read failed: %d\n", ret);
+		return ret;
+	}
+	leds_brt |= (val & 0xFF) << 1;
+	dev_dbg(g_max77660_dev,"Ivan max77660_leds_brightness_show == %u , val == 0x%x\n",leds_brt,val);
+	return leds_brt;
+}
+
+static enum led_brightness max77660_red_get(struct led_classdev *led_cdev){
+	g_led_index = MAX77660_REG_LED1BRT;
+	return max77660_get_brightness();
+}
+
+static enum led_brightness max77660_green_get(struct led_classdev *led_cdev){
+	g_led_index = MAX77660_REG_LED2BRT;
+	return max77660_get_brightness();
+}
+
+static enum led_brightness max77660_button1_get(struct led_classdev *led_cdev){
+	g_led_index = MAX77660_REG_LED3BRT;
+	return max77660_get_brightness();
+}
+#endif
+
+static struct led_classdev max77660_red_led = {
+	 .name= "red",
+	 .brightness_set = max77660_red_set,
+	// .brightness_get = max77660_red_get,
+	 .flags = 0,
+};
+
+static struct led_classdev max77660_green_led = {
+	 .name= "green",
+	 .brightness_set = max77660_green_set,
+	// .brightness_get = max77660_green_get,
+	 .flags = 0,
+};
+
+
+static struct led_classdev max77660_button1_led = {
+	 .name= "button1",
+	 .brightness_set = max77660_button1_set,
+	// .brightness_get = max77660_button1_get,
+	 .flags = 0,
+};
+
 static int __devinit max77660_leds_probe(struct platform_device *pdev)
 {
 	struct max77660_leds *leds;
 	struct max77660_platform_data *pdata;
 	int ret = 0;
 	
-	printk("Ivan max77660_leds_probe \n");
+	dev_dbg(&pdev->dev,"Ivan max77660_leds_probe \n");
 	pdata = dev_get_platdata(pdev->dev.parent);
 	if (!pdata) {
 		dev_err(&pdev->dev, "No Platform data\n");
@@ -516,6 +734,28 @@ static int __devinit max77660_leds_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Create max77660 leds attributes failed, %d!\n", ret);
 		return ret;
 	}
+
+	g_max77660_dev =&pdev->dev;
+	ret = led_classdev_register(&pdev->dev, &max77660_red_led);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Create max77660_red_led attributes failed, %d!\n", ret);
+		return ret;
+	}
+	
+	#if 1
+	ret = led_classdev_register(&pdev->dev, &max77660_green_led);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Create max77660_green_led attributes failed, %d!\n", ret);
+		return ret;
+	}
+
+	ret = led_classdev_register(&pdev->dev, &max77660_button1_led);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "Create max77660_button_led attributes failed, %d!\n", ret);
+		return ret;
+	}  
+	#endif
+        INIT_WORK(&set_leds_work,set_leds_work_func);
 
 	return ret;
 }

@@ -944,7 +944,7 @@ static void smart_report_key(struct synaptics_rmi4_data *rmi4_data,struct synapt
 {
 	//edit by Magnum 2013-11-14:--report key in FTM mode
 	boot_mode = tegra_get_bootmode_id();
-	printk("Magnum boot mode == %d\n",boot_mode);
+	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum boot mode == %d\n",boot_mode);
 	if(boot_mode == 1 ||boot_mode == 3)
 		input_report_key(rmi4_data->input_dev,f1a->button_map[button],down);  
 	else{
