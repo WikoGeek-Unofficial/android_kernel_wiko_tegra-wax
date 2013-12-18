@@ -553,30 +553,42 @@ static u32 __tegra_isomgr_reserve(tegra_isomgr_handle handle,
 	VALIDATE_HANDLE();
 
 	isomgr_lock();
-	if (unlikely(!atomic_inc_not_zero(&cp->kref.refcount)))
+	if (unlikely(!atomic_inc_not_zero(&cp->kref.refcount))){
+		if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d \n", __FILE__, __func__, __LINE__);
 		goto handle_unregistered;
-
+	}
 	if (cp->rsvd_bw == ubw && cp->lti == ult) {
 		kref_put(&cp->kref, unregister_iso_client);
 		isomgr_unlock();
+		if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d \n", __FILE__, __func__, __LINE__);
 		return cp->lto;
 	}
 
 	trace_tegra_isomgr_reserve(handle, ubw, ult, cname[client], "enter");
 
-	if (unlikely(cp->realize))
+	if (unlikely(cp->realize)){
+		if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d \n", __FILE__, __func__, __LINE__);
 		goto out;
-
-	if (bw <= cp->margin_bw)
+	}
+	if (bw <= cp->margin_bw)if(ubw == 0){
+		if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d \n", __FILE__, __func__, __LINE__);
 		goto skip_bw_check;
-
-	if (unlikely(!cp->renegotiate && bw > cp->dedi_bw))
+	}
+	if (unlikely(!cp->renegotiate && bw > cp->dedi_bw))if(ubw == 0){
+		if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d \n", __FILE__, __func__, __LINE__);
 		goto out;
-
+	}		
 	if (bw > cp->dedi_bw &&
-	    bw > isomgr.avail_bw + cp->real_bw - isomgr.sleep_bw)
+			bw > isomgr.avail_bw + cp->real_bw - isomgr.sleep_bw){
+		if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d \n", __FILE__, __func__, __LINE__);
 		goto out;
-
+	}
 skip_bw_check:
 	/* Look up MC's min freq that could satisfy requested BW and LT */
 	mf = mc_min_freq(ubw, ult);
@@ -592,14 +604,20 @@ out:
 	isomgr_unlock();
 	trace_tegra_isomgr_reserve(handle, ubw, ult, cname[client],
 		dvfs_latency ? "exit" : "rsrv_fail_exit");
+	if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d dvfs_latency %d \n", __FILE__, __func__, __LINE__, dvfs_latency);
 	return dvfs_latency;
 handle_unregistered:
 	isomgr_unlock();
 	trace_tegra_isomgr_reserve(handle, ubw, ult,
 		cname[client], "inv_handle_exit");
+	if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d dvfs_latency %d \n", __FILE__, __func__, __LINE__, dvfs_latency);
 	return dvfs_latency;
 validation_fail:
 	trace_tegra_isomgr_reserve(handle, ubw, ult, "unk", "inv_handle_exit");
+	if(ubw == 0)
+			printk(KERN_ERR"kassey %s %s %d dvfs_latency %d \n", __FILE__, __func__, __LINE__, dvfs_latency);
 	return dvfs_latency;
 }
 
