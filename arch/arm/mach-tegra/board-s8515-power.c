@@ -1525,7 +1525,8 @@ int __init ceres_soctherm_init(void)
 
 static struct edp_manager ceres_sysedp_manager = {
 	.name = "battery",
-	.max = 18500
+	/* .max = 18500 */
+	.max = 13700,
 };
 
 void __init ceres_sysedp_init(void)
@@ -1564,6 +1565,7 @@ static unsigned int ceres_psydepl_states[] = {
 	 500,  400,  300,  200,  100,    0
 };
 
+#if 0
 /* Temperature in deci-celcius */
 static struct psy_depletion_ibat_lut ceres_ibat_lut[] = {
 	{  600,  500 },
@@ -1613,6 +1615,60 @@ static struct psy_depletion_platform_data ceres_psydepl_pdata = {
 	.ocv_lut = ceres_ocv_lut,
 	.rbat_lut = ceres_rbat_lut
 };
+#else
+
+/* Temperature in deci-celcius */
+static struct psy_depletion_ibat_lut ceres_ibat_lut[] = {
+	{  600, 2000 },
+	{  500, 2000 },
+	{  250, 2000 },
+	{  0, 2000 },
+	{ -100, 2000 },
+	{ -300,	0 }
+};
+
+static struct psy_depletion_rbat_lut ceres_rbat_lut[] = {
+	{ 100, 158000 },
+	{  90, 163000 },
+	{  80, 175000 },
+	{  70, 193000 },
+	{  60, 163000 },
+	{  50, 160000 },
+	{  40, 163000 },
+	{  30, 165000 },
+	{  20, 168000 },
+	{  10, 170000 },
+	{   0, 210000 }
+};
+
+static struct psy_depletion_ocv_lut ceres_ocv_lut[] = {
+	{ 100, 4200000 },
+	{  90, 4094000 },
+	{  80, 4012000 },
+	{  70, 3934000 },
+	{  60, 3860000 },
+	{  50, 3811000 },
+	{  40, 3784000 },
+	{  30, 3768000 },
+	{  20, 3738000 },
+	{  10, 3684000 },
+	{   0, 3518000 }
+};
+
+static struct psy_depletion_platform_data ceres_psydepl_pdata = {
+	.power_supply = "battery",
+	.states = ceres_psydepl_states,
+	.num_states = ARRAY_SIZE(ceres_psydepl_states),
+	.e0_index = 47,
+	.r_const = 130000,
+	.vsys_min = 3250000,
+	.vcharge = 4200000,
+	.ibat_nom = 2000,
+	.ibat_lut = ceres_ibat_lut,
+	.ocv_lut = ceres_ocv_lut,
+	.rbat_lut = ceres_rbat_lut
+};
+#endif
 
 static struct platform_device ceres_psydepl_device = {
 	.name = "psy_depletion",
