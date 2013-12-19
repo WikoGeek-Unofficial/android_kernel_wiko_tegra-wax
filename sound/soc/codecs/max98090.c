@@ -39,8 +39,7 @@ static const u8 max98090_reg_def[M98090_REG_CNT] = {
 	0x00, /* 0A Analog Mic Loop Quick */
 	0x00, /* 0B Analog Line Loop Quick */
 	0x00, /* 0C Reserved */
-//Ivan 00 -> 10	
-	0x10, /* 0D Input Config */		
+	0x00, /* 0D Input Config */
 	0x1B, /* 0E Line Input Level */
 	0x00, /* 0F Line Config */
 
@@ -1450,7 +1449,6 @@ static int max98090_mic1_mux_event(struct snd_soc_dapm_widget *w,
 		val = max98090->extmic_mux + 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		printk(" max98090_mic1_mux_event SND_SOC_DAPM_POST_PMD\n");
 		/* If turning off, turn off */
 		val = M98090_EXTMIC_NONE >> M98090_EXTMIC_SHIFT;
 		break;
@@ -1481,20 +1479,18 @@ static int max98090_mic2_mux_event(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
-		printk(" max98090_mic2_mux_event SND_SOC_DAPM_POST_PMU\n");
 		/* If turning on, set to selected channel */
 		//max98090->extmic_mux = 1;
 		val = max98090->extmic_mux + 1;
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		printk(" max98090_mic2_mux_event SND_SOC_DAPM_POST_PMD\n");
 		/* If turning off, turn off */
 		val = M98090_EXTMIC_NONE >> M98090_EXTMIC_SHIFT;
 		break;
 	default:
 		return -EINVAL;
 	}
-      printk(" max98090_mic2_mux_event2 max98090->extmic_mux=%d, val=%d\n",max98090->extmic_mux,val);
+printk("Ivan max98090_mic2_mux_event event = %d, val =%d \n", event, val);		  
 	snd_soc_update_bits(codec, M98090_REG_0F_CFG_LINE, M98090_EXTMIC_MASK,
 		val << M98090_EXTMIC_SHIFT);
 
@@ -1865,12 +1861,14 @@ static const struct snd_soc_dapm_widget max98090_dapm_widgets[] = {
 
 	SND_SOC_DAPM_MUX_E("MIC1 Mux", SND_SOC_NOPM,
 		0, 0, &max98090_mic1_mux,
-		max98090_mic1_mux_event,
+//NV		max98090_mic1_mux_event,
+		NULL,
 		SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 
 	SND_SOC_DAPM_MUX_E("MIC2 Mux", SND_SOC_NOPM,
 		0, 0, &max98090_mic2_mux,
-		max98090_mic2_mux_event,
+//NV		max98090_mic2_mux_event,
+		NULL,
 		SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_POST_PMD),
 
 	SND_SOC_DAPM_PGA_E("MIC1 Input", M98090_REG_10_LVL_MIC1,
