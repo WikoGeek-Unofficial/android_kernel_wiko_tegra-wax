@@ -111,7 +111,10 @@ struct nvshm_iobuf *nvshm_iobuf_alloc(struct nvshm_channel *chan, int size)
 		if (check) {
 			spin_unlock_irqrestore(&alloc.lock, f);
 			pr_err("%s: iobuf check ret %d\n", __func__, check);
-			return NULL;
+			if (chan->ops)
+				chan->ops->error_event(chan, NVSHM_IOBUF_ERROR);
+
+			return desc;
 		}
 		if (size > (alloc.free_pool_head->totalLength -
 			    NVSHM_DEFAULT_OFFSET)) {
@@ -121,10 +124,9 @@ struct nvshm_iobuf *nvshm_iobuf_alloc(struct nvshm_channel *chan, int size)
 			       size,
 			       alloc.free_pool_head->totalLength -
 			       NVSHM_DEFAULT_OFFSET);
-			if (chan->ops) {
-				chan->ops->error_event(chan,
-						       NVSHM_IOBUF_ERROR);
-			}
+			if (chan->ops)
+				chan->ops->error_event(chan, NVSHM_IOBUF_ERROR);
+
 			return desc;
 		}
 		desc = alloc.free_pool_head;
