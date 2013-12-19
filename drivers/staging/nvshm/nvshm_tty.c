@@ -18,6 +18,7 @@
 #include <linux/tty_driver.h>
 #include <linux/tty_flip.h>
 
+#include <linux/srcu.h>
 #include <linux/skbuff.h>
 
 #include "nvshm_types.h"
@@ -59,6 +60,8 @@ struct nvshm_tty_device {
 };
 
 static struct nvshm_tty_device tty_dev;
+static struct srcu_struct tty_dev_lock;
+static bool tty_dev_lock_initialized;
 
 static void nvshm_tty_rx_rewrite_line(struct nvshm_tty_line *line)
 {
@@ -126,12 +129,17 @@ static void nvshm_tty_rx_rewrite_line(struct nvshm_tty_line *line)
 /* Called in a workqueue from rx_event and when tty is unthrottled */
 static void nvshm_tty_rx_rewrite(struct work_struct *work)
 {
-	int i;
 	struct nvshm_tty_device *ttydev =
 		container_of(work, struct nvshm_tty_device, tty_worker);
+	struct nvshm_tty_line *line;
+	int idx, i;
 
+	idx = srcu_read_lock(&tty_dev_lock);
+	line = srcu_dereference(ttydev->line, &tty_dev_lock);
 	for (i = 0; i < ttydev->nlines; i++)
-		nvshm_tty_rx_rewrite_line(&ttydev->line[i]);
+		nvshm_tty_rx_rewrite_line(&line[i]);
+
+	srcu_read_unlock(&tty_dev_lock, idx);
 }
 
 /*
@@ -200,24 +208,42 @@ static struct nvshm_if_operations nvshm_tty_ops = {
 
 static int nvshm_tty_open(struct tty_struct *tty, struct file *f)
 {
-	struct nvshm_tty_line *line = tty->driver_data;
-	if (line)
-		return tty_port_open(&line->port, tty, f);
-	return -EIO;
+	struct nvshm_tty_line *line;
+	int idx, ret = -EIO;
+
+	idx = srcu_read_lock(&tty_dev_lock);
+	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
+	if (tty_dev.up)
+		ret = tty_port_open(&line->port, tty, f);
+
+	srcu_read_unlock(&tty_dev_lock, idx);
+	return ret;
 }
 
 static void nvshm_tty_close(struct tty_struct *tty, struct file *f)
 {
-	struct nvshm_tty_line *line = tty->driver_data;
-	if (line)
+	struct nvshm_tty_line *line;
+	int idx;
+
+	idx = srcu_read_lock(&tty_dev_lock);
+	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
+	if (tty_dev.up)
 		tty_port_close(&line->port, tty, f);
+
+	srcu_read_unlock(&tty_dev_lock, idx);
 }
 
 static void nvshm_tty_hangup(struct tty_struct *tty)
 {
-	struct nvshm_tty_line *line = tty->driver_data;
-	if (line)
+	struct nvshm_tty_line *line;
+	int idx;
+
+	idx = srcu_read_lock(&tty_dev_lock);
+	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
+	if (tty_dev.up)
 		tty_port_hangup(&line->port);
+
+	srcu_read_unlock(&tty_dev_lock, idx);
 }
 
 
@@ -232,26 +258,34 @@ static int nvshm_tty_write(struct tty_struct *tty, const unsigned char *buf,
 	struct nvshm_iobuf *iob, *leaf = NULL, *ioblist = NULL;
 	int to_send = 0, remain, ret;
 	struct nvshm_tty_line *line;
+	int idx, rc = len;
 
-	if (!tty_dev.up)
-		return -EIO;
+	idx = srcu_read_lock(&tty_dev_lock);
+	if (!tty_dev.up) {
+		rc = -EIO;
+		goto err;
+	}
 
 	remain = len;
-	line = tty->driver_data;
+	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
 	while (remain) {
 		to_send = remain < MAX_OUTPUT_SIZE ? remain : MAX_OUTPUT_SIZE;
 		iob = nvshm_iobuf_alloc(line->pchan, to_send);
 		if (!iob) {
 			if (line->errno) {
 				pr_err("%s iobuf alloc failed\n", __func__);
+				/* Stop processing until modem has been reset */
+				tty_dev.up = 0;
 				if (ioblist)
 					nvshm_iobuf_free_cluster(ioblist);
-				return -ENOMEM;
+				rc = -ENOMEM;
 			} else {
 				pr_err("%s: Xoff condition\n", __func__);
 				tty_throttle(tty);
-				return 0;
+				rc = 0;
 			}
+
+			goto err;
 		}
 
 		iob->length = to_send;
@@ -274,17 +308,17 @@ static int nvshm_tty_write(struct tty_struct *tty, const unsigned char *buf,
 	if (ret == 1)
 		tty_throttle(tty);
 
-	return len;
+err:
+	srcu_read_unlock(&tty_dev_lock, idx);
+	return rc;
 }
 
 static void nvshm_tty_unthrottle(struct tty_struct *tty)
 {
 	pr_debug("%s\n", __func__);
 
-	if (!tty_dev.up)
-		return;
-
-	queue_work(tty_dev.tty_wq, &tty_dev.tty_worker);
+	if (tty_dev.up)
+		queue_work(tty_dev.tty_wq, &tty_dev.tty_worker);
 }
 
 static void nvshm_tty_dtr_rts(struct tty_port *tport, int onoff)
@@ -323,14 +357,19 @@ static int  nvshm_tty_activate(struct tty_port *tport, struct tty_struct *tty)
 
 static void  nvshm_tty_shutdown(struct tty_port *tport)
 {
-	struct nvshm_tty_line *line =
-		container_of(tport, struct nvshm_tty_line, port);
+	struct nvshm_tty_line *line, *tty_line;
+	int idx;
 
+	idx = srcu_read_lock(&tty_dev_lock);
+	tty_line = container_of(tport, struct nvshm_tty_line, port);
+	line = srcu_dereference(tty_line, &tty_dev_lock);
 	if (line) {
 		pr_debug("%s\n", __func__);
 		nvshm_close_channel(line->pchan);
 		line->pchan = NULL;
 	}
+
+	srcu_read_unlock(&tty_dev_lock, idx);
 }
 
 static int nvshm_tty_install(struct tty_driver *driver, struct tty_struct *tty)
@@ -367,6 +406,15 @@ int nvshm_tty_init(struct nvshm_handle *handle)
 	int ret, chan, count;
 
 	pr_debug("%s\n", __func__);
+
+	/*
+	 * This main lock must always remain valid, else we may crash on a race
+	 * between cleanup and open/close.
+	 */
+	if (!tty_dev_lock_initialized) {
+		init_srcu_struct(&tty_dev_lock);
+		tty_dev_lock_initialized = true;
+	}
 
 	memset(&tty_dev, 0, sizeof(tty_dev));
 
@@ -447,6 +495,8 @@ void nvshm_tty_cleanup(struct nvshm_handle *handle)
 
 	pr_debug("%s\n", __func__);
 	tty_dev.up = 0;
+	/* Wait for all current readers to finish; next ones will fail */
+	synchronize_srcu(&tty_dev_lock);
 	for (chan = 0; chan < tty_dev.nlines; chan++) {
 		struct tty_struct *tty;
 
@@ -465,4 +515,3 @@ void nvshm_tty_cleanup(struct nvshm_handle *handle)
 	kfree(tty_dev.line);
 	put_tty_driver(tty_dev.tty_driver);
 }
-
