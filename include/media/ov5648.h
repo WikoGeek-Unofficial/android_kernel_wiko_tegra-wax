@@ -9,6 +9,7 @@
 #include <linux/ioctl.h>  /* For IOCTL macros */
 #include <media/nvc.h>
 #include <media/nvc_image.h>
+#include <linux/edp.h>
 
 #define OV5648_IOCTL_SET_MODE           _IOW('o', 1, struct ov5648_mode)
 #define OV5648_IOCTL_SET_FRAME_LENGTH   _IOW('o', 2, __u32)
@@ -48,6 +49,7 @@ struct ov5648_platform_data {
 	const char *dev_name;
 	int (*power_on)(struct nvc_regulator *);
 	int (*power_off)(struct nvc_regulator *);
+	struct edp_client edpc_config;
 };
 #endif /* __KERNEL__ */
 #endif /* __OV5648_H__ */

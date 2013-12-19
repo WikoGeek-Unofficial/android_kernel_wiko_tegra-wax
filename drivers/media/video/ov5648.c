@@ -11,7 +11,6 @@
  * version 2. This program is licensed "as is" without any warranty of any
  * kind, whether express or implied.
  */
-#define DEBUG
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/i2c.h>
@@ -993,6 +992,86 @@ static struct ov5648_reg *mode_table[] = {
 	[OV5648_MODE_1280x720] = mode_1280x720,
 };
 
+static void ov5648_edp_lowest(struct ov5648_info *info)
+{
+	if (!info->edpc)
+		return;
+
+	info->edp_state = info->edpc->num_states - 1;
+	dev_dbg(&info->i2c_client->dev, "%s %d\n", __func__, info->edp_state);
+	if (edp_update_client_request(info->edpc, info->edp_state, NULL)) {
+		dev_err(&info->i2c_client->dev, "THIS IS NOT LIKELY HAPPEN!\n");
+		dev_err(&info->i2c_client->dev,
+			"UNABLE TO SET LOWEST EDP STATE!\n");
+	}
+}
+
+static void ov5648_edp_register(struct ov5648_info *info)
+{
+	struct edp_manager *edp_manager;
+	struct edp_client *edpc = &info->pdata->edpc_config;
+	int ret;
+
+	info->edpc = NULL;
+	if (!edpc->num_states) {
+		dev_warn(&info->i2c_client->dev,
+			"%s: NO edp states defined.\n", __func__);
+		return;
+	}
+
+	strncpy(edpc->name, "ov5648", EDP_NAME_LEN - 1);
+	edpc->name[EDP_NAME_LEN - 1] = 0;
+	edpc->private_data = info;
+
+	dev_dbg(&info->i2c_client->dev, "%s: %s, e0 = %d, p %d\n",
+		__func__, edpc->name, edpc->e0_index, edpc->priority);
+	for (ret = 0; ret < edpc->num_states; ret++)
+		dev_dbg(&info->i2c_client->dev, "e%d = %d mA",
+			ret - edpc->e0_index, edpc->states[ret]);
+
+	edp_manager = edp_get_manager("battery");
+	if (!edp_manager) {
+		dev_err(&info->i2c_client->dev,
+			"unable to get edp manager: battery\n");
+		return;
+	}
+
+	ret = edp_register_client(edp_manager, edpc);
+	if (ret) {
+		dev_err(&info->i2c_client->dev,
+			"unable to register edp client\n");
+		return;
+	}
+
+	info->edpc = edpc;
+	/* set to lowest state at init */
+	ov5648_edp_lowest(info);
+}
+
+static int ov5648_edp_req(struct ov5648_info *info, unsigned new_state)
+{
+	unsigned approved;
+	int ret = 0;
+
+	if (!info->edpc)
+		return 0;
+
+	dev_dbg(&info->i2c_client->dev, "%s %d\n", __func__, new_state);
+	ret = edp_update_client_request(info->edpc, new_state, &approved);
+	if (ret) {
+		dev_err(&info->i2c_client->dev, "E state transition failed\n");
+		return ret;
+	}
+
+	if (approved > new_state) {
+		dev_err(&info->i2c_client->dev, "EDP no enough current\n");
+		return -ENODEV;
+	}
+
+	info->edp_state = approved;
+	return 0;
+}
+
 static inline void ov5648_get_frame_length_regs(
 					struct ov5648_reg *regs,
 					u32 frame_length)
@@ -1495,6 +1574,12 @@ static int ov5648_open(struct inode *inode, struct file *file)
 	if (info->pdata && info->pdata->power_on)
 		info->pdata->power_on(info->vreg);
 	ov5648_get_status(info, &status);
+	err = ov5648_edp_req(info, 0);
+	if (err) {
+		printk("%s not enough power not open camera\n", __func__);
+		return err;
+	}
+
 	return 0;
 }
 
@@ -1504,6 +1589,7 @@ int ov5648_release(struct inode *inode, struct file *file)
 		info->pdata->power_off(info->vreg);
 	file->private_data = NULL;
 	ov5648_mclk_disable(info);
+	ov5648_edp_lowest(info);
 	return 0;
 }
 
@@ -1571,6 +1657,7 @@ static int ov5648_probe(
 			dev_dbg(&info->i2c_client->dev, "%s: %s\n",
 			__func__, info->vreg[j].vreg_name);
 	}
+	ov5648_edp_register(info);
 	ov5648_sysfs_init(info);
 	return 0;
 }
@@ -1578,6 +1665,8 @@ static int ov5648_probe(
 static int ov5648_remove(struct i2c_client *client)
 {
 	info = i2c_get_clientdata(client);
+	if (info->edpc)
+		edp_unregister_client(info->edpc);
 	misc_deregister(&ov5648_device);
 	kfree(info);
 	return 0;

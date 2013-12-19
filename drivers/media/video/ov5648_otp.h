@@ -44,6 +44,9 @@ struct ov5648_info {
 	u32 flag;
 
 	struct nvc_fuseid fuse_id;
+
+	struct edp_client *edpc;
+	unsigned edp_state;
 };
 
 u32 OV5648_ReadFuseIDFromOTP(struct ov5648_info *info);
