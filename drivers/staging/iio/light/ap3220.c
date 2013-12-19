@@ -308,7 +308,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 //ALS Low Threshold L byte
 	tmp_data = default_cfg.als_threshold_low;
 	data = tmp_data & 0x00FF;		// Read from cust_alsps.c
-	printk("Ivan ALS Low Threshold L = %x\n",data);		
+//	printk("Ivan ALS Low Threshold L = %x\n",data);		
 	res = ap3220_write(chip, AP3220_REG_ALS_THDL_L,data);
 	if(res < 0)
 	{
@@ -317,7 +317,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 	}
 //ALS Low Threshold H byte
 	data = tmp_data >> 8;		// Read from cust_alsps.c
-	printk("Ivan ALS Low Threshold H = %x\n",data);			
+//	printk("Ivan ALS Low Threshold H = %x\n",data);			
 	res = ap3220_write(chip, AP3220_REG_ALS_THDL_H,data);
 	if(res < 0)
 	{
@@ -328,7 +328,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 //ALS High Threshold L byte
 	tmp_data = default_cfg.als_threshold_high;
 	data = tmp_data & 0x00FF;		// Read from cust_alsps.c
-	printk("Ivan ALS High Threshold L = %x\n",data);			
+//	printk("Ivan ALS High Threshold L = %x\n",data);			
 	res = ap3220_write(chip, AP3220_REG_ALS_THDH_L,data);
 	if(res < 0)
 	{
@@ -337,7 +337,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 	}
 //ALS High Threshold H byte
 	data = tmp_data >> 8;		// Read from cust_alsps.c
-	printk("Ivan ALS High Threshold H = %x\n",data);				
+//	printk("Ivan ALS High Threshold H = %x\n",data);				
 	res = ap3220_write(chip, AP3220_REG_ALS_THDH_L,data);
 	if(res < 0)
 	{
@@ -414,7 +414,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 //PS Low Threshold L 
 	tmp_data = default_cfg.ps_threshold_low;
 	data = tmp_data & 0x0003;		// Read from cust_alsps.c
-	printk("Ivan PS Low Threshold L = %x\n",data);	
+//	printk("Ivan PS Low Threshold L = %x\n",data);	
 	res = ap3220_write(chip, AP3220_REG_PS_THDL_L,data);
 	if(res < 0)
 	{
@@ -423,7 +423,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 	}	
 //PS Low Threshold H
 	data = tmp_data >> 2;		// Read from cust_alsps.c
-	printk("Ivan PS Low Threshold H = %x\n",data);		
+//	printk("Ivan PS Low Threshold H = %x\n",data);		
 	res = ap3220_write(chip, AP3220_REG_PS_THDL_H,data);
 	if(res < 0)
 	{
@@ -433,7 +433,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 //PS High Threshold L 
 	tmp_data = default_cfg.ps_threshold_high;
 	data = tmp_data & 0x0003;	// Read from cust_alsps.c
-	printk("Ivan PS High Threshold L = %x\n",data);	
+//	printk("Ivan PS High Threshold L = %x\n",data);	
 	res = ap3220_write(chip, AP3220_REG_PS_THDH_L,data);
 	if(res < 0)
 	{
@@ -442,7 +442,7 @@ static int ap3220_chip_init(struct ap3220_chip *chip)
 	}	
 //PS High Threshold H
 	data = tmp_data >> 2;		// Read from cust_alsps.c
-	printk("Ivan PS High Threshold H = %x\n",data);		
+//	printk("Ivan PS High Threshold H = %x\n",data);		
 	res = ap3220_write(chip, AP3220_REG_PS_THDH_H,data);
 	if(res < 0)
 	{
@@ -706,7 +706,7 @@ int ap3220_read_ps(struct ap3220_chip *chip, u16 *data)
 	ps_h = ps_val >> 8;
 	*data = (ps_h << 2) | (ps_l & 0x03);
 //Ivan
-	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
+//	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
 	
 	return 0;
 READ_PS_EXIT_ERR:

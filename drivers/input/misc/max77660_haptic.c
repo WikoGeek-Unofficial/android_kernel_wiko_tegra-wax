@@ -199,21 +199,21 @@ static void max77660_haptic_configure(struct max77660_haptic *chip)
 
 static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 {
-  printk("Ivan max77660_haptic_enable = %d \n", enable);
+//  printk("Ivan max77660_haptic_enable = %d \n", enable);
 	if (chip->enabled == enable)
 		return;
 
 	chip->enabled = enable;
 
 	if (enable) {
-  printk("Ivan max77660_haptic_enable ENABLE! \n");	  
+//  printk("Ivan max77660_haptic_enable ENABLE! \n");	  
 		regulator_enable(chip->regulator);
 		max77660_haptic_configure(chip);
 		if (chip->mode == MAX77660_EXTERNAL_MODE)
 			pwm_enable(chip->pwm);
 		haptic_enable_processing = 0;		//Ivan
 	} else {
-  printk("Ivan max77660_haptic_enable DISABLE! \n");	  
+//  printk("Ivan max77660_haptic_enable DISABLE! \n");	  
 		max77660_haptic_configure(chip);
 		
 	max77660_reg_write(chip->dev->parent, MAX77660_HAPTIC_SLAVE,
