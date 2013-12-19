@@ -991,11 +991,17 @@ static int ceres_ov5648_power_off(struct  nvc_regulator *vreg )
 
 	return 0;
 }
-
+static unsigned ov5648_estates[] = {210, 100, 2};
 static struct ov5648_platform_data ceres_ov5648_pdata = {
 	.dev_name = "camera",
 	.power_on = ceres_ov5648_power_on,
 	.power_off = ceres_ov5648_power_off,
+	.edpc_config = {
+		.states = ov5648_estates,
+		.num_states = ARRAY_SIZE(ov5648_estates),
+		.e0_index = 0,
+		.priority = EDP_MIN_PRIO - 1,
+		},
 };
 
 
@@ -1016,19 +1022,7 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
 	if (unlikely(WARN_ON(!vreg)))
 		return -EFAULT;
 
-	//if (pluto_get_extra_regulators())
-	//	goto imx179_poweron_fail;
-    
-    #if 0
-    if ( ! regulator_is_enabled(pluto_i2cvdd) )
-    {
-        err = regulator_enable(pluto_i2cvdd);
-        if (unlikely(err))
-            goto imx179_i2c_fail;
-    }
-    #endif
-    
-    tegra_pinmux_config_table(&mclk_enable, 1);
+	tegra_pinmux_config_table(&mclk_enable, 1);
 
 	gpio_set_value(CAM_PWDN_TINNO, 0);
     gpio_set_value(CAM_RSTN_TINNO, 0);
@@ -1137,7 +1131,7 @@ static struct nvc_imager_cap imx179_cap = {
 	.cap_version		= NVC_IMAGER_CAPABILITIES_VERSION2,
 };
 
-static unsigned imx179_estates[] = {200, 100, 2};
+static unsigned imx179_estates[] = {300, 100, 2};
 
 static struct imx179_platform_data imx179_pdata = {
 	.num			= 0,
@@ -1154,13 +1148,11 @@ static struct imx179_platform_data imx179_pdata = {
 		.states = imx179_estates,
 		.num_states = ARRAY_SIZE(imx179_estates),
 		.e0_index = 0,
-		.priority = EDP_MAX_PRIO - 1,
+		.priority = EDP_MIN_PRIO - 1,
 		},
 	.power_on		= pluto_imx179_power_on,
 	.power_off		= pluto_imx179_power_off,
 };
-
-
 
 static int ceres_dw9714a_power_on(struct dw9714a_power_rail *pw)
 {
@@ -1398,8 +1390,8 @@ static struct tinno_flash_platform_data tinno_flash_pdata = {
 		.priority	= EDP_MIN_PRIO - 2,
 	},
 	.gpio_en_torch = TEGRA_GPIO_PS5,
-	.gpio_en_flash = TEGRA_GPIO_PS1,
-	.pinstate	= {0x0000, 0x0000},
+/*	.gpio_en_flash = TEGRA_GPIO_PS1, */
+	.pinstate	= {0x0004, 0x0004},
 	.edp_state_flash = 0,
 	.edp_state_torch = 1,
 	.cfg = 0,
