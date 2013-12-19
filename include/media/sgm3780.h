@@ -1,23 +1,18 @@
 /*
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+* sgm3780.h - sgm3780 sensor driver
+*
+* Copyright (c) 2012-2013 NVIDIA Corporation. All Rights Reserved.
+*
+* This file is licensed under the terms of the GNU General Public License
+* version 2. This program is licensed "as is" without any warranty of any
+* kind, whether express or implied.
+*/
 
- * This program is free software; you can redistribute it and/or modify it
- * under the terms and conditions of the GNU General Public License,
- * version 2, as published by the Free Software Foundation.
-
- * This program is distributed in the hope it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- * more details.
-
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-#ifndef __TINNO_FLASH_H__
-#define __TINNO_FLASH_H__
+#ifndef __SGM3780_H__
+#define __SGM3780_H__
 
 #include <media/nvc_torch.h>
+#include <media/nvc_image.h>
 
 struct tinno_flash_power_rail {
 	/* to enable the module power */
@@ -51,6 +46,8 @@ struct tinno_flash_platform_data {
 	int gpio_en_flash;
 	int edp_state_flash;
 	int edp_state_torch;
+	int timeout_ms;
+	void (*flash_dev_cb)(struct device *, union nvc_imager_flash_control *);
 };
 
 #endif

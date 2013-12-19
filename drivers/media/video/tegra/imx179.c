@@ -24,6 +24,8 @@
 #include <media/imx179.h>
 #include <linux/clk.h>
 #include "imx179_otp.h"
+#include <media/sgm3780.h>
+#include <linux/platform_device.h>
 
 static u16 imx179_ids[] = {
 	0x0179,
@@ -817,9 +819,7 @@ int IMX179MIPI_read_cmos_sensor(struct imx179_info *info, u16 reg)
 
 int IMX179MIPI_write_cmos_sensor(struct imx179_info *info, u16 reg, u8 val)
 {
-	int ret = imx179_i2c_wr8(info, reg, val);
-	mdelay(5);
-	return ret;
+	return imx179_i2c_wr8(info, reg, val);
 }
 
 static int imx179_i2c_rd_table(struct imx179_info *info,
@@ -1115,35 +1115,7 @@ static int imx179_test_pattern_wr(struct imx179_info *info, unsigned pattern)
 	return imx179_i2c_wr_table(info, test_patterns[pattern]);
 }
 
-static int imx179_set_flash_output(struct imx179_info *info)
-{
-	struct imx179_flash_config *fcfg;
-	u8 val = 0;
-	int ret = 0;
 
-	if (!info->pdata)
-		return 0;
-
-	fcfg = &info->pdata->flash_cap;
-	if (fcfg->xvs_trigger_enabled)
-		val |= 0x0c;
-	if (fcfg->sdo_trigger_enabled)
-		val |= 0x02;
-	dev_dbg(&info->i2c_client->dev, "%s: %02x\n", __func__, val);
-	/* disable all flash pulse output */
-	ret = imx179_i2c_wr8(info, 0x304A, 0);
-	/* config XVS/SDO pin output mode */
-	ret |= imx179_i2c_wr8(info, 0x3240, val);
-	/* set the control pulse width settings - Gain + Step
-	 * Pulse width(sec) = 64 * 2^(Gain) * (Step + 1) / Logic Clk
-	 * Logic Clk = ExtClk * PLL Multipiler / Pre_Div / Post_Div
-	 * / Logic Clk Division Ratio
-	 * Logic Clk Division Ratio = 5 @4lane, 10 @2lane, 20 @1lane
-	 */
-	ret |= imx179_i2c_wr8(info, 0x307C, 0x07);
-	ret |= imx179_i2c_wr8(info, 0x307D, 0x3F);
-	return ret;
-}
 
 static void imx179_get_flash_cap(struct imx179_info *info)
 {
@@ -1152,16 +1124,33 @@ static void imx179_get_flash_cap(struct imx179_info *info)
 
 	if (!info->pdata)
 		return;
-
 	fcfg = &info->pdata->flash_cap;
 	fcap->flash_control_enabled =
 		fcfg->xvs_trigger_enabled | fcfg->sdo_trigger_enabled;
 	fcap->adjustable_flash_timing = fcfg->adjustable_flash_timing;
+	fcap->flash_control_enabled = 0;
 }
 
 static int imx179_flash_control(
 	struct imx179_info *info, union nvc_imager_flash_control *fm)
 {
+#if 1
+	struct device *flash_dev = NULL;
+	struct tinno_flash_platform_data *plat_data = NULL;
+
+	if (info->pdata == NULL || info->pdata->flash_dev == NULL)
+		return 0;
+
+	flash_dev = info->pdata->flash_dev;
+	plat_data = flash_dev->platform_data;
+
+	if (plat_data == NULL || plat_data->flash_dev_cb == NULL)
+		return 0;
+
+	(plat_data->flash_dev_cb)(flash_dev, fm);
+
+	return 0;
+#else
 	int ret;
 	u8 f_cntl;
 	u8 f_tim;
@@ -1189,6 +1178,7 @@ static int imx179_flash_control(
 	dev_dbg(&info->i2c_client->dev,
 		"%s: %04x %02x %02x\n", __func__, fm->mode, f_tim, f_cntl);
 	return ret;
+#endif
 }
 
 static int imx179_gpio_rd(struct imx179_info *info,
@@ -1442,11 +1432,13 @@ static int imx179_pm_wr(struct imx179_info *info, int pwr)
 
 	case NVC_PWR_STDBY:
         err = imx179_vreg_en_all(info);
+		err |= imx179_edp_req(info, 1);
 		break;
 
 	case NVC_PWR_COMM:
 	case NVC_PWR_ON:
         err = imx179_vreg_en_all(info);
+		err |= imx179_edp_req(info, 0);
 		break;
 
 	default:
@@ -1626,15 +1618,6 @@ static int imx179_mode_wr_full(struct imx179_info *info, u32 mode_index)
 {
 	int err;
 
-	/* the state num is temporary assigned, should be updated later as
-	per-mode basis */
-	err = imx179_edp_req(info, 0);
-	if (err) {
-		dev_err(&info->i2c_client->dev,
-			"%s: ERROR cannot set edp state! %d\n",	__func__, err);
-		goto mode_wr_full_end;
-	}
-
 	imx179_pm_dev_wr(info, NVC_PWR_ON);
 	imx179_bin_wr(info, 0);
 	err = imx179_i2c_wr_table(info,
@@ -1646,7 +1629,6 @@ static int imx179_mode_wr_full(struct imx179_info *info, u32 mode_index)
 		info->mode_valid = false;
 	}
 
-mode_wr_full_end:
 	return err;
 }
 
@@ -1680,8 +1662,6 @@ static int imx179_mode_wr(struct imx179_info *info,
 		info->mode_valid = false;
 		goto imx179_mode_wr_err;
 	}
-
-	err = imx179_set_flash_output(info);
 
 	err |= imx179_mode_able(info, true);
 	if (err < 0)
@@ -2511,6 +2491,8 @@ static int imx179_remove(struct i2c_client *client)
 	struct imx179_info *info = i2c_get_clientdata(client);
 
 	dev_dbg(&info->i2c_client->dev, "%s\n", __func__);
+	if (info->edpc)
+		edp_unregister_client(info->edpc);
 #ifdef CONFIG_DEBUG_FS
 	if (info->debugfs_root)
 		debugfs_remove_recursive(info->debugfs_root);

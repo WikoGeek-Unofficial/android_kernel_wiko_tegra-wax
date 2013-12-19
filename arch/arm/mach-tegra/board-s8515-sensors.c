@@ -1404,6 +1404,7 @@ static struct tinno_flash_platform_data tinno_flash_pdata = {
 	.edp_state_torch = 1,
 	.cfg = 0,
 	.num = 0,
+	.timeout_ms = 70,
 };
 
 
@@ -1452,6 +1453,7 @@ static int ceres_camera_init(void)
 	platform_device_register(&ceres_camera_generic);
 
 	platform_device_register(&tinno_flash_device);
+	imx179_pdata.flash_dev = &tinno_flash_device.dev;
 
 	return 0;
 }

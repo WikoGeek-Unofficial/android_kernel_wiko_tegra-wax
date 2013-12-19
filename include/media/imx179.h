@@ -13,6 +13,7 @@
 
 #include <media/nvc.h>
 #include <media/nvc_image.h>
+#include <linux/device.h>
 
 /* See notes in the nvc.h file on the GPIO usage */
 enum imx179_gpio {
@@ -54,6 +55,7 @@ struct imx179_platform_data {
 	int (*probe_clock)(unsigned long);
 	int (*power_on)(struct nvc_regulator *);
 	int (*power_off)(struct nvc_regulator *);
+	struct device *flash_dev;
 };
 
 #endif  /* __IMX179_H__ */

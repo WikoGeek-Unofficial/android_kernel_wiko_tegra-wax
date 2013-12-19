@@ -52,6 +52,7 @@
 #include <linux/regmap.h>
 #include <media/nvc.h>
 #include <media/sgm3780.h>
+#include <linux/hrtimer.h>
 
 #define tinno_flash_LED_NUM		1
 #define tinno_flash_FLASH_LEVELS		(1 << 3)
@@ -119,6 +120,8 @@ struct tinno_flash_info {
 	unsigned char torch_level;
 	int edp_state_flash;
 	int edp_state_torch;
+	struct hrtimer timeout;
+	spinlock_t lock;
 };
 
 static struct nvc_torch_lumi_level_v1
@@ -135,7 +138,7 @@ static struct tinno_flash_platform_data tinno_flash_default_pdata = {
 				},
 		},
 	.dev_name	= "torch",
-	.pinstate	= {0x0000, 0x0000},
+	.pinstate	= {0x0004, 0x0004},
 };
 
 /* flash timer duration settings in uS */
@@ -150,10 +153,45 @@ static u32 tinno_flash_torch_timer[tinno_flash_TORCH_TIMER_NUM] = {
 
 static void tinno_flash_set_flash(struct tinno_flash_info *info, int on);
 static void tinno_flash_set_torch(struct tinno_flash_info *info, int on);
+static void start_timer(struct tinno_flash_info *info);
 
-#if 0
+static void tinno_flash_cb(
+struct tinno_flash_info *info,
+union nvc_imager_flash_control *fm)
+{
+	unsigned long flags;
+	if (fm->settings.enable) {
+		/* need to protect */
+		spin_lock_irqsave(&info->lock, flags);
+		tinno_flash_set_flash(info, 1);
+		start_timer(info);
+		spin_unlock_irqrestore(&info->lock, flags);
+	} else {
+		spin_lock_irqsave(&info->lock, flags);
+		tinno_flash_set_flash(info, 0);
+		spin_unlock_irqrestore(&info->lock, flags);
+	}
+}
+
+
+static void tinno_flash_dev_cb(
+struct device *dev,
+union nvc_imager_flash_control *fc)
+{
+	struct platform_device *pdev = to_platform_device(dev);
+	struct tinno_flash_info *info = NULL;
+
+	info = platform_get_drvdata(pdev);
+
+	if (info == NULL)
+		return ;
+
+	tinno_flash_cb(info, fc);
+}
+
 static void tinno_flash_throttle(unsigned int new_state, void *priv_data)
 {
+#if 0
 	struct tinno_flash_info *info = priv_data;
 
 	if (!info)
@@ -169,8 +207,9 @@ static void tinno_flash_throttle(unsigned int new_state, void *priv_data)
 		tinno_flash_set_torch(info, 0);
 		info->torch_level = 0;
 	}
-}
 #endif
+}
+
 
 static void tinno_flash_edp_lowest(struct tinno_flash_info *info)
 {
@@ -199,9 +238,7 @@ static void tinno_flash_edp_register(struct tinno_flash_info *info)
 	strncpy(edpc->name, "flash_torch", EDP_NAME_LEN - 1);
 	edpc->name[EDP_NAME_LEN - 1] = 0;
 
-
-	/* we will not use throttle for now.
-	edpc->throttle = tinno_flash_throttle; */
+	edpc->throttle = tinno_flash_throttle;
 	edpc->private_data = info;
 
 	dev_dbg(info->dev, "%s: %s, e0 = %d, p %d\n",
@@ -240,6 +277,8 @@ static int tinno_flash_remove(struct platform_device *dev)
 
 	info = platform_get_drvdata(dev);
 
+	if (hrtimer_active(&info->timeout))
+		hrtimer_cancel(&info->timeout);
 	if (info->edpc) {
 		edp_unregister_client(info->edpc);
 		info->edpc = NULL;
@@ -610,18 +649,9 @@ static int tinno_flash_set_leds(struct tinno_flash_info *info,
 	if (info->op_mode == MAXFLASH_MODE_FLASH) {
 		info->flash_level = curr1;
 
-		#if 0
 		if (info->flash_level == 0) {
 			tinno_flash_set_flash (info, 0);
 		}
-		#else
-		if (info->flash_level != 0) {
-			tinno_flash_set_flash (info, 1);
-		}else{
-			tinno_flash_set_flash (info, 0);
-		}
-		#endif
-
 	} else if (info->op_mode == MAXFLASH_MODE_TORCH) {
 		if (curr1 && mask) {
 			tinno_flash_set_torch (info, 1);
@@ -716,7 +746,7 @@ static void tinno_flash_set_torch(struct tinno_flash_info *info, int on)
 static void tinno_flash_set_flash(struct tinno_flash_info *info, int on)
 {
 	if (info->gpio_en_flash > 0) {
-		gpio_set_value(info->gpio_en_flash, on ? 1 : 0);
+	/*gpio_set_value(info->gpio_en_flash, on ? 1 : 0); */
 	}
 }
 
@@ -846,19 +876,9 @@ static int tinno_flash_get_param(struct tinno_flash_info *info, long arg)
 		break;
 	case NVC_PARAM_FLASH_PIN_STATE:
 		pinstate = info->pdata->pinstate;
-		#if 0
-		printk ("luis %s pinstate.values %x\n", __func__, pinstate.values);
-		printk ("luis %s pinstate.mask %x\n", __func__, pinstate.mask);
-		printk ("luis %s info->op_modek %x\n", __func__, info->op_mode);
-		#endif
-		if (info->flash_level == 0) {
-			pinstate.values = 0;
-		}
-		if (info->flash_level != 0) {
-			tinno_flash_set_flash(info, 1);
-		} else {
-			tinno_flash_set_flash(info, 0);
-		}
+		if (info->op_mode != MAXFLASH_MODE_FLASH)
+			pinstate.values ^= 0xffff;
+		pinstate.values &= pinstate.mask;
 		dev_dbg(info->dev, "%s FLASH_PIN_STATE: %x & %x\n",
 				__func__, pinstate.mask, pinstate.values);
 		data_ptr = &pinstate;
@@ -934,6 +954,37 @@ static const struct file_operations tinno_flash_fileops = {
 	.release = tinno_flash_release,
 };
 
+enum hrtimer_restart tinno_flash_timeout_event(struct hrtimer *timer)
+{
+	struct tinno_flash_info *info;
+
+	info = container_of(timer, struct tinno_flash_info, timeout);
+
+	/* need to protect the timing */
+	spin_lock(&info->lock);
+	tinno_flash_set_flash(info, 0);
+	spin_unlock(&info->lock);
+	return HRTIMER_NORESTART;
+}
+
+static void start_timer(struct tinno_flash_info *info)
+{
+	int due_time = 70;
+
+	if (info->pdata->timeout_ms > 0)
+		due_time = info->pdata->timeout_ms;
+
+	if (hrtimer_active(&info->timeout)) {
+		hrtimer_set_expires(&info->timeout, ktime_set(due_time /
+		MSEC_PER_SEC, (due_time % MSEC_PER_SEC) *
+					NSEC_PER_MSEC));
+		hrtimer_start_expires(&info->timeout, HRTIMER_MODE_REL);
+	} else {
+		hrtimer_start(&info->timeout, ktime_set(due_time /
+		MSEC_PER_SEC, (due_time % MSEC_PER_SEC) *
+				NSEC_PER_MSEC), HRTIMER_MODE_REL);
+	}
+}
 static int tinno_flash_probe(struct platform_device *dev)
 {
 	struct tinno_flash_info *info;
@@ -959,6 +1010,8 @@ static int tinno_flash_probe(struct platform_device *dev)
 	} else
 		dev_notice(&dev->dev, "%s NO platform data\n", __func__);
 
+	info->pdata->flash_dev_cb = tinno_flash_dev_cb;
+	spin_lock_init(&info->lock);
 	tinno_flash_caps_layout(info);
 
 	tinno_flash_update_config(info);
@@ -1014,6 +1067,8 @@ static int tinno_flash_probe(struct platform_device *dev)
 	}
 	tinno_flash_edp_register(info);
 
+	hrtimer_init(&info->timeout, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	info->timeout.function = tinno_flash_timeout_event;
 	return 0;
 
 free_misc_dev:
