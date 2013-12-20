@@ -35,7 +35,8 @@
 #include "board.h"
 
 #define DSI_PANEL_RESET         1
-
+//edit by Magnum 2013-12-20  , make kernel BL brightness same with bootloader
+#define BOOTLOADER_BL_INTENSITY 77
 #define DC_CTRL_MODE            TEGRA_DC_OUT_CONTINUOUS_MODE
 
 static struct regulator *vdd_lcd_s_1v8;
@@ -699,7 +700,7 @@ static struct platform_pwm_backlight_data external_pwm_disp1_backlight_data = {
 	.max_brightness = 255,
 //	.dft_brightness = 77,
 //	.pwm_period_ns  = 1000000,
-	.dft_brightness	= 224,
+	.dft_brightness	= BOOTLOADER_BL_INTENSITY,
 	.pwm_period_ns	= 100000,	
 	.notify		= otm1283a_backlight_notify,
 	.pwm_gpio	= TEGRA_GPIO_PG2,
