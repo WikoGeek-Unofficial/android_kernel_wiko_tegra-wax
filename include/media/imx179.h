@@ -1,7 +1,7 @@
 /*
-* imx179.h
+* imx179.h - imx179 sensor driver
 *
-* Copyright (c) 2012, NVIDIA, All Rights Reserved.
+* Copyright (c) 2012-2013 NVIDIA Corporation. All Rights Reserved.
 *
 * This file is licensed under the terms of the GNU General Public License
 * version 2. This program is licensed "as is" without any warranty of any

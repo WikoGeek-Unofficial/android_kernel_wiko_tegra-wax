@@ -273,7 +273,7 @@ static int otp_apply_wb(struct ov5648_info *info, unsigned short golden_rg,
 * Function    :  otp_update_wb
 * Description :  Update white balance settings from OTP
 * Parameters  :  [in] golden_rg : R/G of golden camera module
-                [in] golden_bg : B/G of golden camera module
+*                [in] golden_bg : B/G of golden camera module
 * Return      :  1, success; 0, fail
 *******************************************************************************/
 int update_truly_otp_wb(struct ov5648_info *info, unsigned short golden_rg,
