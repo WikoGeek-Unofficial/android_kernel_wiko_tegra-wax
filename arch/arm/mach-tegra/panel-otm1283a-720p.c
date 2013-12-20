@@ -45,6 +45,7 @@ static struct regulator *avdd_lcd_3v0_2v8;
 static bool dsi_otm1283a_720p_reg_requested;
 static bool dsi_otm1283a_720p_gpio_requested = 0;
 static bool is_bl_powered;
+static bool is_in_initialized_mode;
 static struct platform_device *disp_device;
 
 #if 1
@@ -915,33 +916,21 @@ static int dsi_otm1283a_720p_enable(struct device *dev)
 		goto fail;
 	}
 
-#if 0
-	err = tegra_panel_gpio_get_dt("otm,720p-5", &panel_of);
-	if (err < 0) {
-		/* try to request gpios from board file */
-		err = dsi_otm1283a_720p_gpio_get();
-		if (err < 0) {
-			printk("dsi gpio request failed\n");
-			goto fail;
-		}
-	}
-#endif
-
 	err = dsi_otm1283a_720p_gpio_get();
 	if (err < 0) {
 		printk("dsi gpio request failed\n");
-//		goto fail;
+		goto fail;
 	}
 
-	turn_off_bl();
+	//turn_off_bl();
 	
 	if (gpio_is_valid(panel_of.panel_gpio[TEGRA_GPIO_RESET]))
 		gpio_direction_output(
 			panel_of.panel_gpio[TEGRA_GPIO_RESET], 0);
 	else
 	{
-		gpio_direction_output(
-			dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 0);
+		if (is_in_initialized_mode)
+			gpio_direction_output(dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 0);
 	    //printk("Ivan dsi_otm1283a_720p_enable 1\n");
 	}
 	
@@ -978,19 +967,7 @@ static int dsi_otm1283a_720p_enable(struct device *dev)
 	}
 	usleep_range(3000, 5000);  
 
-#if 0
-	err = tegra_panel_reset(&panel_of, 20);
-	if (err < 0) {
-		/* use platform data */
-		gpio_set_value(dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 1);
-		usleep_range(1000, 5000);
-		gpio_set_value(dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 0);
-		usleep_range(1000, 5000);
-		gpio_set_value(dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 1);
-		msleep(20);
-	}
-#endif
-	gpio_direction_output(
+/*	gpio_direction_output(
 		dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 1);
 	usleep_range(1000, 5000);
 
@@ -998,18 +975,19 @@ static int dsi_otm1283a_720p_enable(struct device *dev)
 		dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 0);	
 	usleep_range(1000, 5000);
 
+	*/
+	
+#ifdef DSI_PANEL_RESET
 	gpio_direction_output(
 		dsi_otm1283a_720p_pdata.dsi_panel_rst_gpio, 1);	
 	msleep(20);
-	
-/*	if (gpio_is_valid(panel_of.panel_gpio[TEGRA_GPIO_BL_ENABLE]))
-		gpio_direction_output(
-			panel_of.panel_gpio[TEGRA_GPIO_BL_ENABLE], 1);
-	else
-		gpio_direction_output(
-			dsi_otm1283a_720p_pdata.dsi_panel_bl_en_gpio, 1);   */
+#endif
+
+	/* enable backlight */
+	//gpio_direction_output(dsi_otm1283a_720p_pdata.dsi_panel_bl_en_gpio, 1);	
 
 	is_bl_powered = true;
+	is_in_initialized_mode = true;
 	return 0;
 fail:
 	return err;
@@ -1098,7 +1076,9 @@ static void dsi_otm1283a_720p_dc_out_init(struct tegra_dc_out *dc)
 	dc->disable = dsi_otm1283a_720p_disable;
 	dc->width = 62;
 	dc->height = 110;
-	dc->flags = DC_CTRL_MODE;
+	//dc->flags = DC_CTRL_MODE;
+	dc->flags = DC_CTRL_MODE | TEGRA_DC_OUT_INITIALIZED_MODE;
+	is_in_initialized_mode = false;
 }
 static void dsi_otm1283a_720p_fb_data_init(struct tegra_fb_data *fb)
 {

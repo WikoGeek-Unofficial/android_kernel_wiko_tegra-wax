@@ -224,8 +224,12 @@ static struct gpio_init_pin_info init_gpio_mode_ceres_common[] = {
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PI0, false, 0),
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PI1, true, 0),
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PG1, true, 0),
+//edit by Magnum 2013-12-20 : 0001-ARM-mach-tegra-fix-the-blink-issue.patch
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PG3, false, 0),
-	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PG4, false, 0),
+	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PG4, false, 1),
+	//GPIO_INIT_PIN_MODE(TEGRA_GPIO_PG3, false, 1),
+	//GPIO_INIT_PIN_MODE(TEGRA_GPIO_PG4, false, 1),
+//end edit	
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PH1, false, 1),
 	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PS0, false, 0),
 /*	GPIO_INIT_PIN_MODE(TEGRA_GPIO_PS1, false, 0), */
