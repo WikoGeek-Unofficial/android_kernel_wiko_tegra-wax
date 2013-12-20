@@ -99,7 +99,6 @@ static int snd_jack_dev_register(struct snd_device *device)
 /* headset key feature   WJ  22/11/13 */
 		input_set_capability(jack->input_dev, EV_KEY, jack->key[i]);
 	}
-
 	err = input_register_device(jack->input_dev);
 	if (err == 0)
 		jack->registered = 1;
@@ -231,7 +230,6 @@ static bool is_long_press(void)
 {
      int index = 0;
     	bool current_status = false;
-
     	while(index++ < DETECT_KEY_COUNT)
     	{ 
     		current_status = is_sendkey_press();
@@ -241,7 +239,7 @@ static bool is_long_press(void)
     		}
     		msleep(100);
     	}
-        printk("[Jack] index = %d \n",index);
+        printk("[Jack]====== index = %d \n",index);
        return index>DETECT_KEY_COUNT;
 }
 /* headset key feature   WJ  22/11/13 */
@@ -254,47 +252,18 @@ static bool is_long_press(void)
 void snd_jack_report(struct snd_jack *jack, int status)
 {
 	int i;
+
 	if (!jack)
 		return;
-/* headset key feature   WJ  22/11/13 */
-        if(jack->type &SND_JACK_BTN_0){
-            if(call_status!=0){
-                   if(is_long_press()) {
-                          printk("[Jack]long press remote button to end call! status = %x\n",status);
-                          input_report_key(jack->input_dev, KEY_HANGEUL, status &SND_JACK_BTN_0);
-                          input_report_key(jack->input_dev, KEY_HANGEUL, 0);
-                     } else {
-                         printk("[Jack]short press remote button to accept call! status = %x\n",status);
-                         input_report_key(jack->input_dev, KEY_SEND, status &SND_JACK_BTN_0);
-                         input_report_key(jack->input_dev, KEY_SEND, 0);
-                         switch_key_state(0, 0x7e00);
-                    }
-            }else{
-                         input_report_key(jack->input_dev, KEY_PLAYPAUSE, status &SND_JACK_BTN_0);
-            }
- #ifdef MULTI_KEY_FEATURE
-           }else{
-               /* for(i=1;i< (ARRAY_SIZE(jack->key)-2);i++){
-                    int testbit = SND_JACK_BTN_0 >> i;
-                    if (jack->type & testbit)
-    			input_report_key(jack->input_dev, jack->key[i],
-    					 status & testbit);
-                }*/
-                if(jack->type & SND_JACK_BTN_1){
-                    if(call_status!=0)
-                         input_report_key(jack->input_dev, KEY_VOLUMEUP, status &SND_JACK_BTN_1);
-                    else
-                         input_report_key(jack->input_dev, KEY_PREVIOUSSONG, status &SND_JACK_BTN_1);
-                }
-                if(jack->type & SND_JACK_BTN_2){
-                    if(call_status!=0)
-                         input_report_key(jack->input_dev, KEY_VOLUMEDOWN, status &SND_JACK_BTN_2);
-                    else
-                         input_report_key(jack->input_dev, KEY_NEXTSONG, status &SND_JACK_BTN_2);
-                }
-#endif
-        }
- /* headset key feature   WJ  22/11/13 */
+
+	for (i = 0; i < ARRAY_SIZE(jack->key); i++) {
+		int testbit = SND_JACK_BTN_0 >> i;
+
+		if (jack->type & testbit)
+			input_report_key(jack->input_dev, jack->key[i],
+					 status & testbit);
+	}
+
 	for (i = 0; i < ARRAY_SIZE(jack_switch_types); i++) {
 		int testbit = 1 << i;
 		if (jack->type & testbit)
@@ -320,7 +289,7 @@ void snd_jack_report_mask(struct snd_jack *jack, int status,int mask)
 		return;
         if(mask &0xFF00){
 /* headset key feature   WJ  22/11/13 */
-            if(jack->type &SND_JACK_BTN_0){
+            if(jack->type &(SND_JACK_BTN_0 |SND_JACK_BTN_1 | SND_JACK_BTN_2)){
                 if(call_status!=0){
                        if(is_long_press()) {
                               printk("[Jack]long press remote button to end call! status = %x\n",status);

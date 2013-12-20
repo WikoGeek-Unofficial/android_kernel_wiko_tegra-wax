@@ -32,8 +32,10 @@
 #include <mach/../../tegra-board-id.h>
 
 #include <linux/switch.h>                //add by wuhai
+#include <linux/wakelock.h>
 
 static struct board_info board_info;
+struct wake_lock jack_key_lock;
 
 #define DEBUG
 #define EXTMIC_METHOD
@@ -461,6 +463,7 @@ EXPORT_SYMBOL_GPL(switch_key_state);
 static void max97236_keypress(struct max97236_priv *max97236,
 		unsigned int *status_reg)
 {
+        wake_lock(&jack_key_lock);
 	unsigned char keystr[MAX_STRING] = "";
 	unsigned int key = 0;
 	unsigned int reg;
@@ -512,6 +515,7 @@ static void max97236_keypress(struct max97236_priv *max97236,
         switch_set_state(&tegra_max97236_button_switch, press ? 1:0);
         #endif
 	snd_soc_jack_report(max97236->jack, key, 0x7E00);
+        wake_unlock(&jack_key_lock);
 }
 
 static void max97236_report_jack_state(struct max97236_priv *max97236,
@@ -840,7 +844,6 @@ static void max97236_jack_event(struct max97236_priv *max97236)
 
 max97236_jack_event_10:
 	max97236_configure_for_detection(max97236, M97236_AUTO_MODE_0);
-
 	return;
 }
 
@@ -1164,6 +1167,7 @@ static int max97236_probe(struct snd_soc_codec *codec)
 	max97236->ignore_int = 0;
 
 	INIT_DELAYED_WORK(&max97236->jack_work, max97236_jack_work);
+	wake_lock_init(&jack_key_lock , WAKE_LOCK_SUSPEND, "jack key wake lock" );
 
 	/* Clear any interrupts then enable jack detection */
 	regmap_read(max97236->regmap, M97236_REG_00_STATUS1,
