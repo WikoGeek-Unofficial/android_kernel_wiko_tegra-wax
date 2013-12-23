@@ -287,7 +287,10 @@ static void max17048_work(struct work_struct *work)
 
 	max17048_get_vcell(chip->client);
 	max17048_get_soc(chip->client);
-
+//Ivan add logic to hiden SOC change in recharge state 
+	printk("Ivan max17048_work vcell[%d], soc[%d], raw_soc[%d]\n",chip->vcell,chip->soc,chip->raw_soc );
+	
+	
 	if (chip->soc != chip->lasttime_soc ||
 		chip->status != chip->lasttime_status) {
 		chip->lasttime_soc = chip->soc;
