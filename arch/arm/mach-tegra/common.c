@@ -221,13 +221,16 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 			reg |= FORCED_RECOVERY_MODE;
 		else
 			reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE);
+		pr_info("Restarting system, cmd=%s ", cmd);
 	}
 	else {
+		pr_info("Restarting system, cmd=NULL ");
 		/* Clearing SCRATCH0 31:30:1 on default reboot */
 		reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE);
+		if (poweroff)  //ljs move; poweroff, except cmd != null
+			reg |= POWEROFF_MODE;
 	}
-	if (poweroff)
-		reg |= POWEROFF_MODE;
+	pr_info("reg=0x%lx \n", reg);
 	writel_relaxed(reg, reset + PMC_SCRATCH0);
 	if (!cmd && pm_power_reset) {
 		pm_power_reset();
