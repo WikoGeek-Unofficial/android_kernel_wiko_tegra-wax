@@ -41,6 +41,12 @@
 #include "tegra14_emc.h"
 #include "fuse.h"
 
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
+#define EMC_MRS_EDF8132A1MC	0x1B000003
+#define EMC_MRS_EDF8132A3MC	0x1B000203
+#define EMC_MRS_EDB8132B3PH	0x18000003
+#endif
+
 #ifdef CONFIG_TEGRA_EMC_SCALING_ENABLE
 static bool emc_enable = true;
 #else
@@ -1814,7 +1820,7 @@ static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 	struct resource *res;
 	u32 padctrl;
 #ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
-	int mr_revision_id1 = 0;
+	int emc_mrs = 0;
 	int sku = tegra_sku_id;
 	enum tegra14_emc_table_group emc_table_group;
 	struct tegra14_emc_multi_pdata *pdata;
@@ -1845,25 +1851,28 @@ static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 #endif
 
 #ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
-	mr_revision_id1 = emc_read_mrr(0, 6);
-	mr_revision_id1 &= MR_REVISION_ID1_MASK;
-	/* C-version, T148-SL460 */
-	if (mr_revision_id1 == 0x2 && sku == 0x3)
-		emc_table_group = EXTEND_EMC_TABLE_GROUP;
-	/* C-version, T148-SL440 */
-	else if (mr_revision_id1 == 0x2 && sku == 0x7)
-		emc_table_group = SL440_EXTEND_EMC_TABLE_GROUP;
-	/* A-version, T148-SL460 */
-	else if (mr_revision_id1 == 0x0 && sku == 0x3)
-		emc_table_group = NORMAL_EMC_TABLE_GROUP;
-	/* A-version, T148-SL440 */
-	else if (mr_revision_id1 == 0x0 && sku == 0x7)
-		emc_table_group = SL440_NORMAL_EMC_TABLE_GROUP;
-	else	/* defaultly */
-		emc_table_group = NORMAL_EMC_TABLE_GROUP;
+//	emc_mrs = emc_read_mrr(0, 5);
+	emc_mrs = ((emc_read_mrr(0,5) & 0xFF) << 0)  |
+		  ((emc_read_mrr(0,6) & 0xFF) << 8)  |
+		  ((emc_read_mrr(0,7) & 0xFF) << 16) |
+		  ((emc_read_mrr(0,8) & 0xFF) << 24);
+		  
+	if (emc_mrs == EMC_MRS_EDF8132A1MC && sku == 0x3)
+		emc_table_group = EDF8132A1MC_EMC_TABLE_GROUP;
+	else if (emc_mrs == EMC_MRS_EDF8132A1MC && sku == 0x3)
+		emc_table_group = EDF8132A3MC_EMC_TABLE_GROUP;
+	else if (emc_mrs == EMC_MRS_EDF8132A1MC && sku == 0x7)
+		emc_table_group = SL440_EDF8132A1MC_EMC_TABLE_GROUP;
+	else if (emc_mrs == EMC_MRS_EDF8132A3MC && sku == 0x7)
+		emc_table_group = SL440_EDF8132A3MC_EMC_TABLE_GROUP;
+	else if (emc_mrs == EMC_MRS_EDB8132B3PH && sku == 0x7)
+		emc_table_group = SL440_EDB8132B3PH_EMC_TABLE_GROUP;
+	else
+		emc_table_group = EDF8132A1MC_EMC_TABLE_GROUP;
 
-	pr_info("%s: emc_table_group = 0x%02X\n", __func__, emc_table_group);
-	emc_pdata = pdata->emc_pdata[emc_table_group];
+       pr_info("%s: emc_mrs = 0x%08X, sku = 0x%02X, emc_table_group = 0x%02X\n",
+               __func__, emc_mrs, sku, emc_table_group);	emc_pdata = pdata->emc_pdata[emc_table_group];
+
 #else
 	emc_pdata = pdata;
 #endif
