@@ -1,7 +1,7 @@
 /*
  * drivers/media/video/tegra/nvavp/nvavp_dev.c
  *
- * Copyright (c) 2011-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2011-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This file is licensed under the terms of the GNU General Public License
  * version 2. This program is licensed "as is" without any warranty of any
@@ -1229,8 +1229,6 @@ static int nvavp_pushbuffer_submit_ioctl(struct file *filp, unsigned int cmd,
 	int ret = 0, i;
 	unsigned long phys_addr;
 	unsigned long virt_addr;
-	struct nvavp_pushbuffer_submit_hdr *user_hdr =
-			(struct nvavp_pushbuffer_submit_hdr *) arg;
 	struct nvavp_syncpt syncpt;
 
 	syncpt.id = NVSYNCPT_INVALID;
@@ -1310,7 +1308,7 @@ static int nvavp_pushbuffer_submit_ioctl(struct file *filp, unsigned int cmd,
 					      (hdr.flags & NVAVP_UCODE_EXT),
 						clientctx->channel_id);
 
-		if (copy_to_user((void __user *)user_hdr->syncpt, &syncpt,
+		if (copy_to_user((void __user *)hdr.syncpt, &syncpt,
 				sizeof(struct nvavp_syncpt))) {
 			ret = -EFAULT;
 			goto err_reloc_info;
