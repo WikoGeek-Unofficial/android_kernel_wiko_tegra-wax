@@ -119,9 +119,9 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h);
 
 static void synaptics_rmi4_late_resume(struct early_suspend *h);
 
-static int synaptics_rmi4_suspend(struct device *dev);
+static int synaptics_suspend(struct device *dev);
 
-static int synaptics_rmi4_resume(struct device *dev);
+static int synaptics_resume(struct device *dev);
 #endif
 
 static ssize_t synaptics_rmi4_f01_reset_store(struct device *dev,
@@ -897,6 +897,16 @@ static int synaptics_rmi4_f11_abs_report(struct synaptics_rmi4_data *rmi4_data,
 					__func__, finger,
 					finger_status,
 					x, y, wx, wy);
+			printk(
+					"Magnum %s: Finger %d:\n"
+					"status = 0x%02x\n"
+					"x = %d\n"
+					"y = %d\n"
+					"wx = %d\n"
+					"wy = %d\n",
+					__func__, finger,
+					finger_status,
+					x, y, wx, wy);
 
 			input_report_key(rmi4_data->input_dev,
 					BTN_TOUCH, 1);
@@ -1103,6 +1113,8 @@ static void synaptics_rmi4_report_touch(struct synaptics_rmi4_data *rmi4_data,
 
 	dev_dbg(&rmi4_data->i2c_client->dev,
 			"%s: Function %02x reporting\n",
+			__func__, fhandler->fn_number);
+	printk("Magnum %s: Function %02x reporting\n",
 			__func__, fhandler->fn_number);
 
 	switch (fhandler->fn_number) {
@@ -2111,25 +2123,26 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 
 	if (platform_data->regulator_en) {
 		dev_dbg(&client->dev,"Magnum excute regulator enable.............\n");
-		rmi4_data->regulator = regulator_get(&client->dev, "vdd_tp");
-		if (IS_ERR(rmi4_data->regulator)) {
+		rmi4_data->regulator_vdd = regulator_get(&client->dev, "vdd_tp");
+		if (IS_ERR(rmi4_data->regulator_vdd)) {
 			dev_err(&client->dev,
 					"%s: Failed to get regulator\n",
 					__func__);
-			retval = PTR_ERR(rmi4_data->regulator);
+			retval = PTR_ERR(rmi4_data->regulator_vdd);
 			goto err_regulator;
 		}
-		regulator_enable(rmi4_data->regulator);
+		regulator_enable(rmi4_data->regulator_vdd);
+		
 		//edit by Magnum 2013-11-13
-		rmi4_data->regulator = regulator_get(&client->dev, "vio_tp");
-		if (IS_ERR(rmi4_data->regulator)) {
+		rmi4_data->regulator_vio = regulator_get(&client->dev, "vio_tp");
+		if (IS_ERR(rmi4_data->regulator_vio)) {
 			dev_err(&client->dev,
 					"%s: Failed to get regulator\n",
 					__func__);
-			retval = PTR_ERR(rmi4_data->regulator);
+			retval = PTR_ERR(rmi4_data->regulator_vio);
 			goto err_regulator;
 		}
-		regulator_enable(rmi4_data->regulator);  
+		regulator_enable(rmi4_data->regulator_vio);  
 	}
 	else{
 		dev_dbg(&client->dev,"Magnum NONONOregulator enable.............\n");
@@ -2342,8 +2355,10 @@ err_gpio:
 err_register_input:
 err_query_device:
 	if (platform_data->regulator_en) {
-		regulator_disable(rmi4_data->regulator);
-		regulator_put(rmi4_data->regulator);
+		regulator_disable(rmi4_data->regulator_vdd);
+		regulator_disable(rmi4_data->regulator_vio);
+		regulator_put(rmi4_data->regulator_vdd);
+		regulator_put(rmi4_data->regulator_vio);
 	}
 
 	if (!list_empty(&rmi->support_fn_list)) {
@@ -2408,8 +2423,10 @@ static int __devexit synaptics_rmi4_remove(struct i2c_client *client)
 	input_unregister_device(rmi4_data->input_dev);
 
 	if (platform_data->regulator_en) {
-		regulator_disable(rmi4_data->regulator);
-		regulator_put(rmi4_data->regulator);
+		regulator_disable(rmi4_data->regulator_vdd);
+		regulator_disable(rmi4_data->regulator_vio);
+		regulator_put(rmi4_data->regulator_vdd);
+		regulator_put(rmi4_data->regulator_vio);
 	}
 
 	if (!list_empty(&rmi->support_fn_list)) {
@@ -2579,7 +2596,7 @@ static void synaptics_rmi4_early_suspend(struct early_suspend *h)
 	synaptics_rmi4_sensor_sleep(rmi4_data);
 
 	if (rmi4_data->full_pm_cycle)
-		synaptics_rmi4_suspend(&(rmi4_data->input_dev->dev));
+		synaptics_suspend(&(rmi4_data->input_dev->dev));
 
 	return;
 }
@@ -2600,7 +2617,7 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
 			early_suspend);
 
 	if (rmi4_data->full_pm_cycle)
-		synaptics_rmi4_resume(&(rmi4_data->input_dev->dev));
+		synaptics_resume(&(rmi4_data->input_dev->dev));
 
 	if (rmi4_data->sensor_sleep == true) {
 		synaptics_rmi4_sensor_wake(rmi4_data);
@@ -2622,9 +2639,11 @@ static void synaptics_rmi4_late_resume(struct early_suspend *h)
  * sleep (if not already done so during the early suspend phase),
  * disables the interrupt, and turns off the power to the sensor.
  */
-static int synaptics_rmi4_suspend(struct device *dev)
+static int synaptics_suspend(struct device *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
+	printk("Magnum  ctp suspend\n");
+	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			rmi4_data->board;
 
@@ -2635,8 +2654,11 @@ static int synaptics_rmi4_suspend(struct device *dev)
 		synaptics_rmi4_sensor_sleep(rmi4_data);
 	}
 
-	if (platform_data->regulator_en)
-		regulator_disable(rmi4_data->regulator);
+	if (platform_data->regulator_en){
+		printk("Magnum disable  tp vdd vci \n",__func__);
+		regulator_disable(rmi4_data->regulator_vdd);
+		regulator_disable(rmi4_data->regulator_vio);
+	}
 
 	return 0;
 }
@@ -2651,14 +2673,19 @@ static int synaptics_rmi4_suspend(struct device *dev)
  * from sleep, enables the interrupt, and starts finger data
  * acquisition.
  */
-static int synaptics_rmi4_resume(struct device *dev)
+static int synaptics_resume(struct device *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
+	printk("Magnum  ctp resume\n");
+	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			rmi4_data->board;
 
-	if (platform_data->regulator_en)
-		regulator_enable(rmi4_data->regulator);
+	if (platform_data->regulator_en){
+		printk("Magnum disable  tp vdd vci \n",__func__);
+		regulator_enable(rmi4_data->regulator_vdd);
+		regulator_enable(rmi4_data->regulator_vio);
+	}
 
 	synaptics_rmi4_sensor_wake(rmi4_data);
 	rmi4_data->touch_stopped = false;
@@ -2667,11 +2694,15 @@ static int synaptics_rmi4_resume(struct device *dev)
 	return 0;
 }
 
+/*
 static const struct dev_pm_ops synaptics_rmi4_dev_pm_ops = {
 	.suspend = synaptics_rmi4_suspend,
 	.resume  = synaptics_rmi4_resume,
 };
+*/
 #endif
+
+static UNIVERSAL_DEV_PM_OPS(synaptics_pm, synaptics_suspend,synaptics_resume, NULL);
 
 static const struct i2c_device_id synaptics_rmi4_id_table[] = {
 	{DRIVER_NAME, 0},
@@ -2684,7 +2715,7 @@ static struct i2c_driver synaptics_rmi4_driver = {
 		.name = DRIVER_NAME,
 		.owner = THIS_MODULE,
 #ifdef CONFIG_PM
-		.pm = &synaptics_rmi4_dev_pm_ops,
+		.pm = &synaptics_pm,
 #endif
 	},
 	.probe = synaptics_rmi4_probe,

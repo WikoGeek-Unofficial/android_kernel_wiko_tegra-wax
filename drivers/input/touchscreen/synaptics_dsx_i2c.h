@@ -233,7 +233,10 @@ struct synaptics_rmi4_data {
 	struct input_dev *input_dev;
 	const struct synaptics_dsx_platform_data *board;
 	struct synaptics_rmi4_device_info rmi4_mod_info;
-	struct regulator *regulator;
+	//edit by Magnum 2013-12-23
+	//struct regulator *regulator;
+	struct regulator *regulator_vdd;
+	struct regulator *regulator_vio;
 	struct mutex rmi4_io_ctrl_mutex;
 	struct early_suspend *early_suspend;
 	unsigned char current_page;
