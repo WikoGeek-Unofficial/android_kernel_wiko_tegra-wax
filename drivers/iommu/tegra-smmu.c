@@ -1739,7 +1739,6 @@ static int tegra_smmu_device_notifier(struct notifier_block *nb,
 			break;
 
 		if (arm_iommu_attach_device(dev, map)) {
-			arm_iommu_release_mapping(map);
 			dev_err(dev, "Failed to attach %s\n", dev_name(dev));
 			break;
 		}
