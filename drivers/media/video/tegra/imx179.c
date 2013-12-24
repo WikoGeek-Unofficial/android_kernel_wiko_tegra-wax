@@ -224,9 +224,9 @@ static struct imx179_reg imx179_1640x1232_i2c[] = {
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
 	{0x0340, 0x09},
-	{0x0341, 0xB1},//0xD0
+	{0x0341, 0xD0},
 	{0x0342, 0x0D},
-	{0x0343, 0x70},
+	{0x0343, 0x45},
 	{0x0344, 0x00},
 	{0x0345, 0x00},
 	{0x0346, 0x00},
@@ -294,9 +294,9 @@ static struct imx179_reg imx179_1920x1080_i2c[] = {
 	{0x030C, 0x00},
 	{0x030D, 0xA0},//0xA2
 	{0x0340, 0x09},
-	{0x0341, 0xB1},//0xD0
+	{0x0341, 0xD0},
 	{0x0342, 0x0D},
-	{0x0343, 0x70},
+	{0x0343, 0x45},
 	{0x0344, 0x02},
 	{0x0345, 0xA8},
 	{0x0346, 0x02},
@@ -570,9 +570,9 @@ static struct imx179_mode_data imx179_1640x1232 = {
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
-		.line_length		= 0x0D70,
-		.frame_length		= 0x09B1,
-		.min_frame_length	= 0x09B1,
+		.line_length		= 0x0D45,
+		.frame_length		= 0x09D0,
+		.min_frame_length	= 0x09D0,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */
@@ -612,9 +612,9 @@ static struct imx179_mode_data imx179_1920x1080 = {
 		.min_exposure_course	= 2,
 		.max_exposure_course	= 0xFFFC,
 		.diff_integration_time	= 110, /* / _INT2FLOAT_DIVISOR */
-		.line_length		= 0x0D70,
-		.frame_length		= 0x09B1,
-		.min_frame_length	= 0x09B1,
+		.line_length		= 0x0D45,
+		.frame_length		= 0x09D0,
+		.min_frame_length	= 0x09D0,
 		.max_frame_length	= 0xFFFF,
 		.min_gain		= 1, /* / _INT2FLOAT_DIVISOR */
 		.max_gain		= 16000, /* / _INT2FLOAT_DIVISOR */

@@ -181,9 +181,8 @@ int IMX179_ReadOtp(struct imx179_info *info, u16 tempbank, u16 address,
 	IMX179MIPI_write_cmos_sensor(info, 0x3402, tempbank);
 
 	reVal = IMX179MIPI_read_cmos_sensor(info, 0x3401);
-	if(reVal)
-		pr_err("[IMX179_OTP] KERN_ERR otp is not ready \n");
-
+	if (reVal)
+		pr_err("[IMX179_OTP] KERN_ERR otp is not ready\n");
 	for (i = 0; i < buffersize; i++) {
 		reVal = IMX179MIPI_read_cmos_sensor(info, address + i);
 		*(iBuffer + i) = reVal;
