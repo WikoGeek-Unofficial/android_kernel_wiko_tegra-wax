@@ -188,6 +188,8 @@ enum {
 
 static struct class *sensor_class;
 
+static int g_last_ps_value;
+
 struct ap3220_chip {
 	struct i2c_client	*client;
 	struct mutex		lock;
@@ -686,8 +688,8 @@ int ap3220_read_ps(struct ap3220_chip *chip, u16 *data)
 {
 	int res;
 	u8 databuf[2];
-	u8 ps_l, ps_h;
-	u16 ps_val;
+	u16 ps_l, ps_h;
+	u16 ps_val = 0;
 	
 //	APS_FUN(f);
 	res = ap3220_read(chip, AP3220_REG_SYS_PS_DATA_LOW,&databuf[0]);
@@ -700,13 +702,24 @@ int ap3220_read_ps(struct ap3220_chip *chip, u16 *data)
 	
 //	APS_LOG("AP3220_REG_PS_DATA value value_low = %x, value_high = %x\n",databuf[0],databuf[1]);
 //	*data = databuf;
-	ps_val = ((databuf[1]<<8)|databuf[0]);
-	
-	ps_l = ps_val & 0x00FF;
-	ps_h = ps_val >> 8;
-	*data = (ps_h << 2) | (ps_l & 0x03);
+//Ivan check valid data before pass the value to upper layer
+	if (!(databuf[0] & AP3220_SYSTEM_PS_IR_OVERFLOW) && !(databuf[1] & AP3220_SYSTEM_PS_IR_OVERFLOW))
+	{
+	  ps_val = ((databuf[1]<<8)|databuf[0]);
+	  
+	  ps_l = ps_val & 0x000F;
+	  ps_h = ps_val >> 4;
+	  ps_h = ps_h & 0x03F0;
+	  *data = ps_l | ps_h;	  
+	  if (databuf[0] & AP3220_SYSTEM_PS_OBJ_CLOSE)
+	    *data |= 0x8000;
+	  
+	  g_last_ps_value = *data;
+	}
+	else
+	  *data = g_last_ps_value;
 //Ivan
-//	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
+	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
 	
 	return 0;
 READ_PS_EXIT_ERR:
