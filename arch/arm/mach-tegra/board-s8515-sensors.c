@@ -178,10 +178,10 @@ static struct nct1008_platform_data ceres_nct1008_pdata = {
 };
 
 struct max17048_platform_data max17048_pdata = {
-	.model_data = &ceres_yoku_2000_ssv_3_1_max17048_battery,
+	.model_data = &tinno_s8515_2000_ssv_3_3_max17048_battery,
 //Ivan	.tz_name = "battery-temp",
 	.tz_name = "generic-adc-thermal",	
-	.soc_error_max_value = 96,
+	.soc_error_max_value = 101,
 };
 
 static struct i2c_board_info __initdata max77660_fg_board_info[] = {
