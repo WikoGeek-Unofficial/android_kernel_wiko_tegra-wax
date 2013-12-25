@@ -18,7 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 #define CAMERA_DEVICE_INTERNAL
 #include <linux/fs.h>
 #include <linux/platform_device.h>
@@ -600,6 +599,7 @@ static int tinno_flash_release(struct inode *inode, struct file *file)
 
 	dev_dbg(info->dev, "%s\n", __func__);
 	tinno_flash_power_set(info, NVC_PWR_OFF);
+	tinno_flash_set_torch(info, 0);
 	file->private_data = NULL;
 	WARN_ON(!atomic_xchg(&info->in_use, 0));
 
