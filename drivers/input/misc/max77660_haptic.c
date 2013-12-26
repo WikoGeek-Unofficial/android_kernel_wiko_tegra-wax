@@ -65,6 +65,7 @@ struct max77660_haptic {
 	int feedback_duty_cycle;
 	int motor_startup_val;
 	int scf_val;
+	struct mutex		enable_lock;
 
 	struct edp_client *haptic_edp_client;
 };
@@ -203,6 +204,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 	if (chip->enabled == enable)
 		return;
 
+	mutex_lock(&chip->enable_lock);
 	chip->enabled = enable;
 
 	if (enable) {
@@ -223,6 +225,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 			pwm_disable(chip->pwm);
 		regulator_disable(chip->regulator);
 	}
+	mutex_unlock(&chip->enable_lock);
 }
 
 static void max77660_haptic_throttle(unsigned int new_state, void *priv_data)
@@ -431,6 +434,7 @@ static int __devinit max77660_haptic_probe(struct platform_device *pdev)
 		goto err_input_alloc;
 	}
 
+	mutex_init(&chip->enable_lock);
 	chip->dev = &pdev->dev;
 	chip->input_dev = input_dev;
 	chip->type = haptic_pdata->type;
