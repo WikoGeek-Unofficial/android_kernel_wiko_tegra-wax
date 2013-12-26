@@ -65,6 +65,10 @@ struct tegra_fb_info {
 /* palette array used by the fbcon */
 static u32 pseudo_palette[16];
 
+//edit by Magnum 2013-12-25
+extern int synaptics_tinno_suspend(void);
+extern int synaptics_tinno_resume(void);
+
 static int tegra_fb_check_var(struct fb_var_screeninfo *var,
 			      struct fb_info *info)
 {
@@ -282,11 +286,12 @@ static int tegra_fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
 static int tegra_fb_blank(int blank, struct fb_info *info)
 {
 	struct tegra_fb_info *tegra_fb = info->par;
-
+	printk("Magnum-LCM %s()\n",__func__);
 	switch (blank) {
 	case FB_BLANK_UNBLANK:
 		dev_dbg(&tegra_fb->ndev->dev, "unblank\n");
 		tegra_dc_enable(tegra_fb->win->dc);
+		synaptics_tinno_resume();
 		return 0;
 
 	case FB_BLANK_NORMAL:
@@ -305,6 +310,7 @@ static int tegra_fb_blank(int blank, struct fb_info *info)
 		if (!tegra_fb->win->dc->suspended && tegra_fb->win->dc->enabled)
 			tegra_fb->curr_xoffset = -1;
 		tegra_dc_disable(tegra_fb->win->dc);
+		synaptics_tinno_suspend();
 		return 0;
 
 	default:
