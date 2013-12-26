@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -108,3 +108,11 @@ void nvshm_start_tx(struct nvshm_channel *handle)
 	if (handle->ops)
 		handle->ops->start_tx(handle);
 }
+
+void nvshm_error_event(struct nvshm_channel *handle,
+		       enum nvshm_error_id error)
+{
+	if (handle->ops)
+		handle->ops->error_event(handle, error);
+}
+

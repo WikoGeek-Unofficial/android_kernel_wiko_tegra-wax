@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -243,10 +243,10 @@ static int cleanup_interfaces(struct nvshm_handle *handle)
 	int nlog = 0, ntty = 0, nnet = 0, nrpc = 0;
 	int chan;
 
-	/* No need to protect this as configuration will arrive after cleanup
-	 * is propagated to userland
-	 */
+	spin_lock(&handle->lock);
 	handle->configured = 0;
+	handle->recovery = 0;
+	spin_unlock(&handle->lock);
 
 	for (chan = 0; chan < handle->chan_count; chan++) {
 		switch (handle->chan[chan].map.type) {
@@ -290,6 +290,7 @@ static int cleanup_interfaces(struct nvshm_handle *handle)
 	/* Remove serial sysfs entry */
 	tegra_bb_set_ipc_serial(handle->tegra_bb, NULL);
 
+	kfree(handle->chan);
 	return 0;
 }
 
@@ -447,3 +448,25 @@ int nvshm_generate_ipc(struct nvshm_handle *handle)
 	return 0;
 }
 
+void nvshm_trigger_recovery()
+{
+	struct nvshm_handle *handle = nvshm_get_handle();
+
+	spin_lock(&handle->lock);
+	if (!handle->recovery && handle->configured) {
+		handle->recovery = 1;
+		spin_unlock(&handle->lock);
+		/* Disable ISR DL interrupt */
+		disable_irq(handle->bb_irq);
+		pr_err("%s: force recovery\n", __func__);
+		/* Force MB base to mimic modem crash */
+		*((unsigned int *)handle->mb_base_virt) =
+			NVSHM_IPC_BOOT_RESTART_FW_REQ |
+			((~NVSHM_IPC_BOOT_RESTART_FW_REQ << 16) & 0xFFFF0000);
+		dsb();
+		/* Emulate DL ISR */
+		queue_work(handle->nvshm_wq, &handle->nvshm_work);
+	} else {
+		spin_unlock(&handle->lock);
+	}
+}

@@ -1,15 +1,17 @@
 /*
- * Copyright (C) 2012-2013 NVIDIA Corporation.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms and conditions of the GNU General Public License,
+ * version 2, as published by the Free Software Foundation.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This program is distributed in the hope it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
  *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef _NVSHM_IF_H
@@ -122,4 +124,16 @@ int nvshm_write(struct nvshm_channel *handle, struct nvshm_iobuf *iob);
  */
 void nvshm_start_tx(struct nvshm_channel *handle);
 
+/**
+ * Call error event on nvshm channel
+ *
+ * Used to signal error to upper driver
+ * after a XOFF situation
+ * Can be called from irq context
+ *
+ * @param struct nvshm_channel
+ * @param enum nvshm_error_id
+ */
+void nvshm_error_event(struct nvshm_channel *chan,
+		       enum nvshm_error_id error);
 #endif /* _NVSHM_IF_H */

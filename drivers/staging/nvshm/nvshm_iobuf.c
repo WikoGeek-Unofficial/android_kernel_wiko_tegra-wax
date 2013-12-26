@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -111,9 +111,8 @@ struct nvshm_iobuf *nvshm_iobuf_alloc(struct nvshm_channel *chan, int size)
 		if (check) {
 			spin_unlock_irqrestore(&alloc.lock, f);
 			pr_err("%s: iobuf check ret %d\n", __func__, check);
-			if (chan->ops)
-				chan->ops->error_event(chan, NVSHM_IOBUF_ERROR);
-
+			nvshm_error_event(chan, NVSHM_IOBUF_ERROR);
+			nvshm_trigger_recovery();
 			return desc;
 		}
 		if (size > (alloc.free_pool_head->totalLength -
@@ -124,9 +123,7 @@ struct nvshm_iobuf *nvshm_iobuf_alloc(struct nvshm_channel *chan, int size)
 			       size,
 			       alloc.free_pool_head->totalLength -
 			       NVSHM_DEFAULT_OFFSET);
-			if (chan->ops)
-				chan->ops->error_event(chan, NVSHM_IOBUF_ERROR);
-
+			nvshm_error_event(chan, NVSHM_IOBUF_ERROR);
 			return desc;
 		}
 		desc = alloc.free_pool_head;
