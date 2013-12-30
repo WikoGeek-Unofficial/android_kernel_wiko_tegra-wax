@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -289,7 +289,7 @@ static int nvshm_netops_xmit_frame(struct sk_buff *skb, struct net_device *dev)
 	remain = len;
 	while (remain) {
 		pr_debug("remain=%d\n", remain);
-		to_send = remain < MAX_XMIT_SIZE ? remain : MAX_XMIT_SIZE;
+		to_send = remain < dev->mtu ? remain : dev->mtu;
 		iob = nvshm_iobuf_alloc(priv->pchan, to_send);
 		if (!iob) {
 			pr_warn("%s iobuf alloc failed\n", __func__);
@@ -345,6 +345,11 @@ static int nvshm_netops_change_mtu(struct net_device *dev, int new_mtu)
 	if (!priv)
 		return -EINVAL;
 
+	if (new_mtu <= MAX_XMIT_SIZE)
+		dev->mtu = new_mtu;
+	else
+		return -EINVAL;
+
 	return 0;
 }
 
@@ -385,7 +390,7 @@ static const struct net_device_ops nvshm_netdev_ops = {
 static void nvshm_nwif_init_dev(struct net_device *dev)
 {
 	dev->netdev_ops = &nvshm_netdev_ops;
-	dev->mtu = 1500;
+	dev->mtu = MAX_XMIT_SIZE;
 	dev->type = ARPHRD_NONE;
 	/* No hardware address */
 	dev->hard_header_len = 0;
