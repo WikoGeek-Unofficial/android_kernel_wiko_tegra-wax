@@ -398,6 +398,11 @@ int ext4_wait_block_bitmap(struct super_block *sb, ext4_group_t block_group,
 {
 	struct ext4_group_desc *desc;
 
+	if (!bh) {
+		ext4_error(sb, "NULL buffer_head");
+		return 1;
+	}
+
 	if (!buffer_new(bh))
 		return 0;
 	desc = ext4_get_group_desc(sb, block_group, NULL);
@@ -411,6 +416,10 @@ int ext4_wait_block_bitmap(struct super_block *sb, ext4_group_t block_group,
 		return 1;
 	}
 	clear_buffer_new(bh);
+	if (!bh->b_data) {
+		ext4_error(sb, "buffer_head = %p, NULL b_data", bh);
+		return 1;
+	}
 	/* Panic or remount fs read-only if block bitmap is invalid */
 	ext4_valid_block_bitmap(sb, desc, block_group, bh);
 	return 0;
