@@ -1077,15 +1077,79 @@ static int __init ceres_touch_init(void)
 	return 0;
 }
 
+static void print_reason_string(int reboot)
+{
+  switch (reboot) {
+    case 0:
+      printk("PMIC reboot reason Invalid! \n");
+      break;
+      
+    case 1:
+      printk("PMIC reboot reason NoReason! \n");      
+      break;
+      
+    case 2:
+      printk("PMIC reboot reason PwrOnLPK! \n");      
+      break;
+      
+    case 3:
+      printk("PMIC reboot reason PwrDown! \n");      
+      break;
+      
+    case 4:
+      printk("PMIC reboot reason WTD! \n");      
+      break;
+      
+    case 5:
+      printk("PMIC reboot reason Thermal! \n");      
+      break;
+
+    case 6:
+      printk("PMIC reboot reason ResetSig! \n");      
+      break;
+      
+    case 7:
+      printk("PMIC reboot reason SwReset! \n");      
+      break;
+
+    case 8:
+      printk("PMIC reboot reason BatLow! \n");      
+      break;
+
+    case 9:
+      printk("PMIC reboot reason GPADC! \n");      
+      break;
+      
+    case 10:
+      printk("PMIC reboot reason RTC! \n");      
+      break;
+      
+    case 11:
+      printk("PMIC reboot reason Num! \n");      
+      break;
+      
+    default:
+      printk("PMIC reboot reason Unknow! \n");      
+      break;
+            
+  }
+    
+  
+}
+
 #if defined(CONFIG_TEGRA_BASEBAND)
 /* main (integrated) modem init */
 static void ceres_tegra_bb_init(void)
 {
 	int modem_id = tegra_get_modem_id();
-
+//Ivan added for debug
+	int reboot_reason = tegra_get_pmic_rst_reason();
+	
+	printk("Ivan PMIC reboot reason = %d \n", reboot_reason);
+	print_reason_string(reboot_reason);
+	
 	if (modem_id == TEGRA_BB_INTEGRATED_DISABLED)
 		return;
-
 	pr_info("%s: registering tegra bb\n", __func__);
 	ceres_tegra_bb_data.bb_irq = INT_BB2AP_INT0;
 	ceres_tegra_bb_data.mem_req_soon = INT_BB2AP_MEM_REQ_SOON_INT;
