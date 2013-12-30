@@ -67,7 +67,15 @@ struct max77660_ledblnk_map {
 
 //static spinlock_t max77660_leds_lock;
 static struct mutex max77660_leds_mutex;
-static struct work_struct set_leds_work;
+static struct work_struct set_rg_leds_work;
+static struct work_struct set_button_leds_work;
+
+struct tinno_max77660_led {
+	struct led_classdev	cdev;
+	struct work_struct	work;
+	unsigned int brightness;
+	struct device		*master;
+};
 
 enum max77660_LED{
 	RED_LED,
@@ -78,9 +86,9 @@ enum max77660_LED{
 	RED_GREEN_LED,
 };
 
-static unsigned long g_leds_brt= 0;
+static unsigned long g_rg_leds_brt= 0;
+static unsigned long g_btn_leds_brt= 0;
 static struct device *g_max77660_dev;
-static int g_led_type = 8;
 static int currentLedPower = 0;
 
 struct max77660_ledblnk_map max77660_ledblnkp[] = {
@@ -536,8 +544,8 @@ static struct device_attribute max77660_leds_attrs[] = {
 
 //edit by Magnum 2013-12-12
 static int set_leds_power(int source_bit, int red_bit, int green_bit, int button_bit){
-	dev_dbg(g_max77660_dev,"Magnum  ..current source_brt== 0x%x,  red_bit== 0x%x  ,green_bit== 0x%x , button_bit== 0x%x\n",
-			source_bit,red_bit,green_bit,button_bit);
+//	dev_dbg(g_max77660_dev,"Magnum  ..current source_brt== 0x%x,  red_bit== 0x%x  ,green_bit== 0x%x , button_bit== 0x%x\n",
+//			source_bit,red_bit,green_bit,button_bit);
 	
 	if(red_bit == RED_ENABLE)
 		source_bit = source_bit |RED_ENABLE;
@@ -557,7 +565,7 @@ static int set_leds_power(int source_bit, int red_bit, int green_bit, int button
 	if(source_bit != currentLedPower)
 		currentLedPower = source_bit;
 
-	dev_dbg(g_max77660_dev,"Magnum currentLedPower == 0x%x\n",currentLedPower);
+//	dev_dbg(g_max77660_dev,"Magnum currentLedPower == 0x%x\n",currentLedPower);
 	return currentLedPower;
 }
 
@@ -628,8 +636,8 @@ static int max77660_led_set_brightness(enum max77660_LED led_type ,int leds_brt)
 		default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
 				return 1;
 	}
-	dev_dbg(g_max77660_dev,"Magnum  %s()  max77660_led_reg == 0x%02x, leds_brt == 0x%02x\n",
-		__func__,max77660_led_reg,leds_brt);
+//	dev_dbg(g_max77660_dev,"Magnum  %s()  max77660_led_reg == 0x%02x, leds_brt == 0x%02x\n",
+//		__func__,max77660_led_reg,leds_brt);
 	
 	ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,max77660_led_reg, leds_brt >> 1);
 	if (ret < 0) {
@@ -659,8 +667,8 @@ static int max77660_led_set_enable(int led_power)
 		return 1;
 	}
 	int max77660_led_enable = led_power;
-	dev_dbg(g_max77660_dev,"Magnum  %s()  max77660_led_enable == %d \n",
-		__func__,max77660_led_enable);
+//	dev_dbg(g_max77660_dev,"Magnum  %s()  max77660_led_enable == %d\n\n",
+//		__func__,max77660_led_enable);
 	ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,MAX77660_REG_LEDEN, max77660_led_enable);
 	if (ret < 0) {
 		dev_err(g_max77660_dev, "LEDEN write failed: %d\n", ret);
@@ -681,12 +689,12 @@ static int max77660_led_one_shot_mode()
 	return ret;
 }
  
-static void set_leds_work_func(struct work_struct *work)
+static void set_rg_leds_work_func(struct work_struct *work)
 {
-	int ret;
+	mutex_lock(&max77660_leds_mutex);
 	unsigned int leds_en = 0;
-	unsigned long tmp_leds_brt= g_leds_brt;
-	int tmp_led_type = g_led_type;
+	unsigned long tmp_leds_brt= g_rg_leds_brt;
+	int tmp_led_type = RED_GREEN_LED;
 	int red_enable_bit = 0;
 	int green_enable_bit = 0;
 	int button_enable_bit = 0;
@@ -695,39 +703,68 @@ static void set_leds_work_func(struct work_struct *work)
 
 	// Magnum 2013-12-23  step 1:setting brightness
 	if(tmp_led_type == RED_GREEN_LED){
-		red_brt = tmp_leds_brt & 0xFF;
-		dev_dbg(g_max77660_dev,"Magnum green_brt = 0x%02x ,led_brt ==0x%04x\n",red_brt,tmp_leds_brt);
-		if(red_brt > 0){
+		green_brt = tmp_leds_brt & 0xFF;
+		//dev_dbg(g_max77660_dev,"Magnum green_brt = 0x%02x ,led_brt ==0x%04x\n",red_brt,tmp_leds_brt);
+		if(green_brt > 0){
 			dev_dbg(g_max77660_dev,"Magnum green enable \n");
 			tmp_led_type =GREEN_LED;
 			green_enable_bit = GREEN_ENABLE;
-			max77660_led_set_brightness(tmp_led_type,red_brt);
-		}
-		else {
-			red_brt = 0;
-			dev_dbg(g_max77660_dev,"Magnum green disable \n");
-			tmp_led_type =GREEN_LED;
-			green_enable_bit = GREEN_DISABLE;
-			max77660_led_set_brightness(tmp_led_type,red_brt);
-		}
-		
-		green_brt = (tmp_leds_brt >> 8) & 0xFF;
-		dev_dbg(g_max77660_dev,"Magnum red_brt = 0x%02x \n",green_brt);
-		if(green_brt> 0){
-			dev_dbg(g_max77660_dev,"Magnum red enable \n");
-			tmp_led_type =RED_LED;
-			red_enable_bit = RED_ENABLE;
 			max77660_led_set_brightness(tmp_led_type,green_brt);
 		}
 		else {
 			green_brt = 0;
+			dev_dbg(g_max77660_dev,"Magnum green disable \n");
+			tmp_led_type =GREEN_LED;
+			green_enable_bit = GREEN_DISABLE;
+			max77660_led_set_brightness(tmp_led_type,green_brt);
+		}
+		
+		red_brt = (tmp_leds_brt >> 8) & 0xFF;
+		//dev_dbg(g_max77660_dev,"Magnum red_brt = 0x%02x \n",green_brt);
+		if(red_brt> 0){
+			dev_dbg(g_max77660_dev,"Magnum red enable \n");
+			tmp_led_type =RED_LED;
+			red_enable_bit = RED_ENABLE;
+			max77660_led_set_brightness(tmp_led_type,red_brt);
+		}
+		else {
+			red_brt = 0;
 			dev_dbg(g_max77660_dev,"Magnum red disable \n");
 			tmp_led_type =RED_LED;
 			red_enable_bit = RED_DISABLE;
-			max77660_led_set_brightness(tmp_led_type,green_brt);	
+			max77660_led_set_brightness(tmp_led_type,red_brt);	
 		}
 	}
 	
+	//Magnum 2013-12-13  step 2: get  led enable;
+	leds_en = max77660_led_get_enable();
+	set_leds_power(leds_en, red_enable_bit, green_enable_bit, button_enable_bit);
+	
+	//Magnum 2013-12-13  step 3 :turn led into one-shot mode 
+	max77660_led_one_shot_mode();
+
+	//Magnum 2013-12-13  step 4 :set  led enable
+	if(currentLedPower != leds_en){
+		max77660_led_set_enable(currentLedPower);
+	     	//dev_dbg(g_max77660_dev,"Magnum max77660_leds_enable_store OK!\n");
+	}
+	
+	//dev_dbg(g_max77660_dev,"Magnum finish !\n");
+	mutex_unlock(&max77660_leds_mutex);
+	
+}
+
+static void set_button_leds_work_func(struct work_struct *work)
+{
+	mutex_lock(&max77660_leds_mutex);
+	unsigned int leds_en = 0;
+	unsigned long tmp_leds_brt= g_btn_leds_brt;
+	int tmp_led_type = BUTTON1_LED;
+	int red_enable_bit = 0;
+	int green_enable_bit = 0;
+	int button_enable_bit = 0;
+
+	// Magnum 2013-12-23  step 1:setting brightness
 	if(tmp_led_type == BUTTON1_LED){
 		if( (tmp_leds_brt & 0xFF) > 0){
 			dev_dbg(g_max77660_dev,"Magnum button enable \n");
@@ -751,28 +788,24 @@ static void set_leds_work_func(struct work_struct *work)
 	//Magnum 2013-12-13  step 4 :set  led enable
 	if(currentLedPower != leds_en){
 		max77660_led_set_enable(currentLedPower);
-	     	dev_dbg(g_max77660_dev,"Magnum max77660_leds_enable_store OK!\n");
+	     	//dev_dbg(g_max77660_dev,"Magnum max77660_leds_enable_store OK!\n");
 	}
 	
-	dev_dbg(g_max77660_dev,"Magnum finish !\n");
+	//dev_dbg(g_max77660_dev,"Magnum finish !\n");
 	mutex_unlock(&max77660_leds_mutex);
 	
 }
 
 static void max77660_button1_set(struct led_classdev *led_cdev,enum led_brightness value){
-	mutex_lock(&max77660_leds_mutex);
-	g_leds_brt = value;
-	g_led_type = BUTTON1_LED;
+	g_btn_leds_brt = value;
 	dev_dbg(g_max77660_dev,"Magnum %s() ..value == %d\n",__func__,value);
-	schedule_work(&set_leds_work); 
+	schedule_work(&set_button_leds_work); 
  }
 
 static void max77660_red_green_set(struct led_classdev *led_cdev,unsigned int  value){
-	mutex_lock(&max77660_leds_mutex);
-	g_leds_brt = value;
-	g_led_type = RED_GREEN_LED;
+	g_rg_leds_brt = value;
 	dev_dbg(g_max77660_dev,"Magnum %s() ..value == %04X\n",__func__,value);
-	schedule_work(&set_leds_work); 
+	schedule_work(&set_rg_leds_work); 
  }
 
 static enum led_brightness max77660_button1_get(struct led_classdev *led_cdev){
@@ -851,7 +884,8 @@ static int __devinit max77660_leds_probe(struct platform_device *pdev)
 	mutex_init(&max77660_leds_mutex);
 	//spin_lock_init(&max77660_leds_lock);
 
-        INIT_WORK(&set_leds_work,set_leds_work_func);
+        INIT_WORK(&set_rg_leds_work,set_rg_leds_work_func);
+	INIT_WORK(&set_button_leds_work,set_button_leds_work_func);
 
 	return ret;
 }
