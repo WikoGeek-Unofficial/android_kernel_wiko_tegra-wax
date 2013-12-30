@@ -268,6 +268,26 @@ static void max77660_power_off(void)
 	kernel_restart(NULL);
 }
 
+void max77660_power_forceoff(void)
+{
+	struct max77660_chip *chip = max77660_chip;
+
+	if (!chip)
+		return;
+
+	dev_info(chip->dev, "%s: Global shutdown\n", __func__);
+	/*
+	 * ES1.0 errata suggest that in place of doing read modify write,
+	 * write direct valid value.
+	 */
+
+	max77660_reg_write(chip->dev, MAX77660_PWR_SLAVE,
+			MAX77660_REG_GLOBAL_CFG0,
+			GLBLCNFG0_SFT_OFF_SYSRST_MASK);
+
+}
+EXPORT_SYMBOL_GPL(max77660_power_forceoff);
+
 static void max77660_power_reset(void)
 {
 	struct max77660_chip *chip = max77660_chip;

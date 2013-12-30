@@ -25,6 +25,7 @@
 #include <linux/power/battery-charger-gauge-comm.h>
 #include <linux/pm.h>
 #include <linux/jiffies.h>
+#include <linux/reboot.h>
 
 #define MAX17048_VCELL		0x02
 #define MAX17048_SOC		0x04
@@ -46,6 +47,9 @@
 #define MAX17048_BATTERY_FULL	100
 #define MAX17048_BATTERY_LOW	15
 #define MAX17048_VERSION_NO	0x11
+
+extern void max77660_power_forceoff(void);
+
 
 struct max17048_chip {
 	struct i2c_client		*client;
@@ -287,9 +291,8 @@ static void max17048_work(struct work_struct *work)
 
 	max17048_get_vcell(chip->client);
 	max17048_get_soc(chip->client);
-//Ivan add logic to hiden SOC change in recharge state 
+
 	printk("Ivan max17048_work vcell[%d], soc[%d], raw_soc[%d]\n",chip->vcell,chip->soc,chip->raw_soc );
-	
 	
 	if (chip->soc != chip->lasttime_soc ||
 		chip->status != chip->lasttime_status) {
@@ -298,6 +301,20 @@ static void max17048_work(struct work_struct *work)
 	}
 
 	schedule_delayed_work(&chip->work, MAX17048_DELAY);
+
+
+	
+	if (chip->status == POWER_SUPPLY_STATUS_DISCHARGING)
+	{
+	  if (chip->vcell < 3450)
+	    chip->soc = 0;
+	  
+	  if (chip->vcell < 3400)
+	  {
+	    printk("Ivan Battery too low (3.4V), power off...\n");	    
+	    max77660_power_forceoff();
+	  }
+	}
 }
 
 void max17048_battery_status(int status)
