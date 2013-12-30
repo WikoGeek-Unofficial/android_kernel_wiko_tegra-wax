@@ -1151,11 +1151,14 @@ static inline void ov5648_get_coarse_time_regs(
 					u32 coarse_time)
 {
 	regs->addr = 0x3500;
-	regs->val = (coarse_time >> 16) & 0x0f;
+	//regs->val = (coarse_time >> 16) & 0x0f;
+	regs->val = (coarse_time >> 12) & 0x0f;
 	(regs + 1)->addr = 0x3501;
-	(regs + 1)->val = (coarse_time >> 8) & 0xff;
+	//(regs + 1)->val = (coarse_time >> 8) & 0xff;
+	(regs + 1)->val = (coarse_time >> 4) & 0xff;
 	(regs + 2)->addr = 0x3502;
-	(regs + 2)->val = coarse_time & 0xf0;
+	//(regs + 2)->val = coarse_time & 0xf0;
+	(regs + 2)->val = (coarse_time <<4)& 0xf0;
 }
 
 static inline void ov5648_get_gain_reg(
@@ -1435,6 +1438,9 @@ static int ov5648_set_coarse_time(
 	u8 *b_ptr = info->i2c_trans_buf;
 
 	ov5648_get_coarse_time_regs(reg_list, coarse_time);
+	pr_info("%s: coarsetime: %u \n",
+			__func__,
+			coarse_time);
 
 	*b_ptr++ = reg_list[0].addr >> 8;
 	*b_ptr++ = reg_list[0].addr & 0xff;
