@@ -38,9 +38,9 @@ static struct nvc_gpio_init imx179_gpios[] = {
 };
 
 static struct nvc_regulator_init imx179_vregs[] = {
-	{ IMX179_VREG_DVDD, "vdig", },
-	{ IMX179_VREG_AVDD, "vana", },
-	{ IMX179_VREG_IOVDD, "vif", },
+	{ IMX179_VREG_DVDD, "vdd_cam_1v2", },
+	{ IMX179_VREG_AVDD, "avdd_cam1_ldo3", },
+	{ IMX179_VREG_IOVDD, "vdd_cam_1v8", },
 };
 
 struct imx179_reg {

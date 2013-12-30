@@ -39,7 +39,7 @@
 
 #include <media/ov5648.h>
 #include <ov5648_otp.h>
-
+#include <../../../arch/arm/mach-tegra/board-ceres.h>
 #if 0
 #define SIZEOF_I2C_TRANSBUF 32
 #define OV5648_REG_GLOBAL_GAIN          0x350a
@@ -51,28 +51,6 @@ struct ov5648_reg {
 	u16 addr;
 	u16 val;
 };
-
-#if 0
-static struct nvc_regulator_init ov5648_vregs[] = {
-	{ OV5648_VREG_DVDD, "vdd_cam_1v2", },
-	{ OV5648_VREG_AVDD, "avdd_cam2", },
-	{ OV5648_VREG_IOVDD, "vdd_cam_1v8", },
-};
-
-
-
-struct ov5648_info {
-	struct i2c_client *i2c_client;
-	struct ov5648_platform_data *pdata;
-	struct miscdevice miscdev_info;
-	struct kobject *kobj_ov5648;
-	struct nvc_regulator vreg[ARRAY_SIZE(ov5648_vregs)];
-	struct clk			*mclk;
-	int mode;
-	u8 i2c_trans_buf[SIZEOF_I2C_TRANSBUF];
-	u32 flag;
-};
-#endif
 
 static LIST_HEAD(ov5648_info_list);
 
@@ -1744,6 +1722,8 @@ static int ov5648_probe(
 	}
 	ov5648_edp_register(info);
 	ov5648_sysfs_init(info);
+	gpio_set_value(CAM_RSTN, 0);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 0);
 	return 0;
 }
 
@@ -1919,6 +1899,13 @@ static const struct i2c_device_id ov5648_id[] = {
 
 MODULE_DEVICE_TABLE(i2c, ov5648_id);
 
+int ov5648_i2c_resume(struct i2c_client *c)
+{
+	gpio_set_value(CAM_RSTN, 0);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 0);
+	return 0;
+}
+
 static struct i2c_driver ov5648_i2c_driver = {
 	.driver = {
 		.name = "ov5648",
@@ -1927,6 +1914,7 @@ static struct i2c_driver ov5648_i2c_driver = {
 	.id_table = ov5648_id,
 	.probe = ov5648_probe,
 	.remove = ov5648_remove,
+	.resume = ov5648_i2c_resume,
 };
 
 static int __init ov5648_init(void)

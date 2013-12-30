@@ -149,14 +149,14 @@ static struct regulator_consumer_supply max77660_ldo2_supply[] = {
 	REGULATOR_SUPPLY("avdd", "2-003c"),
 	REGULATOR_SUPPLY("vdd", "2-000e"),
 	REGULATOR_SUPPLY("vdd", "2-000c"),
-	REGULATOR_SUPPLY("af_vdd", NULL),
+	REGULATOR_SUPPLY("avdd_cam_ldo2", NULL),
 	REGULATOR_SUPPLY("vana", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo3_supply[] = {
-	REGULATOR_SUPPLY("avdd_cam1", NULL),
+	REGULATOR_SUPPLY("avdd_cam1_ldo3", NULL),
 	REGULATOR_SUPPLY("vana", "2-0036"),
-    REGULATOR_SUPPLY("vif", "2-0010"),
+	REGULATOR_SUPPLY("vif", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo4_supply[] = {
@@ -177,8 +177,6 @@ static struct regulator_consumer_supply max77660_ldo5_supply[] = {
 
 static struct regulator_consumer_supply max77660_ldo6_supply[] = {
 	REGULATOR_SUPPLY("vdd_cam_1v2", NULL),
-	REGULATOR_SUPPLY("vdig", "2-0036"),
-    REGULATOR_SUPPLY("vdig", "2-0010"),
 };
 
 static struct regulator_consumer_supply max77660_ldo7_supply[] = {
@@ -382,7 +380,7 @@ MAX77660_PDATA_INIT(LDO2, ldo2, 2800, 2800, NULL,
 		0, 0, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO3, ldo3, 2800, 2800, NULL,
-		1, 1, 1, FPS_SRC_DEF, -1, -1, 0);
+		0, 0, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO4, ldo4, 3000, 3000, NULL,
 		1, 1, 1, FPS_SRC_DEF, -1, -1, 0);

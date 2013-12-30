@@ -315,12 +315,8 @@ static int dw9714a_power_put(struct dw9714a_power_rail *pw)
 
 	if (likely(pw->vdd))
 		regulator_put(pw->vdd);
-/*
-	if (likely(pw->vdd_i2c))
-		regulator_put(pw->vdd_i2c);
-*/
+
 	pw->vdd = NULL;
-	pw->vdd_i2c = NULL;
 
 	return 0;
 }
@@ -349,7 +345,7 @@ static int dw9714a_power_get(struct dw9714a_info *info)
 {
 	struct dw9714a_power_rail *pw = &info->power;
 
-	dw9714a_regulator_get(info, &pw->vdd, "af_vdd");
+	dw9714a_regulator_get(info, &pw->vdd, "avdd_cam_ldo2");
 
 	return 0;
 }
@@ -912,8 +908,8 @@ static int dw9714a_open(struct inode *inode, struct file *file)
 static int dw9714a_release(struct inode *inode, struct file *file)
 {
 	struct dw9714a_info *info = file->private_data;
-	dev_dbg(&info->i2c_client->dev, "%s\n", __func__);
-	dw9714a_pm_dev_wr(info, NVC_PWR_OFF);
+	dev_dbg(&info->i2c_client->dev, "%s \n", __func__);
+	dw9714a_pm_wr(info, NVC_PWR_OFF);
 	file->private_data = NULL;
 	WARN_ON(!atomic_xchg(&info->in_use, 0));
 	if (info->s_info != NULL)

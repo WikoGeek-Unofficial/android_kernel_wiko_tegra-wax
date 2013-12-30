@@ -28,7 +28,8 @@
 
 static struct nvc_regulator_init ov5648_vregs[] = {
 	{ OV5648_VREG_DVDD, "vdd_cam_1v2", },
-	{ OV5648_VREG_AVDD, "avdd_cam2", },
+	{ OV5648_VREG_AVDD, "avdd_cam_ldo2", },
+	{ OV5648_VREG_AVDD_MIPI_SWITCH, "avdd_cam1_ldo3", },
 	{ OV5648_VREG_IOVDD, "vdd_cam_1v8", },
 };
 

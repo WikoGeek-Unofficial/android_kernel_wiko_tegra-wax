@@ -910,43 +910,32 @@ static struct tegra_pingroup_config mclk_enable =
 static int ceres_ov5648_power_on( struct nvc_regulator *vreg )
 {
 	int err;
-	pr_info( "%s", __func__ );
 	tegra_pinmux_config_table(&mclk_enable, 1);
 
-	
-	gpio_set_value( TEGRA_GPIO_PS4, 1);
+	gpio_set_value(CAM_CHOS_TINNO, 1);
 
-
+	err = regulator_enable(vreg[OV5648_VREG_AVDD_MIPI_SWITCH].vreg);
+	if (err)
+		goto ov5648_poweron_fail;
 	
 	err = regulator_enable(vreg[OV5648_VREG_IOVDD].vreg);
 	if (err)
 		goto ov5648_poweron_fail;
 
-
-
 	err = regulator_enable(vreg[OV5648_VREG_AVDD].vreg);
 	if (err)
 		goto ov5648_avdd_fail;
 
-		
-	
-	
 	gpio_set_value(CAM2_POWER_DWN_GPIO, 0); //pwd dwn
 	gpio_set_value(CAM_RSTN, 0); //rst
 	usleep_range(10, 20);
 
-
-
 	err = regulator_enable(vreg[OV5648_VREG_DVDD].vreg);
-		if (err)
-			goto ov5648_dvdd_fail;
-
-	
+	if (err)
+		goto ov5648_dvdd_fail;
 
 	usleep_range(1, 2);
 	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
-
-	
 
 	gpio_set_value(CAM_RSTN, 0);
 
@@ -956,20 +945,17 @@ static int ceres_ov5648_power_on( struct nvc_regulator *vreg )
 	usleep_range(300, 310);
 	return 1;
 
-		
 ov5648_dvdd_fail:
 	gpio_set_value(CAM_RSTN, 1);
 	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
 	regulator_disable(vreg[OV5648_VREG_AVDD].vreg);
-ov5648_avdd_fail:
 
+ov5648_avdd_fail:
 	regulator_disable(vreg[OV5648_VREG_IOVDD].vreg);
 
-	
 ov5648_poweron_fail:
 		pr_err("%s FAILED\n", __func__);
 		return -ENODEV;
-
 }
 
 static int ceres_ov5648_power_off(struct  nvc_regulator *vreg )
@@ -979,15 +965,15 @@ static int ceres_ov5648_power_off(struct  nvc_regulator *vreg )
 	usleep_range(1, 2);
 	tegra_pinmux_config_table(&mclk_disable, 1);
 
-	
-	gpio_set_value(CAM_RSTN, 1);
-	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
+	gpio_set_value(CAM_RSTN, 0);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 0);
 	usleep_range(1, 2);
 
 	regulator_disable(vreg[OV5648_VREG_IOVDD].vreg);
 	//regulator_disable(macallan_vcmvdd);
 	regulator_disable(vreg[OV5648_VREG_DVDD].vreg);
 	regulator_disable(vreg[OV5648_VREG_AVDD].vreg);
+	regulator_disable(vreg[OV5648_VREG_AVDD_MIPI_SWITCH].vreg);
 
 	return 0;
 }
@@ -1025,7 +1011,8 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
 	tegra_pinmux_config_table(&mclk_enable, 1);
 
 	gpio_set_value(CAM_PWDN_TINNO, 0);
-    gpio_set_value(CAM_RSTN_TINNO, 0);
+	gpio_set_value(CAM_RSTN_TINNO, 0);
+	gpio_set_value(CAM_CHOS_TINNO, 0);
 	usleep_range(10, 20);
 
 	err = regulator_enable(vreg[IMX179_VREG_AVDD].vreg);
@@ -1038,20 +1025,21 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
 
 	usleep_range(1, 2);
 	gpio_set_value(CAM_PWDN_TINNO, 1);
-    gpio_set_value(CAM_RSTN_TINNO, 1);
-    usleep_range(300, 350);
+	gpio_set_value(CAM_RSTN_TINNO, 1);
+	usleep_range(300, 350);
 
 	err = regulator_enable(vreg[IMX179_VREG_DVDD].vreg);
 	if (unlikely(err))
 		goto imx179_dvdd_fail;
 
+	err = regulator_set_voltage(vreg[IMX179_VREG_DVDD].vreg,
+		1200000, 1200000);
+	if (unlikely(err))
+		goto imx179_dvdd_fail;
+
 	usleep_range(100, 110);
-    
-    gpio_set_value(CAM_CHOS_TINNO, 0);
 
 	return 0;
-
-
 
 imx179_dvdd_fail:
     pr_err("luis %s imx179_dvdd_fail FAILED\n", __func__);
@@ -1071,32 +1059,16 @@ static int pluto_imx179_power_off(struct nvc_regulator *vreg)
 	if (unlikely(WARN_ON(!vreg)))
 		return -EFAULT;
 
+	tegra_pinmux_config_table(&mclk_disable, 1);
 
-    tegra_pinmux_config_table(&mclk_disable, 1);
-        
-    
 	usleep_range(1, 2);
 	gpio_set_value(CAM_PWDN_TINNO, 0);
-    gpio_set_value(CAM_RSTN_TINNO, 0);
+	gpio_set_value(CAM_RSTN_TINNO, 0);
 	usleep_range(1, 2);
 
-    
-    if ( regulator_is_enabled(vreg[IMX179_VREG_DVDD].vreg) )
-    {
-        regulator_disable(vreg[IMX179_VREG_DVDD].vreg);
-    }
-    
-    
-    
-    if ( regulator_is_enabled(vreg[IMX179_VREG_IOVDD].vreg) )
-    {
-        regulator_disable(vreg[IMX179_VREG_IOVDD].vreg);
-    }
-    
-    if ( regulator_is_enabled(vreg[IMX179_VREG_AVDD].vreg) )
-    {
-        regulator_disable(vreg[IMX179_VREG_AVDD].vreg);
-    }
+	regulator_disable(vreg[IMX179_VREG_DVDD].vreg);
+	regulator_disable(vreg[IMX179_VREG_IOVDD].vreg);
+	regulator_disable(vreg[IMX179_VREG_AVDD].vreg);
 
 	return 0;
 }
@@ -1165,9 +1137,6 @@ static int ceres_dw9714a_power_on(struct dw9714a_power_rail *pw)
 	if (unlikely(err))
 		goto dw9714a_vdd_fail;
 
-	gpio_set_value(CAM_AF_PWDN, 1);
-	msleep(12);
-
 	return 0;
 
 dw9714a_vdd_fail:
@@ -1181,7 +1150,6 @@ static int ceres_dw9714a_power_off(struct dw9714a_power_rail *pw)
 	if (unlikely(WARN_ON(!pw || !pw->vdd )))
 		return -EFAULT;
 
-	gpio_set_value(CAM_AF_PWDN, 0);
 	regulator_disable(pw->vdd);
 
 	return 0;
