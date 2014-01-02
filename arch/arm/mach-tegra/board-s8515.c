@@ -1145,7 +1145,7 @@ static void ceres_tegra_bb_init(void)
 //Ivan added for debug
 	int reboot_reason = tegra_get_pmic_rst_reason();
 	
-	printk("Ivan PMIC reboot reason = %d \n", reboot_reason);
+	printk("Ivan PMIC reboot reason = %x \n", reboot_reason);
 	print_reason_string(reboot_reason);
 	
 	if (modem_id == TEGRA_BB_INTEGRATED_DISABLED)
