@@ -2149,7 +2149,7 @@ int tegra_emc_set_over_temp_state(unsigned long state)
 	return 0;
 }
 
-int tegra_emc_set_low_latency_mode(bool ll_mode)
+int tegra_emc_request_low_latency_mode(bool ll_mode)
 {
 	int offset, ret = 0;
 	unsigned long flags, acces_flags;
@@ -2353,7 +2353,7 @@ static int ll_mode_get(void *data, u64 *val)
 }
 static int ll_mode_set(void *data, u64 val)
 {
-	return tegra_emc_set_low_latency_mode(val);
+	return tegra_emc_request_low_latency_mode(val);
 }
 DEFINE_SIMPLE_ATTRIBUTE(ll_mode_fops, ll_mode_get, ll_mode_set, "%llu\n");
 

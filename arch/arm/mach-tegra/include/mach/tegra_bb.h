@@ -19,6 +19,7 @@
 #define __MACH_TEGRA_BB_H
 
 #define EMC_DSR		(1 << 0)
+#define EMC_LL		(1 << 2)
 
 struct tegra_bb_platform_data {
 	/* Baseband->AP IRQ */

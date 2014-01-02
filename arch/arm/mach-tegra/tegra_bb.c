@@ -752,6 +752,11 @@ static void tegra_bb_emc_dvfs(struct work_struct *work)
 		clk_prepare_enable(bb->emc_clk);
 		if (bb->emc_flags & EMC_DSR)
 			tegra_emc_dsr_override(TEGRA_EMC_DSR_OVERRIDE);
+		if (bb->emc_flags & EMC_LL) {
+			pr_info("%s: BBC_SET_FLOOR --> tegra_emc_request_low_latency_mode true.\n",
+				__func__);
+			tegra_emc_request_low_latency_mode(true);
+		}
 		clk_set_rate(bb->emc_clk, bb->emc_min_freq);
 		pr_debug("bbc setting floor to %lu\nMHz",
 						bb->emc_min_freq/1000000);
@@ -775,6 +780,11 @@ static void tegra_bb_emc_dvfs(struct work_struct *work)
 		/* remove iso bandwitdh request from bbc */
 		tegra_bbc_proxy_clear_iso(bb->proxy_dev);
 
+		if (bb->emc_flags & EMC_LL) {
+			pr_info("%s: BBC_REMOVE_FLOOR --> tegra_emc_request_low_latency_mode false.\n",
+				__func__);
+			tegra_emc_request_low_latency_mode(false);
+		}
 		/* going from high to 0 */
 		if (bb->emc_flags & EMC_DSR)
 			tegra_emc_dsr_override(TEGRA_EMC_DSR_NORMAL);
@@ -803,6 +813,12 @@ static void tegra_bb_emc_dvfs(struct work_struct *work)
 			clk_prepare_enable(bb->emc_clk);
 		}
 
+		if (bb->emc_flags & EMC_LL) {
+			pr_info("%s: BBC_CRASHDUMP_FLOOR --> tegra_emc_request_low_latency_mode false.\n",
+				__func__);
+			tegra_emc_request_low_latency_mode(false);
+			bb->emc_flags &= ~EMC_LL;
+		}
 		tegra_emc_dsr_override(TEGRA_EMC_DSR_OVERRIDE);
 		clk_set_rate(bb->emc_clk, BBC_MC_MAX_FREQ);
 
@@ -838,6 +854,12 @@ void tegra_bb_set_emc_floor(struct device *dev, unsigned long freq, u32 flags)
 	if (bb->emc_min_freq != freq) {
 		bb->emc_min_freq = freq;
 		clk_set_rate(bb->emc_clk, bb->emc_min_freq);
+	}
+
+	if ((bb->emc_flags & EMC_LL) != (flags & EMC_LL)) {
+		pr_info("%s: BBC_SET_FLOOR --> tegra_emc_request_low_latency_mode" " %s",
+			__func__, (flags & EMC_LL) ? "true" : "false");
+		tegra_emc_request_low_latency_mode(flags & EMC_LL);
 	}
 
 	bb->emc_flags = flags;

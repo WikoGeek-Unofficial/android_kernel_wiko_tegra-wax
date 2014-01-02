@@ -85,9 +85,9 @@ int tegra_emc_dsr_override(int override);
 void tegra_emc_set_swizzle_map(u32 *swizzle_r0, u32 *swizzle_r1,
 			       u32 update_mask);
 void tegra_mc_divider_update(struct clk *emc);
-int tegra_emc_set_low_latency_mode(bool ll_mode);
+int tegra_emc_request_low_latency_mode(bool ll_mode);
 #else
-static inline int tegra_emc_set_low_latency_mode(bool ll_mode)
+static inline int tegra_emc_request_low_latency_mode(bool ll_mode)
 { return -1; }
 #endif
 
