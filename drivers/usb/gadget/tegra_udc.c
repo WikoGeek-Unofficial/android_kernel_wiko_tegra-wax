@@ -1379,8 +1379,9 @@ static int tegra_usb_set_charging_current(struct tegra_udc *udc)
 	case CONNECT_TYPE_SDP:
 		if (udc->current_limit > 2)
 			dev_info(dev, "connected to SDP\n");
-		max_ua = min(udc->current_limit * 1000,
-				USB_CHARGING_SDP_CURRENT_LIMIT_UA);
+		//max_ua = min(udc->current_limit * 1000,
+		//		USB_CHARGING_SDP_CURRENT_LIMIT_UA);
+		max_ua = USB_CHARGING_SDP_CURRENT_LIMIT_UA;
 		break;
 	case CONNECT_TYPE_DCP:
 		dev_info(dev, "connected to DCP(wall charger)\n");
@@ -1486,6 +1487,8 @@ static int tegra_detect_cable_type(struct tegra_udc *udc)
 		(udc->connect_type != CONNECT_TYPE_CDP))
 		tegra_usb_set_charging_current(udc);
 
+	if (udc->connect_type == CONNECT_TYPE_SDP)
+		tegra_usb_set_charging_current(udc);
 	return 0;
 }
 
