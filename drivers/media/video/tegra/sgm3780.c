@@ -731,6 +731,30 @@ edp_set_leds_end:
 	return err;
 }
 
+static int tinno_torch_edp_set_leds(struct tinno_flash_info *info,
+		u8 mask, u8 curr1, u8 curr2)
+{
+	int err;
+
+	err = tinno_flash_edp_req(info, mask, &curr1, &curr2);
+	if (err)
+		goto edp_set_leds_end;
+        printk("mingji curr1: %d.\n",curr1);
+        printk("mingji curr2: %d.\n",curr2);
+        printk("mingji mask: %d.\n",mask);
+	if(curr1 > 0)
+		tinno_flash_set_torch(info,  1);
+	else
+		tinno_flash_set_torch(info,  0);
+	if (!err && info->op_mode == MAXFLASH_MODE_NONE)
+		tinno_flash_edp_lowest(info);
+
+edp_set_leds_end:
+	if (err)
+		dev_err(info->dev, "%s ERROR: %d\n", __func__, err);
+	return err;
+}
+
 static int tinno_flash_strobe(struct tinno_flash_info *info, int t_on)
 {
 	return 0;
@@ -778,7 +802,7 @@ static int tinno_flash_set_param(struct tinno_flash_info *info, long arg)
 		tinno_flash_get_levels(info, &params, false, &led_levels);
 		curr1 = led_levels.levels[0];
 		curr2 = led_levels.levels[1];
-		err = tinno_flash_edp_set_leds(info,
+		err = tinno_torch_edp_set_leds(info,
 			led_levels.ledmask, curr1, curr2);
 
 		break;
