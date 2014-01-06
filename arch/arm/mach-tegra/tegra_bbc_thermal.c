@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2013-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -22,22 +22,24 @@
 #include <linux/thermal.h>
 #include <linux/nvshm_stats.h>
 
+#define TZ_NAME_MAXLEN 15
+
 struct bbc_thermal_private {
 	u32 disabled_safe;
-	const u32 *enabled_ptr;
+	const u32 *enabled;
 	struct thermal_zone_device **tzds;
-	int tz_no;
+	int zones;
 	struct notifier_block nb;
 };
 
-static struct bbc_thermal_private private;
+static struct bbc_thermal_private therm;
 
 static int bbc_get_temp(struct thermal_zone_device *tzd, unsigned long *t)
 {
 	const u32 *tempCelcius = (const u32 *) tzd->devdata;
 
-	/* Check that we thermal is enabled and temperature has been updated */
-	if (!*private.enabled_ptr || (*tempCelcius > 300))
+	/* Check that the thermal is enabled and temperature has been updated */
+	if (!*therm.enabled || (*tempCelcius > 300))
 		return -ENODATA;
 
 	/* °C to m°C */
@@ -53,44 +55,95 @@ static void bbc_thermal_remove(void)
 {
 	int i;
 
-	private.enabled_ptr = &private.disabled_safe;
-	if (!private.tzds)
+	if (!therm.tzds)
 		return;
 
-	for (i = 0; i < private.tz_no; i++)
-		thermal_zone_device_unregister(private.tzds[i]);
+	therm.enabled = &therm.disabled_safe;
+	for (i = 0; i < therm.zones; i++)
+		thermal_zone_device_unregister(therm.tzds[i]);
 
-	kfree(private.tzds);
-	private.tzds = NULL;
+	kfree(therm.tzds);
+	therm.tzds = NULL;
+}
+
+/*
+ * This function is inline called from bbc_thermal_install() below, so pointers
+ * are expected to be correct on enter.
+ */
+static inline int get_zone_data(struct nvshm_stats_iter *it, int index,
+				char *name, u32 **temp)
+{
+	/* Empty name so we can check whether we got one at the end */
+	name[0] = '\0';
+	/* Set temperature pointer to NULL for the same reason */
+	*temp = NULL;
+	while (nvshm_stats_type(it) != NVSHM_STATS_END) {
+		if (!strcmp(nvshm_stats_name(it), "name")) {
+			if (nvshm_stats_type(it) != NVSHM_STATS_STRING) {
+				pr_err("name has incorrect type: %d\n",
+				       nvshm_stats_type(it));
+				return -EINVAL;
+			}
+
+			strncpy(name, nvshm_stats_valueptr_string(it),
+				TZ_NAME_MAXLEN);
+			name[TZ_NAME_MAXLEN] = '\0';
+		} else if (!strcmp(nvshm_stats_name(it), "tempCelcius")) {
+			if (nvshm_stats_type(it) != NVSHM_STATS_UINT32) {
+				pr_err("tempCelcius has incorrect type: %d\n",
+				       nvshm_stats_type(it));
+				return -EINVAL;
+			}
+
+			*temp = nvshm_stats_valueptr_uint32(it, 0);
+		}
+
+		if (nvshm_stats_next(it)) {
+			pr_err("corruption detected in shared memory\n");
+			return -EINVAL;
+		}
+	}
+
+	if (*temp == NULL) {
+		pr_err("tempCelcius not found\n");
+		return -EINVAL;
+	}
+
+	/* Make sure we have a [unique] name */
+	if (name[0] == '\0')
+		sprintf(name, "BBC-therm%d", index);
+
+	return 0;
 }
 
 static int bbc_thermal_install(void)
 {
 	struct nvshm_stats_iter it;
 	unsigned int index;
-	const u32 *enabled_ptr;
+	const u32 *enabled;
 	int zones, ret = 0;
 
-	if (private.tzds) {
+	if (therm.tzds) {
 		pr_warn("BBC thermal already registered, unregistering\n");
 		bbc_thermal_remove();
 	}
 
 	/* Get iterator for top structure */
-	enabled_ptr = nvshm_stats_top("DrvTemperatureSysStats", &it);
-	if (IS_ERR(enabled_ptr)) {
+	enabled = nvshm_stats_top("DrvTemperatureSysStats", &it);
+	if (IS_ERR(enabled)) {
 		pr_err("BBC thermal zones missing\n");
-		return PTR_ERR(enabled_ptr);
+		return PTR_ERR(enabled);
 	}
 
-	private.enabled_ptr = enabled_ptr;
 	/* Look for array of sensor data structures */
 	while (nvshm_stats_type(&it) != NVSHM_STATS_END) {
 		if (!strcmp(nvshm_stats_name(&it), "sensorStats"))
 			break;
 
-		/* Do not check rc, let nvshm_stats_type below fail */
-		nvshm_stats_next(&it);
+		if (nvshm_stats_next(&it)) {
+			pr_err("corruption detected in shared memory\n");
+			return -EINVAL;
+		}
 	}
 
 	if (nvshm_stats_type(&it) != NVSHM_STATS_SUB) {
@@ -100,53 +153,46 @@ static int bbc_thermal_install(void)
 	}
 
 	/* Parse sensors */
-	private.tz_no = 0;
 	zones = nvshm_stats_elems(&it);
+	if (!zones) {
+		pr_info("BBC does not report any temperatures\n");
+		return 0;
+	}
+
 	pr_info("BBC can report temperatures from %d thermal zones\n", zones);
-	private.tzds = kmalloc(zones * sizeof(*private.tzds), GFP_KERNEL);
-	if (!private.tzds) {
+	therm.tzds = kmalloc(zones * sizeof(*therm.tzds), GFP_KERNEL);
+	if (!therm.tzds) {
 		pr_err("failed to allocate array of sensors\n");
 		return -ENOMEM;
 	}
 
+	therm.zones = 0;
 	for (index = 0; index < zones; index++) {
 		struct nvshm_stats_iter sub_it;
-		char name[16];
+		char name[TZ_NAME_MAXLEN + 1];
+		u32 *temp_ptr;
 
 		/* Get iterator to sensor data structure */
 		nvshm_stats_sub(&it, index, &sub_it);
-		/* We only care about temperature */
-		while (nvshm_stats_type(&sub_it) != NVSHM_STATS_END) {
-			if (!strcmp(nvshm_stats_name(&sub_it), "tempCelcius"))
-				break;
-
-			/* Do not check rc, let nvshm_stats_type below fail */
-			nvshm_stats_next(&sub_it);
-		}
-
-		/* This will either fail at first time or not at all */
-		if (nvshm_stats_type(&sub_it) != NVSHM_STATS_UINT32) {
-			pr_err("tempCelcius not found or incorrect type: %d\n",
-			       nvshm_stats_type(&sub_it));
-			ret = -EINVAL;
+		/* Try to add a valid zone */
+		ret = get_zone_data(&sub_it, index, name, &temp_ptr);
+		if (ret < 0)
 			goto failed;
-		}
 
 		/* Ok we got it, let's register a new thermal zone */
-		sprintf(name, "BBC-therm%d", index);
-		private.tzds[index] = thermal_zone_device_register(name, 0, 0,
-			(void *) nvshm_stats_valueptr_uint32(&sub_it, 0),
-			&bbc_thermal_ops, NULL, 0, 0);
-		if (IS_ERR(private.tzds)) {
+		therm.tzds[therm.zones] = thermal_zone_device_register(name,
+			0, 0, temp_ptr, &bbc_thermal_ops, NULL, 0, 0);
+		if (IS_ERR(therm.tzds)) {
 			pr_err("failed to register thermal zone #%d, abort\n",
 			       index);
-			ret = PTR_ERR(private.tzds);
+			ret = PTR_ERR(therm.tzds);
 			goto failed;
 		}
 
-		private.tz_no++;
+		therm.zones++;
 	}
 
+	therm.enabled = enabled;
 	return 0;
 
 failed:
@@ -154,9 +200,8 @@ failed:
 	return ret;
 }
 
-static int bbc_thermal_notify(struct notifier_block *self,
-			       unsigned long action,
-			       void *user)
+static int bbc_thermal_notify(struct notifier_block *self, unsigned long action,
+			      void *user)
 {
 	switch (action) {
 	case NVSHM_STATS_MODEM_UP:
@@ -171,7 +216,7 @@ static int bbc_thermal_notify(struct notifier_block *self,
 
 void tegra_bbc_thermal_init(void)
 {
-	private.enabled_ptr = &private.disabled_safe;
-	private.nb.notifier_call = bbc_thermal_notify;
-	nvshm_stats_register(&private.nb);
+	therm.enabled = &therm.disabled_safe;
+	therm.nb.notifier_call = bbc_thermal_notify;
+	nvshm_stats_register(&therm.nb);
 }
