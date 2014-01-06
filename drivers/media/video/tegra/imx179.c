@@ -551,7 +551,7 @@ static struct imx179_mode_data imx179_1640x1232 = {
 		.active_stary_y		= 0,
 		.peak_frame_rate	= 30000, /* / _INT2FLOAT_DIVISOR */
 		.pixel_aspect_ratio	= 1000, /* / _INT2FLOAT_DIVISOR */
-		.pll_multiplier		= 11000, /* / _INT2FLOAT_DIVISOR */
+		.pll_multiplier		= 8000, /* / _INT2FLOAT_DIVISOR */
 		.crop_mode		= NVC_IMAGER_CROPMODE_NONE,
 	},
 	.sensor_dnvc = {
@@ -1666,7 +1666,7 @@ static int imx179_mode_wr(struct imx179_info *info,
 	if (err < 0)
 		goto imx179_mode_wr_err;
 
-	ReadOTPIMX179(info);
+	//ReadOTPIMX179(info);
 
 	return 0;
 
