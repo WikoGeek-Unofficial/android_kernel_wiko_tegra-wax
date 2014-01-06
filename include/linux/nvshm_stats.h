@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2013-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -32,6 +32,8 @@ enum nvshm_stats_type {
 	NVSHM_STATS_SINT32,
 	/** Unsigned 64bit integer. */
 	NVSHM_STATS_UINT64,
+	/** String. */
+	NVSHM_STATS_STRING,
 };
 
 enum nvshm_stats_notification {
@@ -129,6 +131,14 @@ s32 *nvshm_stats_valueptr_sint32(
 u64 *nvshm_stats_valueptr_uint64(
 	const struct nvshm_stats_iter *it,
 	int index);
+
+/**
+ * Get pointer to string for entry pointed by iterator.
+ * @param it Iterator on entry
+ * @return Entry value pointer, or error pointer on failure
+ */
+const char *nvshm_stats_valueptr_string(
+	const struct nvshm_stats_iter *it);
 
 /**
  * Register for modem notifications.

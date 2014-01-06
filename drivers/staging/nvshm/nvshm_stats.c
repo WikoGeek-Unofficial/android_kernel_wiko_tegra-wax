@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2013-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -168,7 +168,7 @@ int nvshm_stats_next(struct nvshm_stats_iter *it)
 {
 	/* Check type validity */
 	if ((it->desc->type < NVSHM_STATS_START) ||
-	    (it->desc->type > NVSHM_STATS_UINT64))
+	    (it->desc->type > NVSHM_STATS_STRING))
 		return -EINVAL;
 
 	if ((it->desc->type != NVSHM_STATS_START) &&
@@ -248,7 +248,7 @@ s32 *nvshm_stats_valueptr_sint32(const struct nvshm_stats_iter *it,
 EXPORT_SYMBOL_GPL(nvshm_stats_valueptr_sint32);
 
 u64 *nvshm_stats_valueptr_uint64(const struct nvshm_stats_iter *it,
-				int index)
+				 int index)
 {
 	u64 *array;
 	int rc;
@@ -261,6 +261,18 @@ u64 *nvshm_stats_valueptr_uint64(const struct nvshm_stats_iter *it,
 	return &array[index];
 }
 EXPORT_SYMBOL_GPL(nvshm_stats_valueptr_uint64);
+
+const char *nvshm_stats_valueptr_string(const struct nvshm_stats_iter *it)
+{
+	int rc;
+
+	rc = check_type_index(it, NVSHM_STATS_STRING, 0);
+	if (rc)
+		return ERR_PTR(rc);
+
+	return (const char *) it->data;
+}
+EXPORT_SYMBOL_GPL(nvshm_stats_valueptr_string);
 
 void nvshm_stats_register(struct notifier_block *nb)
 {
