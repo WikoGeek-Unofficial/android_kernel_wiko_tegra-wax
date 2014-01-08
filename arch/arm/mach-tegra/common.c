@@ -697,6 +697,9 @@ static void __init tegra_ramrepair_init(void)
 	if (tegra_spare_fuse(10) | tegra_spare_fuse(11)) {
 #endif
 		u32 reg;
+
+		pr_info("%s: fuse_bit_10 = %d, fuse_bit_11 = %d\n", __func__,
+		  tegra_spare_fuse(10), tegra_spare_fuse(11));
 		reg = readl(FLOW_CTRL_RAM_REPAIR);
 		reg &= ~FLOW_CTRL_RAM_REPAIR_BYPASS_EN;
 		writel(reg, FLOW_CTRL_RAM_REPAIR);
