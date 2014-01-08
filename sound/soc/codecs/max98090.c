@@ -1510,8 +1510,7 @@ static int max98090_micinput_event(struct snd_soc_dapm_widget *w,
 	else
 		val = (val & M98090_MIC_PA2EN_MASK) >> M98090_MIC_PA2EN_SHIFT;
 
-
-	if (val >= 1) {
+	if (val > 1) {
 		if (w->reg == M98090_REG_10_LVL_MIC1)
 			max98090->mic1pre = val - 1; /* Update for volatile */
 		else
