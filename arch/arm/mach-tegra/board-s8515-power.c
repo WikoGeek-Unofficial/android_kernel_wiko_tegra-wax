@@ -128,6 +128,9 @@ static struct regulator_consumer_supply max77660_buck5_supply[] = {
 	REGULATOR_SUPPLY("vdd_dtv", NULL),
 	REGULATOR_SUPPLY("vdd_modem2", NULL),
 	REGULATOR_SUPPLY("vdd_dbg", NULL),
+#if (CONFIG_S8515_PR_VERSION == 2)
+	REGULATOR_SUPPLY("vio_tp", "1-0039"),
+#endif
 };
 
 static struct regulator_consumer_supply max77660_buck6_supply[] = {
@@ -163,7 +166,11 @@ static struct regulator_consumer_supply max77660_ldo4_supply[] = {
 	 REGULATOR_SUPPLY("avdd_lcd", NULL),
 	 REGULATOR_SUPPLY("avdd", "spi2.0"),
 	 REGULATOR_SUPPLY("vin", "2-004a"),
-	 REGULATOR_SUPPLY("vdd_tp", "2-0039"),	 
+#if (CONFIG_S8515_PR_VERSION == 2)
+	 REGULATOR_SUPPLY("vdd_tp", "1-0039"),	
+#else
+	 REGULATOR_SUPPLY("vdd_tp", "2-0039"),	
+#endif
 };
 
 static struct regulator_consumer_supply max77660_ldo4_display_config0_supply[] = {
@@ -268,7 +275,7 @@ static struct regulator_consumer_supply max77660_sw2_supply[] = {
 	REGULATOR_SUPPLY("vddio_cam_mb", ""),
 	REGULATOR_SUPPLY("vddio_cam_mb", "2-0010"),
 //edit by Magnum 2013-11-13
-#ifdef TINNO_TP_2_CAM	    
+#if (CONFIG_S8515_PR_VERSION == 1)
 	REGULATOR_SUPPLY("vio_tp", "2-0039"),
 #endif
 };
@@ -514,6 +521,34 @@ struct max77660_vbus_platform_data max77660_vbus_pdata = {
 	.consumer_supplies = max77660_vbus_supply,
 };
 
+#if (CONFIG_S8515_PR_VERSION == 2)
+//125 ~ -40
+//this is for tinno board with 100k pullup
+uint32_t max77660_adc_temperature_lookup_table[] = {
+                22 ,23 ,23 ,24 ,25 ,25 ,26 ,26 ,
+                27 ,27 ,28 ,29 ,29 ,30 ,31 ,31 ,
+                32 ,33 ,34 ,35 ,35 ,36 ,37 ,38 ,
+                39 ,40 ,41 ,42 ,43 ,44 ,45 ,46 ,
+                48 ,49 ,50 ,51 ,53 ,54 ,55 ,57 ,
+                58 ,60 ,62 ,63 ,65 ,67 ,69 ,71 ,
+                73 ,75 ,77 ,79 ,81 ,83 ,86 ,88 ,
+                91 ,94 ,96 ,99 ,102 ,105 ,108 ,112 ,
+                115 ,118 ,122 ,126 ,130 ,134 ,138 ,142 ,
+                147 ,151 ,156 ,161 ,166 ,172 ,177 ,183 ,
+                189 ,195 ,202 ,209 ,216 ,223 ,230 ,238 ,
+                246 ,255 ,264 ,273 ,282 ,292 ,302 ,313 ,
+                324 ,335 ,347 ,360 ,372 ,386 ,400 ,414 ,
+                429 ,445 ,461 ,477 ,495 ,513 ,532 ,551 ,
+                572 ,593 ,615 ,637 ,661 ,685 ,710 ,737 ,
+                764 ,792 ,821 ,851 ,882 ,914 ,948 ,982 ,
+                1017 ,1054 ,1092 ,1131 ,1171 ,1212 ,1254 ,1298 ,
+                1342 ,1388 ,1435 ,1483 ,1532 ,1582 ,1633 ,1684 ,
+                1737 ,1791 ,1845 ,1901 ,1956 ,2013 ,2070 ,2127 ,
+                2185 ,2243 ,2301 ,2359 ,2417 ,2475 ,2533 ,2591 ,
+                2648 ,2704 ,2760 ,2815 ,2870 ,2923
+};
+#else
+
 //125 ~ -40
 uint32_t max77660_adc_temperature_lookup_table[] = {
 	449, 460, 471, 483, 495, 507, 520, 533,
@@ -540,6 +575,8 @@ uint32_t max77660_adc_temperature_lookup_table[] = {
 	131744, 139351, 147461, 156113, 165347, 175207, 185740,
 	197000, 209041, 221924,
 };
+#endif
+
 
 /*
 * Values calculated using formula to calculate Resistance given Vthm values

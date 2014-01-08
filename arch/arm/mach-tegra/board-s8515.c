@@ -1148,6 +1148,8 @@ static void ceres_tegra_bb_init(void)
 	printk("Ivan PMIC reboot reason = %x \n", reboot_reason);
 	print_reason_string(reboot_reason);
 	
+	printk("Ivan S8515 PR Version= %x \n", CONFIG_S8515_PR_VERSION);
+	
 	if (modem_id == TEGRA_BB_INTEGRATED_DISABLED)
 		return;
 	pr_info("%s: registering tegra bb\n", __func__);

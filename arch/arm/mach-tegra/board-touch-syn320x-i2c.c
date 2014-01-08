@@ -88,7 +88,7 @@ static struct i2c_board_info __initdata ceres_i2c_bus2_syn320x_info[] = {
 int __init touch_init_syn320x(void)
 {
 
-//	spi_register_board_info(board_info, board_info_size);
+//	spi_register_board_info(board_info, board_info_size);z
 	i2c_register_board_info(0, ceres_i2c_bus2_syn320x_info,
 		ARRAY_SIZE(ceres_i2c_bus2_syn320x_info));	
 	return 0;

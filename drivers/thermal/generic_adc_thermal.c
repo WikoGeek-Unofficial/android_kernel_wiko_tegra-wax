@@ -74,7 +74,9 @@ static int gadc_thermal_thermistor_adc_to_temp(
 
 //Ivan added for testing
 //	printk("Ivan BAtt Temperature adc_raw = %d \n",adc_raw);
+#if (CONFIG_S8515_PR_VERSION == 1)
 	adc_raw = adc2TRes(adc_raw);
+#endif
 //	printk("Ivan BAtt Temperature TRes = %d \n",adc_raw);
 	
 	for (i = 0; i < table_size - 1; ++i) {

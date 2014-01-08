@@ -995,7 +995,9 @@ static struct ov5648_platform_data ceres_ov5648_pdata = {
 
 
 static struct nvc_gpio_pdata imx179_gpio_pdata[] = {
+#if (CONFIG_S8515_PR_VERSION == 1)
 	{IMX179_GPIO_RESET,     CAM_RSTN_TINNO,         true, false},
+#endif
 	{IMX179_GPIO_PWDN,      CAM_PWDN_TINNO,         true, false},
 	{IMX179_GPIO_GP1,       CAM_CHOS_TINNO,         true, false }
 }; 
@@ -1011,7 +1013,9 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
 	tegra_pinmux_config_table(&mclk_enable, 1);
 
 	gpio_set_value(CAM_PWDN_TINNO, 0);
+#if (CONFIG_S8515_PR_VERSION == 1)
 	gpio_set_value(CAM_RSTN_TINNO, 0);
+#endif
 	gpio_set_value(CAM_CHOS_TINNO, 0);
 	usleep_range(10, 20);
 
@@ -1025,7 +1029,9 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
 
 	usleep_range(1, 2);
 	gpio_set_value(CAM_PWDN_TINNO, 1);
+#if (CONFIG_S8515_PR_VERSION == 1)
 	gpio_set_value(CAM_RSTN_TINNO, 1);
+#endif
 	usleep_range(300, 350);
 
 	err = regulator_enable(vreg[IMX179_VREG_DVDD].vreg);
@@ -1559,7 +1565,7 @@ static struct i2c_board_info __initdata ak8963_mag_i2c1_board_info[] = {
 		 * BMP180 is behind the MPU.  Also, the BMP180 driver uses a
 		 * hard-coded address of 0x77 since it can't be changed anyway.
 		 */
-		I2C_BOARD_INFO("ak8963", 0x0C),
+		I2C_BOARD_INFO("ak8963", 0x0E),
 		.platform_data = &ak8963_compass_data_e1680,
 	},
 };
@@ -1577,7 +1583,7 @@ static void mpuirq_init(void)
 		ARRAY_SIZE(bma222e_acce_i2c1_board_info));	
 //Ivan FIXME
 //Remove compass as I2C conflict...
-#if 0	
+#if (CONFIG_S8515_PR_VERSION == 2)
 	i2c_register_board_info(gyro_bus_num, ak8963_mag_i2c1_board_info,
 		ARRAY_SIZE(ak8963_mag_i2c1_board_info));		
 #endif	

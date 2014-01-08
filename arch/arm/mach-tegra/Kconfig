@@ -733,6 +733,13 @@ config USB_HOTPLUG
 	bool "Enabling the USB hotplug"
 	default n
 
+config S8515_PR_VERSION
+	int "S8515 PR Version"
+	range 0 5 if ARCH_TEGRA_14x_SOC
+	default "1"
+	help
+	  Define S8515 PR Version
+	  
 config TEGRA_GADGET_BOOST_CPU_FREQ
 	int "Boost cpu frequency for tegra usb gadget"
 	range 0 1300 if ARCH_TEGRA_3x_SOC
@@ -756,7 +763,7 @@ config TEGRA_EHCI_BOOST_CPU_FREQ
           This value is the amount of the cpu frequency (in Mhz)
           to be boosted. If it is zero boosting frequency will not
           be enabled. This value will be used only by usb ehci driver.
-
+	  
 config TEGRA_DYNAMIC_PWRDET
 	bool "Enable dynamic activation of IO level auto-detection"
 	depends on TEGRA_SILICON_PLATFORM
@@ -1010,7 +1017,7 @@ config TEGRA_USE_DFLL_RANGE
 	  "1" - DFLL is used as a source for all CPU rates
 	  "2" - DFLL is used only for high rates above crossover with
 		PLL dvfs curve
-
+	  
 config TEGRA_TIMER_HZ
 	int "Kernel HZ (jiffies per second)"
 	default "100" if TEGRA_FPGA_PLATFORM

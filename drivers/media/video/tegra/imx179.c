@@ -32,7 +32,9 @@ static u16 imx179_ids[] = {
 };
 
 static struct nvc_gpio_init imx179_gpios[] = {
+#if (CONFIG_S8515_PR_VERSION == 1)
 	{IMX179_GPIO_RESET, GPIOF_OUT_INIT_LOW, "reset", false, true},
+#endif
 	{IMX179_GPIO_PWDN, GPIOF_OUT_INIT_LOW, "pwdn", false, true},
 	{IMX179_GPIO_GP1, 0, "gp1", false, false},
 };

@@ -91,13 +91,17 @@ int __init touch_init_synaptics_i2c(void)
 {
 	int ret;
 	if (ARRAY_SIZE(bus_i2c_devices)) {
-		#ifdef TINNO_TP_2_CAM
+#if (CONFIG_S8515_PR_VERSION == 2)
+	ret = i2c_register_board_info(1, bus_i2c_devices,ARRAY_SIZE(bus_i2c_devices));	
+#else
+	  #ifdef TINNO_TP_2_CAM
 			pr_info("Magnum >>>>I2C device setup, i2c adapter == 2");
 			ret = i2c_register_board_info(2, bus_i2c_devices,ARRAY_SIZE(bus_i2c_devices));
 		#else
 			pr_info("Magnum >>>>I2C device setup, i2c adapter == 0");
 			ret = i2c_register_board_info(0, bus_i2c_devices,ARRAY_SIZE(bus_i2c_devices));
 		#endif
+#endif
 	}
 	return ret;
 }
