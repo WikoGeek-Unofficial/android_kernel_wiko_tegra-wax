@@ -48,20 +48,38 @@ struct max77660_ledblnk_map {
 ****  blink led through set timer to turn on && off.
 ****  so a blink need 3 values, enabl + onms+ offms, all of them should be sensitve.
 ****  
+*****   Note:  2014-1-8
+******    CONFIG_S8515_PR_VERSION = 1 --- PR1 pcb , led mapping below:
+		Red -- 	 MAX77660_REG_LED2BRT
+		Green --   MAX77660_REG_LED1BRT
+		Button key -- MAX77660_REG_LED0BRT + MAX77660_REG_LED3BRT
+******************************************************************************
+	 CONFIG_S8515_PR_VERSION = 2 --- PR2 pcb , led mapping below:
+		Red -- 	 MAX77660_REG_LED0BRT
+		Green --   MAX77660_REG_LED3BRT
+		Button key -- MAX77660_REG_LED1BRT + MAX77660_REG_LED2BRT
 *************/
 
+#if (CONFIG_S8515_PR_VERSION == 2)
+/*  led enable bit	 */
+#define RED_ENABLE 			1
+#define BUTTON0_ENABLE		2
+#define BUTTON1_ENABLE 		4
+#define GREEN_ENABLE  		8
+#else
 /*  led enable bit	 */
 #define BUTTON0_ENABLE 		1
 #define GREEN_ENABLE			2
 #define RED_ENABLE 			4
 #define BUTTON1_ENABLE   		8
 #define RG_ENABLE			GREEN_ENABLE + RED_ENABLE
+#endif
+
 /*  led  disable bit	*/
 #define RED_DISABLE			0xF - RED_ENABLE
 #define GREEN_DISABLE		0xF - GREEN_ENABLE
 #define BUTTON0_DISABLE		0xF - BUTTON0_ENABLE
 #define BUTTON1_DISABLE		0xF - BUTTON1_ENABLE
-#define RG_DISABLE                      0xF - RG_ENABLE
 
 #define MAX77660_DOUBLE_BUTTON_LIGHT
 
@@ -576,25 +594,47 @@ static enum led_brightness max77660_led_get_brightness(enum max77660_LED led_typ
 	int max77660_led_reg;
 	unsigned long max77660_leds_brt = 0;
 	dev_dbg(g_max77660_dev,"Magnum max77660_led_get_brightness \n");
-	switch(led_type){
-		case RED_LED : 
-			max77660_led_reg = MAX77660_REG_LED2BRT;
-			break;
-		  
-		case GREEN_LED:
-		 	  max77660_led_reg = MAX77660_REG_LED1BRT;
-			break;
+	#if (CONFIG_S8515_PR_VERSION == 2)
+		switch(led_type){
+			case RED_LED : 
+				max77660_led_reg = MAX77660_REG_LED0BRT;
+				break;
 			  
-	        case BUTTON0_LED:
-		 	 max77660_led_reg = MAX77660_REG_LED0BRT;
-			break;
+			case GREEN_LED:
+			 	  max77660_led_reg = MAX77660_REG_LED3BRT;
+				break;
+				  
+		        case BUTTON0_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED1BRT;
+				break;
+				  
+			case BUTTON1_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED2BRT;
+				break;	
+			default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
+					return 0;
+		}
+	#else
+		switch(led_type){
+			case RED_LED : 
+				max77660_led_reg = MAX77660_REG_LED2BRT;
+				break;
 			  
-		case BUTTON1_LED:
-		 	 max77660_led_reg = MAX77660_REG_LED3BRT;
-			break;	
-		default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
-				return 0;
-	}
+			case GREEN_LED:
+			 	  max77660_led_reg = MAX77660_REG_LED1BRT;
+				break;
+				  
+		        case BUTTON0_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED0BRT;
+				break;
+				  
+			case BUTTON1_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED3BRT;
+				break;	
+			default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
+					return 0;
+		}
+	#endif
 	
 	ret = max77660_reg_read(g_max77660_dev->parent, MAX77660_PWR_SLAVE,
 			max77660_led_reg, &max77660_leds_brt);
@@ -616,26 +656,47 @@ static int max77660_led_set_brightness(enum max77660_LED led_type ,int leds_brt)
 		dev_err(g_max77660_dev, " %s() param brightness error\n",__func__);
 		return 1;
 	}
-	
-	switch(led_type){
-		case RED_LED : 
-			max77660_led_reg = MAX77660_REG_LED2BRT;
-			break;
-		  
-		case GREEN_LED:
-		 	  max77660_led_reg = MAX77660_REG_LED1BRT;
-			break;
+	#if (CONFIG_S8515_PR_VERSION == 2)
+		switch(led_type){
+			case RED_LED : 
+				max77660_led_reg = MAX77660_REG_LED0BRT;
+				break;
 			  
-	        case BUTTON0_LED:
-		 	 max77660_led_reg = MAX77660_REG_LED0BRT;
-			break;
+			case GREEN_LED:
+			 	  max77660_led_reg = MAX77660_REG_LED3BRT;
+				break;
+				  
+		        case BUTTON0_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED1BRT;
+				break;
+				  
+			case BUTTON1_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED2BRT;
+				break;	
+			default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
+					return 0;
+		}
+	#else
+		switch(led_type){
+			case RED_LED : 
+				max77660_led_reg = MAX77660_REG_LED2BRT;
+				break;
 			  
-		case BUTTON1_LED:
-		 	 max77660_led_reg = MAX77660_REG_LED3BRT;
-			break;	
-		default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
-				return 1;
-	}
+			case GREEN_LED:
+			 	  max77660_led_reg = MAX77660_REG_LED1BRT;
+				break;
+				  
+		        case BUTTON0_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED0BRT;
+				break;
+				  
+			case BUTTON1_LED:
+			 	 max77660_led_reg = MAX77660_REG_LED3BRT;
+				break;	
+			default:  dev_err(g_max77660_dev, " %s() no match LED \n",__func__); 
+					return 1;
+		}
+	#endif
 //	dev_dbg(g_max77660_dev,"Magnum  %s()  max77660_led_reg == 0x%02x, leds_brt == 0x%02x\n",
 //		__func__,max77660_led_reg,leds_brt);
 	
