@@ -156,12 +156,18 @@ static int tegra_fm_mode_put(struct snd_kcontrol *kcontrol,
 
 		for (i = 0; i < machine->pcard->num_links; i++)
 			machine->pcard->dai_link[i].ignore_suspend = 1;
-		tegra30_make_voice_call_connections(
+// wangjian add for fm audio bug
+                tegra30_make_fm_connections(
+//		tegra30_make_voice_call_connections(
+// wangjian add for fm audio bug end
 			&machine->codec_info[codec_index], &FM_CONFIG, 1);
 	} else {
 		for (i = 0; i < machine->pcard->num_links; i++)
 			machine->pcard->dai_link[i].ignore_suspend = 0;
-		tegra30_break_voice_call_connections(
+// wangjian add for fm audio bug
+                tegra30_break_fm_connections(
+//		tegra30_break_voice_call_connections(
+// wangjian add for fm audio bug end
 			&machine->codec_info[codec_index], &FM_CONFIG, 1);
 
 		tegra_asoc_utils_tristate_dap(

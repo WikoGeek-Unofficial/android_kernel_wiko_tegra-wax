@@ -2949,11 +2949,16 @@ int sdhci_add_host(struct sdhci_host *host)
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
 	host->version = (host->version & SDHCI_SPEC_VER_MASK)
 				>> SDHCI_SPEC_VER_SHIFT;
-	if (host->version > SDHCI_SPEC_300) {
-		pr_err("%s: Unknown controller version (%d). "
-			"You may experience problems.\n", mmc_hostname(mmc),
-			host->version);
-	}
+// wangjian modify for wifi open fail 
+        if(mmc->index==2){
+                host->version = host->version-1;
+        }
+// wangjian modify for wifi open fail end
+    	if (host->version > SDHCI_SPEC_300) {
+    		pr_err("%s: Unknown controller version (%d). "
+    			"You may experience problems.\n", mmc_hostname(mmc),
+    			host->version);
+    	}
 
 	caps[0] = (host->quirks & SDHCI_QUIRK_MISSING_CAPS) ? host->caps :
 		sdhci_readl(host, SDHCI_CAPABILITIES);
@@ -3136,7 +3141,7 @@ int sdhci_add_host(struct sdhci_host *host)
 		mmc->caps |= MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50;
 	else if (caps[1] & SDHCI_SUPPORT_SDR50)
 		mmc->caps |= MMC_CAP_UHS_SDR50;
-
+    
 	if (caps[1] & SDHCI_SUPPORT_DDR50)
 		mmc->caps |= MMC_CAP_UHS_DDR50;
 

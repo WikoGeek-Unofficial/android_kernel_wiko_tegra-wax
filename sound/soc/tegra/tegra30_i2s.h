@@ -304,6 +304,16 @@ int tegra30_make_voice_call_connections(struct codec_config *codec_info,
 int tegra30_break_voice_call_connections(struct codec_config *codec_info,
 			struct codec_config *bb_info,
 			int uses_voice_codec);
+// wangjian add for fm audio bug
+int tegra30_make_fm_connections(struct codec_config *codec_info,
+			struct codec_config *bb_info,
+			int uses_voice_codec);
+
+int tegra30_break_fm_connections(struct codec_config *codec_info,
+			struct codec_config *bb_info,
+			int uses_voice_codec);
+
+// wangjian add for fm audio bug end
 
 #if defined(CONFIG_ARCH_TEGRA_14x_SOC)
 int t14x_make_bt_voice_call_connections(struct codec_config *codec_info,
