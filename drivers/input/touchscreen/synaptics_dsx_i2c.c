@@ -46,6 +46,7 @@
 static int boot_mode;
 static const int TPD_KEYSFACTORY[TPD_KEY_COUNT] =  {KEY_F1, KEY_F2, KEY_F3};
 static struct synaptics_rmi4_data * g_rmi4_data;
+static struct synaptics_rmi4_data * t_rmi4_data;
 extern void synaptics_get_fw_version(void);
 
 #ifdef TPD_HAVE_BUTTON 
@@ -2697,6 +2698,10 @@ err_reset:
 int synaptics_tinno_suspend(void)
 {
 	printk("Magnum  %s()\n",__func__);
+	if(g_rmi4_data == NULL){
+		printk("Magnum NO synaptics device, ERROR \n");
+		return -ENODEV;
+	}
 	dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			g_rmi4_data->board;
@@ -2726,11 +2731,10 @@ int synaptics_tinno_resume(void)
 	char dev_status;
 	int retval;
 	printk("Magnum  %s()\n",__func__);
-/*	printk("Magnum tinno_ctp_resume == %d \n",tinno_ctp_resume);
-	if(tinno_ctp_resume){
-		dev_err(&g_rmi4_data->i2c_client->dev,"Magnum %s no resume,coz no tinno suspend\n",__func__);
-		return 1;	
-	}*/
+	if(g_rmi4_data == NULL){
+		printk("Magnum NO synaptics device, ERROR \n");
+		return -ENODEV;
+	}
 	dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			g_rmi4_data->board;
