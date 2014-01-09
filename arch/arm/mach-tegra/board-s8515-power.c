@@ -523,7 +523,7 @@ struct max77660_vbus_platform_data max77660_vbus_pdata = {
 
 #if (CONFIG_S8515_PR_VERSION == 2)
 //125 ~ -40
-//this is for tinno board with 100k pullup
+//this is for tinno board with 10k pullup
 uint32_t max77660_adc_temperature_lookup_table[] = {
 	214, 219, 223, 228, 233, 238, 243, 248,
 	253, 259, 264, 270, 276, 282, 288, 294,
