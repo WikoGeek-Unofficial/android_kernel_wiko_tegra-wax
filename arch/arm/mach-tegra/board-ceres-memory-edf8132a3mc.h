@@ -4825,7 +4825,8 @@ static struct tegra14_emc_table ceres_e1680_elpida_edf8132a3mc_table_ll[] = {
 	},
 };
 
-static struct tegra14_emc_table ceres_e1680_elpida_edf8132a3mc_table_ll_der[] = {
+static struct tegra14_emc_table
+	ceres_e1680_elpida_edf8132a3mc_table_ll_der[] = {
 	{
 		0x52,       /* Rev 5.3.8.d */
 		"D01",      /* DVFS table version */
@@ -6433,6 +6434,7 @@ static struct tegra14_emc_pdata ceres_emc_edf8132a3mc_pdata = {
 	.tables = ceres_e1680_elpida_edf8132a3mc_table,
 	.tables_derated = ceres_e1680_elpida_edf8132a3mc_table_der,
 	.tables_low_latency = ceres_e1680_elpida_edf8132a3mc_table_ll,
-	.tables_low_latency_derated = ceres_e1680_elpida_edf8132a3mc_table_ll_der,
+	.tables_low_latency_derated =
+		ceres_e1680_elpida_edf8132a3mc_table_ll_der,
 	.num_tables = ARRAY_SIZE(ceres_e1680_elpida_edf8132a3mc_table),
 };
