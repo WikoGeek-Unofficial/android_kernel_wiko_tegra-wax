@@ -310,8 +310,6 @@ static int tegra_max98090_set_dam_cif(int dam_ifc,
 		tegra30_dam_set_biquad_fixed_coef(dam_ifc);
 		tegra30_dam_enable_coeff_ram(dam_ifc);
 		tegra30_dam_set_filter_stages(dam_ifc, ch0_rate, out_rate);
-	} else {
-		tegra30_dam_enable_stereo_mixing(dam_ifc);
 	}
 
 	return 0;
