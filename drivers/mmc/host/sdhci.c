@@ -2950,9 +2950,9 @@ int sdhci_add_host(struct sdhci_host *host)
 	host->version = (host->version & SDHCI_SPEC_VER_MASK)
 				>> SDHCI_SPEC_VER_SHIFT;
 // wangjian modify for wifi open fail 
-        if(mmc->index==2){
-                host->version = host->version-1;
-        }
+//        if(mmc->index==2){
+//                host->version = host->version-1;
+//        }
 // wangjian modify for wifi open fail end
     	if (host->version > SDHCI_SPEC_300) {
     		pr_err("%s: Unknown controller version (%d). "

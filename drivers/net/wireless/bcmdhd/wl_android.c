@@ -1295,7 +1295,10 @@ void *wifi_get_country_code(char *ccode)
 }
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 39)) */
 
-static int wifi_set_carddetect(int on)
+ //wangjian modify for wifi open bug
+//static int wifi_set_carddetect(int on)
+int wifi_set_carddetect(int on)
+ //wangjian modify for wifi open bug end
 {
 	DHD_ERROR(("%s = %d\n", __FUNCTION__, on));
 	if (wifi_control_data && wifi_control_data->set_carddetect) {

@@ -103,6 +103,11 @@ PBCMSDH_SDMMC_INSTANCE gInstance;
 
 extern int bcmsdh_probe(struct device *dev);
 extern int bcmsdh_remove(struct device *dev);
+ //wangjian modify for wifi open bug
+#if defined(CONFIG_WIFI_CONTROL_FUNC)
+extern int wifi_set_carddetect(int on);
+#endif
+ //wangjian modify for wifi open bug end
 extern volatile bool dhd_mmc_suspend;
 
 static int bcmsdh_sdmmc_probe(struct sdio_func *func,
@@ -110,7 +115,15 @@ static int bcmsdh_sdmmc_probe(struct sdio_func *func,
 {
 	int ret = 0;
 	static struct sdio_func sdio_func_0;
+ //wangjian modify for wifi open bug 
+#if defined(CONFIG_WIFI_CONTROL_FUNC)
+	/* sdio card detection is completed so stop card detection here */
+	wifi_set_carddetect(0);
+#endif
 
+	if (!gInstance)
+		return -EINVAL;
+//wangjian modify for wifi open bug end
 	if (func) {
 		sd_trace(("bcmsdh_sdmmc: %s Enter\n", __FUNCTION__));
 		sd_trace(("sdio_bcmsdh: func->class=%x\n", func->class));

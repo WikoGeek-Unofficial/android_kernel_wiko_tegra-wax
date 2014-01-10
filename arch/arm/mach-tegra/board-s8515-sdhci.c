@@ -171,10 +171,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.tap_delay = 0x3,
 	.trim_delay = 0xA,
 	.ddr_clk_limit = 41000000,
-// wangjian modify for wifi open fail
-	.max_clk_limit = 82000000,//136000000,
-	.uhs_mask = MMC_UHS_MASK_SDR50,
-// wangjian modify for wifi open fail end
+	.max_clk_limit = 136000000,
 	.edp_support = false,
 	.en_clock_gating = true,
 };
@@ -327,10 +324,8 @@ static int __init ceres_wifi_init(void)
 static int __init ceres_wifi_prepower(void)
 {
 	if (!of_machine_is_compatible("nvidia,ceres"))
-		return 0;
-// wangjian modify for wifi open fail 
-	//ceres_wifi_power(1);
-// wangjian modify for wifi open fail end
+		return 0; 
+	ceres_wifi_power(1);
 	return 0;
 }
 
