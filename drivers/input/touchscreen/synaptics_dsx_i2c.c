@@ -46,7 +46,6 @@
 static int boot_mode;
 static const int TPD_KEYSFACTORY[TPD_KEY_COUNT] =  {KEY_F1, KEY_F2, KEY_F3};
 static struct synaptics_rmi4_data * g_rmi4_data;
-static struct synaptics_rmi4_data * t_rmi4_data;
 extern void synaptics_get_fw_version(void);
 
 #ifdef TPD_HAVE_BUTTON 
@@ -553,7 +552,7 @@ static void synaptics_rmi4_swap_axis(struct synaptics_rmi4_data *rmi4_data)
 
 	if (!list_empty(&rmi->support_fn_list)) {
 		list_for_each_entry(fhandler, &rmi->support_fn_list, link) {
-			printk("function number 0x%x\n", fhandler->fn_number);
+			dev_dbg(&rmi4_data->i2c_client->dev,"function number 0x%x\n", fhandler->fn_number);
 			if (fhandler->fn_number == SYNAPTICS_RMI4_F55)
 				sensor_tuning = fhandler;
 			if (sensor_tuning == NULL && 
@@ -900,16 +899,6 @@ static int synaptics_rmi4_f11_abs_report(struct synaptics_rmi4_data *rmi4_data,
 					__func__, finger,
 					finger_status,
 					x, y, wx, wy);
-		/*	printk(
-					"Magnum %s: Finger %d:\n"
-					"status = 0x%02x\n"
-					"x = %d\n"
-					"y = %d\n"
-					"wx = %d\n"
-					"wy = %d\n",
-					__func__, finger,
-					finger_status,
-					x, y, wx, wy);  */
 
 			input_report_key(rmi4_data->input_dev,
 					BTN_TOUCH, 1);
@@ -1117,8 +1106,7 @@ static void synaptics_rmi4_report_touch(struct synaptics_rmi4_data *rmi4_data,
 	dev_dbg(&rmi4_data->i2c_client->dev,
 			"%s: Function %02x reporting\n",
 			__func__, fhandler->fn_number);
-	//printk("Magnum %s: Function %02x reporting\n",
-	//		__func__, fhandler->fn_number);
+
 
 	switch (fhandler->fn_number) {
 	case SYNAPTICS_RMI4_F11:
@@ -1237,14 +1225,14 @@ static int synaptics_rmi4_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 {
 	int retval = 0;
 	unsigned char intr_status;
-	printk("Magnum  %s()\n",__func__);
+	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum  %s()\n",__func__);
 	if (enable) {
 		/* Clear interrupts first */
 		retval = synaptics_rmi4_i2c_read(rmi4_data,
 				rmi4_data->f01_data_base_addr + 1,
 				&intr_status,
 				rmi4_data->num_of_intr_regs);
-		printk("Magnum register 0x14 == %d \n",intr_status);
+		dev_dbg(&rmi4_data->i2c_client->dev,"Magnum register 0x14 == %d \n",intr_status);
 		if (retval < 0)
 			return retval;
 
@@ -2288,7 +2276,9 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 	}
 
 	//edit by Magnum 2013-11-05
+	#ifdef TPD_HAVE_BUTTON     
 	create_virtual_key();
+	#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 	rmi4_data->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN + 1;
@@ -2487,7 +2477,7 @@ static void create_virtual_key()
 	if(properties_kobj)
 	    ret = sysfs_create_group(properties_kobj,&virtual_key_properties_attr_group);
 	if(!properties_kobj || ret)
-	printk("failed to create board_properties\n");
+	dev_err(&g_rmi4_data->i2c_client->dev,"failed to create board_properties\n");
 }
 #endif
 
@@ -2516,10 +2506,9 @@ static void synaptics_rmi4_sensor_sleep(struct synaptics_rmi4_data *rmi4_data)
 		rmi4_data->sensor_sleep = false;
 		return;
 	}
-	printk("Magnum device_status = 0x%x\n",device_ctrl);
 	device_ctrl = (device_ctrl & ~MASK_3BIT);
 	device_ctrl = (device_ctrl | NO_SLEEP_OFF | SENSOR_SLEEP);
-	printk("Magnum device_status = 0x%x\n",device_ctrl);
+	//device_ctrl = (device_ctrl | NO_SLEEP_ON | SENSOR_SLEEP);
 	retval = synaptics_rmi4_i2c_write(rmi4_data,
 			rmi4_data->f01_ctrl_base_addr,
 			&device_ctrl,
@@ -2560,10 +2549,9 @@ static void synaptics_rmi4_sensor_wake(struct synaptics_rmi4_data *rmi4_data)
 		rmi4_data->sensor_sleep = true;
 		return;
 	}
-	printk("Magnum device_status = 0x%x\n",device_ctrl);
 	device_ctrl = (device_ctrl & ~MASK_3BIT);
 	device_ctrl = (device_ctrl | NO_SLEEP_OFF | NORMAL_OPERATION);
-	printk("Magnum device_status = 0x%x\n",device_ctrl);
+//	device_ctrl = (device_ctrl | NO_SLEEP_ON | NORMAL_OPERATION);
 	retval = synaptics_rmi4_i2c_write(rmi4_data,
 			rmi4_data->f01_ctrl_base_addr,
 			&device_ctrl,
@@ -2697,7 +2685,7 @@ err_reset:
 //static bool tinno_ctp_resume = true;
 int synaptics_tinno_suspend(void)
 {
-	printk("Magnum  %s()\n",__func__);
+	dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum  %s()\n",__func__);
 	if(g_rmi4_data == NULL){
 		printk("Magnum NO synaptics device, ERROR \n");
 		return -ENODEV;
@@ -2707,14 +2695,9 @@ int synaptics_tinno_suspend(void)
 			g_rmi4_data->board;
 
 	if (!g_rmi4_data->sensor_sleep) {
-		printk("Magnum  sensor_sleep\n");
-	//	tinno_ctp_resume = false;
-	//	printk("Magnum tinno_ctp_resume == %d \n",tinno_ctp_resume);
 		wake_up(&g_rmi4_data->wait);
 		synaptics_rmi4_sensor_sleep(g_rmi4_data);
-		synaptics_rmi4_irq_enable(g_rmi4_data, false);
-		//synaptics_pulldown_rst();
-		
+		synaptics_rmi4_irq_enable(g_rmi4_data, false);		
 	}
 
 	/*if (platform_data->regulator_en){
@@ -2730,7 +2713,7 @@ int synaptics_tinno_resume(void)
 {
 	char dev_status;
 	int retval;
-	printk("Magnum  %s()\n",__func__);
+	dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum  %s()\n",__func__);
 	if(g_rmi4_data == NULL){
 		printk("Magnum NO synaptics device, ERROR \n");
 		return -ENODEV;
@@ -2745,10 +2728,7 @@ int synaptics_tinno_resume(void)
 		regulator_enable(g_rmi4_data->regulator_vio);
 	}*/
 
-	//synaptics_pullup_rst();
-	//synaptics_get_fw_version();
 	synaptics_rmi4_sensor_wake(g_rmi4_data);
-	//tinno_ctp_resume = true;
 	synaptics_rmi4_irq_enable(g_rmi4_data, true);
 	
 	return 0;
@@ -2767,15 +2747,13 @@ int synaptics_tinno_resume(void)
 static int synaptics_suspend(struct device *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
-	printk("Magnum  ctp suspend\n");
+	dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum  ctp suspend\n");
 	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			rmi4_data->board;
 
 	if (!rmi4_data->sensor_sleep) {
-		printk("Magnum  sensor_sleep\n");
-		//tinno_ctp_resume = false;
-		//printk("Magnum tinno_ctp_resume == %d \n",tinno_ctp_resume);
+		dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum  sensor_sleep\n");
 		wake_up(&rmi4_data->wait);
 		synaptics_rmi4_irq_enable(rmi4_data, false);
 		synaptics_rmi4_sensor_sleep(rmi4_data);
@@ -2803,11 +2781,6 @@ static int synaptics_suspend(struct device *dev)
 static int synaptics_resume(struct device *dev)
 {
 	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(dev);
-	printk("Magnum  ctp resume\n");
-/*	if(tinno_ctp_resume){
-		dev_err(&g_rmi4_data->i2c_client->dev,"Magnum %s no resume,coz no tinno suspend\n",__func__);
-		return 1;	
-	}*/
 	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			rmi4_data->board;
@@ -2819,8 +2792,6 @@ static int synaptics_resume(struct device *dev)
 	} */
 
 	synaptics_rmi4_sensor_wake(rmi4_data);
-//	tinno_ctp_resume = true;
-//	printk("Magnum tinno_ctp_resume == %d \n",tinno_ctp_resume);
 	synaptics_rmi4_irq_enable(rmi4_data, true);
 
 	return 0;
@@ -2828,7 +2799,7 @@ static int synaptics_resume(struct device *dev)
 
  static int synaptics_idle(struct device *dev)
 {
-		printk("Magnum %s()\n",__func__);
+	//	printk("Magnum %s()\n",__func__);
 		return 0;
  }
 
