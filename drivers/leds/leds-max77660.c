@@ -45,7 +45,8 @@ struct max77660_ledblnk_map {
 
 //edit by Magnum 
 /*** As all current sources share the same blink on-time and period settings with a common register.
-****  blink led through set timer to turn on && off.
+****  blink led through setting timer to turn on && off when resume,
+****  blink led through writing MAX77660_REG_LEDBLNK register when suspend.
 ****  so a blink need 3 values, enabl + onms+ offms, all of them should be sensitve.
 ****  
 *****   Note:  2014-1-8
@@ -106,6 +107,9 @@ enum max77660_LED{
 
 static unsigned long g_rg_leds_brt= 0;
 static unsigned long g_btn_leds_brt= 0;
+static unsigned long g_blink_brightness; //= 0;
+static unsigned long g_rg_blink_onms ;//= 500;
+static unsigned long g_rg_blink_offms ;//= 2000;
 static struct device *g_max77660_dev;
 static int currentLedPower = 0;
 
@@ -386,7 +390,7 @@ static ssize_t max77660_leds_onms_store(struct device *dev,
 	unsigned long leds_onms = simple_strtoul(buf, &after, 10);
 	unsigned long val = 0;
 	size_t count = after - buf;
-	dev_dbg(dev,"Ivan max77660_leds_onms_store leds_onms = %d\n",leds_onms);
+	dev_dbg(dev,"Ivan AAAmax77660_leds_onms_store leds_onms = %d\n",leds_onms);
 
 	if (isspace(*after))
 		count++;
@@ -483,12 +487,13 @@ static ssize_t max77660_leds_offms_store(struct device *dev,
 	unsigned long leds_blnkd = 0;
 	unsigned long val = 0;
 	size_t count = after - buf;
-	dev_dbg(dev,"Ivan max77660_leds_offms_store leds_offms = %d\n",leds_offms);
+	dev_dbg(dev,"Ivan BBBBmax77660_leds_offms_store leds_offms = %d\n",leds_offms);
 
 	if (isspace(*after))
 		count++;
 
 	if (count == size) {
+		
 		ret = count;
 
 		/* read max77660 ledblnk register */
@@ -737,6 +742,58 @@ static int max77660_led_set_enable(int led_power)
 	return ret;
 }
 
+int max77660_led_set_hardware_blink(unsigned long onms, unsigned long offms)
+{
+	int ret;int i;
+	unsigned long leds_onms = onms;
+	unsigned long leds_offms = offms; 
+	unsigned long leds_blnkp_ms = 0;
+	unsigned long leds_blnkp = 0;
+	unsigned long leds_blnkd = 0;
+	unsigned long val = 0;
+	printk("Magnum %s(), onms == %d, offms == %d \n",__func__,onms,offms);
+	dev_dbg(g_max77660_dev,"Magnum %s(), onms == %d, offms == %d \n",__func__,onms,offms);
+	/* look up the value need setting, matching with blinking duration time_ms. */
+	for (i = 0; i < ARRAY_SIZE(max77660_ledblnkd); i++) {
+		if (leds_onms <= max77660_ledblnkd[i].time_ms)
+			break;
+	}
+	if (i >= ARRAY_SIZE(max77660_ledblnkd)) {
+		dev_err(g_max77660_dev, "the time of blinking duration is too long, %d ms\n", leds_onms);
+		return -EINVAL;
+	}
+	printk("Magnum %s(), onms == %d \n",__func__,max77660_ledblnkd[i].time_ms);
+	
+	leds_blnkd |= max77660_ledblnkd[i].bits_val << 4;
+
+	//notice below:
+	//leds_blnkp_ms = leds_offms + max77660_ledblnkd[i].time_ms;
+	leds_blnkp_ms = leds_offms;
+	/* look up the value need setting, matching with blinking period time_ms. */
+	for (i = 0; i < ARRAY_SIZE(max77660_ledblnkp); i++) {
+		if (leds_blnkp_ms <= max77660_ledblnkp[i].time_ms)
+			break;
+	}
+	if (i >= ARRAY_SIZE(max77660_ledblnkp)) {
+		dev_err(g_max77660_dev, "the time of blinking period is too long, %d ms\n", leds_blnkp_ms);
+		return -EINVAL;
+	}
+	printk("Magnum %s(), offms == %d \n",__func__,max77660_ledblnkp[i].time_ms);
+	leds_blnkp = max77660_ledblnkd[i].bits_val;
+
+	val = leds_blnkp |leds_blnkd;
+
+	printk("Magnum %s(), blink register == 0x%x \n",__func__,val);
+	ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,
+			MAX77660_REG_LEDBLNK, val);
+	if (ret < 0) {
+		dev_err(g_max77660_dev, "LEDBLNK write failed: %d\n", ret);
+		return -1;
+	}
+    	printk("Magnum %s(), OKOKOKOK !!\n",__func__);
+	return 0;	
+}
+
 //turn led into one-shot mode 
 static int max77660_led_one_shot_mode()
 {
@@ -749,12 +806,10 @@ static int max77660_led_one_shot_mode()
 	}
 	return ret;
 }
- 
-static void set_rg_leds_work_func(struct work_struct *work)
-{
-	mutex_lock(&max77660_leds_mutex);
+
+static void set_rg_leds_brt(unsigned long leds_brt ){
 	unsigned int leds_en = 0;
-	unsigned long tmp_leds_brt= g_rg_leds_brt;
+	unsigned long tmp_leds_brt= leds_brt;
 	int tmp_led_type = RED_GREEN_LED;
 	int red_enable_bit = 0;
 	int green_enable_bit = 0;
@@ -811,8 +866,13 @@ static void set_rg_leds_work_func(struct work_struct *work)
 	}
 	
 	//dev_dbg(g_max77660_dev,"Magnum finish !\n");
-	mutex_unlock(&max77660_leds_mutex);
-	
+}
+
+static void set_rg_leds_work_func(struct work_struct *work)
+{
+	mutex_lock(&max77660_leds_mutex);
+	set_rg_leds_brt(g_rg_leds_brt);
+	mutex_unlock(&max77660_leds_mutex);	
 }
 
 static void set_button_leds_work_func(struct work_struct *work)
@@ -895,6 +955,77 @@ static struct led_classdev max77660_rg_led = {
 	 .flags = 0,
 };
 
+void  tinno_max77660_get_rg_blink_brightness(unsigned long blink_brt){
+	if(g_blink_brightness !=blink_brt){
+		g_blink_brightness= blink_brt;
+		printk("Magnum g_blink_brightness== %d\n",g_blink_brightness);
+	}
+}
+
+void  tinno_max77660_get_rg_blink_offms(unsigned long offms){
+	if(g_rg_blink_offms !=offms){
+		g_rg_blink_offms= offms;
+		printk("Magnum g_blink_brightness== %d\n",g_rg_blink_offms);
+	}
+}
+
+void  tinno_max77660_get_rg_blink_onms(unsigned long onms){
+	if(g_rg_blink_onms !=onms){
+		g_rg_blink_onms= onms;
+		printk("Magnum g_blink_brightness== %d\n",g_rg_blink_onms);
+	}
+}
+
+
+#ifdef CONFIG_PM
+/*	Magnum 2014-1-13
+***   when suspend, ap enter into LP0, the blink timer disabled,so leds don't blink, 
+***   so we should blink red or green led through writing register to pmic.
+***/
+int tinno_max77660_leds_suspend()
+{
+	printk("Magnum %s() \n",__func__);
+	set_rg_leds_brt(g_blink_brightness);
+	max77660_led_set_hardware_blink(g_rg_blink_onms, g_rg_blink_offms);
+	return 0;
+}
+
+int tinno_max77660_leds_resume()
+{
+	printk("Magnum %s() \n",__func__);
+	max77660_led_one_shot_mode();
+	return 0;
+}
+static int max77660_leds_suspend(struct platform_device *ndev, pm_message_t state)
+{
+	printk("Magnum %s() \n",__func__);
+	led_classdev_suspend(&max77660_rg_led);
+	max77660_rg_led.brightness = LED_OFF;
+	led_classdev_suspend(&max77660_button1_led);
+	max77660_button1_led.brightness = LED_OFF;
+	
+	if(g_blink_brightness > LED_OFF && g_rg_blink_onms > 0 && g_rg_blink_offms > 0)
+	{
+		set_rg_leds_brt(g_blink_brightness);
+		max77660_led_set_hardware_blink(g_rg_blink_onms, g_rg_blink_offms);
+	}
+	return 0;
+}
+
+static int max77660_leds_resume(struct platform_device *ndev)
+{
+	printk("Magnum %s() \n",__func__);
+	led_classdev_resume(&max77660_rg_led);
+	led_classdev_resume(&max77660_button1_led);
+	
+	set_rg_leds_brt(LED_OFF);
+	max77660_led_one_shot_mode();
+	return 0;
+}
+
+#endif /* CONFIG_PM */
+
+
 static int __devinit max77660_leds_probe(struct platform_device *pdev)
 {
 	struct max77660_leds *leds;
@@ -968,6 +1099,10 @@ static struct platform_driver max77660_leds_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = max77660_leds_probe,
+	#ifdef CONFIG_PM
+	.suspend = max77660_leds_suspend,
+	.resume = max77660_leds_resume,
+	#endif
 	.remove = __devexit_p(max77660_leds_remove),
 };
 

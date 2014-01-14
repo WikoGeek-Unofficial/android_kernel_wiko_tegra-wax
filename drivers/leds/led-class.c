@@ -21,6 +21,11 @@
 #include <linux/leds.h>
 #include "leds.h"
 
+/*Magnum 2014-1-14, transfer blink_brt,blink_offms, blink_onms to led driver code. */
+extern void  tinno_max77660_get_rg_blink_brightness(unsigned long blink_brt);
+extern void  tinno_max77660_get_rg_blink_offms(unsigned long offms);
+extern void  tinno_max77660_get_rg_blink_onms(unsigned long onms);
+
 static struct class *leds_class;
 
 static void led_update_brightness(struct led_classdev *led_cdev)
@@ -104,7 +109,15 @@ static void led_timer_function(unsigned long data)
 		brightness = LED_OFF;
 		delay = led_cdev->blink_delay_off;
 	}
-
+	//Magnum 2014-1-14  when led name == "red-green",do this below
+	if(strncmp(led_cdev->name,"red-green", 9) == 0){					
+		tinno_max77660_get_rg_blink_brightness(led_cdev->blink_brightness);
+		tinno_max77660_get_rg_blink_offms(led_cdev->blink_delay_off);
+		tinno_max77660_get_rg_blink_onms(led_cdev->blink_delay_on);
+	}
+	else
+		//printk("Magnun other type led\n");
+	
 	led_set_brightness(led_cdev, brightness);
 
 	mod_timer(&led_cdev->blink_timer, jiffies + msecs_to_jiffies(delay));

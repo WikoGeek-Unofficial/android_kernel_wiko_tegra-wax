@@ -19,6 +19,11 @@
 #include <linux/leds.h>
 #include "leds.h"
 
+/*Magnum 2014-1-14, transfer blink_brt,blink_offms, blink_onms to led driver code. */
+extern void  tinno_max77660_get_rg_blink_brightness(unsigned long blink_brt);
+extern void  tinno_max77660_get_rg_blink_offms(unsigned long offms);
+extern void  tinno_max77660_get_rg_blink_onms(unsigned long onms);
+
 static ssize_t led_delay_on_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -40,6 +45,7 @@ static ssize_t led_delay_on_store(struct device *dev,
 		count++;
 
 	if (count == size) {
+		printk("Magnum %s(), set delay on == %lu \n",__func__,state);
 		led_blink_set(led_cdev, &state, &led_cdev->blink_delay_off);
 		led_cdev->blink_delay_on = state;
 		ret = count;
@@ -69,6 +75,7 @@ static ssize_t led_delay_off_store(struct device *dev,
 		count++;
 
 	if (count == size) {
+		printk("Magnum %s(), set delay off == %lu \n",__func__,state);
 		led_blink_set(led_cdev, &led_cdev->blink_delay_on, &state);
 		led_cdev->blink_delay_off = state;
 		ret = count;
@@ -113,6 +120,9 @@ static void timer_trig_deactivate(struct led_classdev *led_cdev)
 
 	/* Stop blinking */
 	led_brightness_set(led_cdev, LED_OFF);
+	tinno_max77660_get_rg_blink_brightness(LED_OFF);
+	tinno_max77660_get_rg_blink_offms(0);
+	tinno_max77660_get_rg_blink_onms(0);
 }
 
 static struct led_trigger timer_led_trigger = {
