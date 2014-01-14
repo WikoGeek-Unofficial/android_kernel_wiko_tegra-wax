@@ -154,8 +154,7 @@ static void battery_charger_thermal_monitor_wq(struct work_struct *work)
 	temperature = temperature / 1000;
 	charger_enable_state = true;
 	charger_current_half = false;
-//Ivan	battery_thersold_voltage = 4250;
-	battery_thersold_voltage = 4200;	
+	battery_thersold_voltage = 4250;
 
 	if (temperature <= JETI_TEMP_COLD || temperature >= JETI_TEMP_HOT) {
 		charger_enable_state = false;

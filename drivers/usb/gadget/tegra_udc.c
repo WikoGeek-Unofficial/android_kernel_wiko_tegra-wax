@@ -1399,6 +1399,7 @@ static int tegra_usb_set_charging_current(struct tegra_udc *udc)
 		else
 			max_ua = udc->current_limit * 1000;
 		break;
+		
 	case CONNECT_TYPE_NV_CHARGER:
 		dev_info(dev, "connected to NV charger\n");
 		max_ua = USB_CHARGING_NV_CHARGER_CURRENT_LIMIT_UA;
@@ -1489,6 +1490,10 @@ static int tegra_detect_cable_type(struct tegra_udc *udc)
 
 	if (udc->connect_type == CONNECT_TYPE_SDP)
 		tegra_usb_set_charging_current(udc);
+//Wayne add, War for handling CDP
+	if (udc->connect_type == CONNECT_TYPE_CDP)
+	  tegra_usb_set_charging_current(udc);
+	
 	return 0;
 }
 

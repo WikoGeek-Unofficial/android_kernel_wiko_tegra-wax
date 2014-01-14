@@ -57,6 +57,8 @@
 
 #define NO_LIMIT				99999
 
+extern void max77660_power_forceoff(void);
+
 enum charging_states {
 	ENABLED_HALF_IBAT = 1,
 	ENABLED_FULL_IBAT,
@@ -485,11 +487,12 @@ static int max77660_chg_extcon_cable_update(
 		dev_err(chg_extcon->dev, "CHSTAT read failed: %d\n", ret);
 		return ret;
 	}
-	/*if( get_androidboot_mode_charger() ){
+//Ivan
+	if( get_androidboot_mode_charger() ){
 		if( ( status & MAX77660_CHG_CHGINT_DC_UVP ) ){
 			dev_err(chg_extcon->dev, "charge debug, in charge mode, but charge disconnected!\n");
 			if( pm_power_off )
-					pm_power_off();
+			  pm_power_off();
 		}
 		else{
 			dev_err(chg_extcon->dev, "charge debug, in charge mode, charge connect!\n");
@@ -497,7 +500,7 @@ static int max77660_chg_extcon_cable_update(
 	}
 	else{
 			dev_err(chg_extcon->dev, "charge debug, normal mode!\n");
-	}*/
+	}
 	if (status & MAX77660_CHG_CHGINT_DC_UVP)
 		extcon_set_cable_state(chg_extcon->edev, "USB", false);
 	else
