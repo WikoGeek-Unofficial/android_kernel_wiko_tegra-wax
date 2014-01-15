@@ -390,7 +390,7 @@ static ssize_t max77660_leds_onms_store(struct device *dev,
 	unsigned long leds_onms = simple_strtoul(buf, &after, 10);
 	unsigned long val = 0;
 	size_t count = after - buf;
-	dev_dbg(dev,"Ivan AAAmax77660_leds_onms_store leds_onms = %d\n",leds_onms);
+	dev_dbg(dev,"Ivan max77660_leds_onms_store leds_onms = %d\n",leds_onms);
 
 	if (isspace(*after))
 		count++;
@@ -487,13 +487,12 @@ static ssize_t max77660_leds_offms_store(struct device *dev,
 	unsigned long leds_blnkd = 0;
 	unsigned long val = 0;
 	size_t count = after - buf;
-	dev_dbg(dev,"Ivan BBBBmax77660_leds_offms_store leds_offms = %d\n",leds_offms);
+	dev_dbg(dev,"Ivan max77660_leds_offms_store leds_offms = %d\n",leds_offms);
 
 	if (isspace(*after))
 		count++;
 
 	if (count == size) {
-		
 		ret = count;
 
 		/* read max77660 ledblnk register */
@@ -965,14 +964,14 @@ void  tinno_max77660_get_rg_blink_brightness(unsigned long blink_brt){
 void  tinno_max77660_get_rg_blink_offms(unsigned long offms){
 	if(g_rg_blink_offms !=offms){
 		g_rg_blink_offms= offms;
-		printk("Magnum g_blink_brightness== %d\n",g_rg_blink_offms);
+		printk("Magnum g_rg_blink_offms== %d\n",g_rg_blink_offms);
 	}
 }
 
 void  tinno_max77660_get_rg_blink_onms(unsigned long onms){
 	if(g_rg_blink_onms !=onms){
 		g_rg_blink_onms= onms;
-		printk("Magnum g_blink_brightness== %d\n",g_rg_blink_onms);
+		printk("Magnum g_rg_blink_onms== %d\n",g_rg_blink_onms);
 	}
 }
 

@@ -24,12 +24,23 @@ EXPORT_SYMBOL_GPL(leds_list_lock);
 LIST_HEAD(leds_list);
 EXPORT_SYMBOL_GPL(leds_list);
 
+/*Magnum 2014-1-14, transfer blink_brt,blink_offms, blink_onms to led driver code. */
+extern void  tinno_max77660_get_rg_blink_brightness(unsigned long blink_brt);
+extern void  tinno_max77660_get_rg_blink_offms(unsigned long offms);
+extern void  tinno_max77660_get_rg_blink_onms(unsigned long onms);
+
+
 static void led_stop_software_blink(struct led_classdev *led_cdev)
 {
 	/* deactivate previous settings */
 	del_timer_sync(&led_cdev->blink_timer);
 	led_cdev->blink_delay_on = 0;
 	led_cdev->blink_delay_off = 0;
+	/*Magnum 2014-1-15 change global blink_brightness, delay_on && delay_off to 
+	* led driver	*/ 
+	tinno_max77660_get_rg_blink_brightness(0);
+	tinno_max77660_get_rg_blink_onms(0);
+	tinno_max77660_get_rg_blink_offms(0);
 }
 
 static void led_set_software_blink(struct led_classdev *led_cdev,
@@ -63,7 +74,11 @@ static void led_set_software_blink(struct led_classdev *led_cdev,
 		led_set_brightness(led_cdev, led_cdev->blink_brightness);
 		return;
 	}
-
+	/*Magnum 2014-1-15 change global blink_brightness, delay_on && delay_off to 
+	* led driver	*/ 
+	tinno_max77660_get_rg_blink_brightness(led_cdev->blink_brightness);
+	tinno_max77660_get_rg_blink_onms(led_cdev->blink_delay_on);
+	tinno_max77660_get_rg_blink_offms(led_cdev->blink_delay_off);
 	mod_timer(&led_cdev->blink_timer, jiffies + 1);
 }
 
