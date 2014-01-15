@@ -282,7 +282,8 @@ static int max77660_charger_init(struct max77660_chg_extcon *chip, int enable)
 		/* Enable top level charging */
 		ret = max77660_reg_write(chip->parent, MAX77660_PWR_SLAVE,
 				MAX77660_REG_GLOBAL_CFG1,
-				MAX77660_GLBLCNFG1_MASK);
+				MAX77660_GLBLCNFG1_MASK |
+				MAX77660_GLBLCNFG1_ENPGOC);
 		if (ret < 0)
 			return ret;
 		ret = max77660_reg_write(chip->parent, MAX77660_PWR_SLAVE,
