@@ -246,7 +246,7 @@ static void max17048_get_soc(struct i2c_client *client)
 	if (soc < 0)
 		dev_err(&client->dev, "%s: err %d\n", __func__, soc);
 	else {
-		chip->soc = (uint16_t)soc >> 9;
+		chip->soc = (uint16_t)soc >> 8;
 		if (pdata->soc_error_max_value)
 			chip->soc =(chip->soc * MAX17048_BATTERY_FULL)
 						/ pdata->soc_error_max_value;
