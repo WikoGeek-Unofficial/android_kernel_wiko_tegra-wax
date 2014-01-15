@@ -95,8 +95,8 @@
 #include <linux/module.h>
 #include <media/dw9714a.h>
 
-#define DW9714A_FOCAL_LENGTH		(3.70f)
-#define DW9714A_FNUMBER			(2.2f)
+#define DW9714A_FOCAL_LENGTH	 0x406ccccd	/*	(3.70f) */
+#define DW9714A_FNUMBER			 0x400ccccd /* (2.2f) */
 #define DW9714A_SLEW_RATE		1
 #define DW9714A_ACTUATOR_RANGE		1023
 #define DW9714A_SETTLETIME		25
