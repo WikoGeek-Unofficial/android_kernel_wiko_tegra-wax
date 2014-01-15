@@ -290,9 +290,36 @@ struct snd_kcontrol_new tegra_max98090_call_mode_control = {
 	.put = tegra_call_mode_put
 };
 
-static int tegra_max98090_set_dam_cif(int dam_ifc, int srate,
-			int channels, int bit_size, int src_on, int src_srate,
-			int src_channels, int src_bit_size)
+static int tegra_max98090_set_dam_cif(int dam_ifc,
+	int out_rate, int out_channels, int out_bit_size,
+	int ch0_rate, int ch0_channels, int ch0_bit_size)
+{
+	tegra30_dam_set_samplerate(dam_ifc, TEGRA30_DAM_CHOUT, out_rate);
+	tegra30_dam_set_samplerate(dam_ifc, TEGRA30_DAM_CHIN0_SRC,
+				ch0_rate);
+	tegra30_dam_set_gain(dam_ifc, TEGRA30_DAM_CHIN0_SRC, 0x1000);
+
+	tegra30_dam_set_acif(dam_ifc, TEGRA30_DAM_CHIN0_SRC,
+			ch0_channels, ch0_bit_size, 1, 32);
+	tegra30_dam_set_acif(dam_ifc, TEGRA30_DAM_CHOUT,
+			out_channels, out_bit_size, out_channels, 32);
+
+	if (ch0_rate != out_rate) {
+		tegra30_dam_write_coeff_ram(dam_ifc, ch0_rate, out_rate);
+		tegra30_dam_set_farrow_param(dam_ifc, ch0_rate, out_rate);
+		tegra30_dam_set_biquad_fixed_coef(dam_ifc);
+		tegra30_dam_enable_coeff_ram(dam_ifc);
+		tegra30_dam_set_filter_stages(dam_ifc, ch0_rate, out_rate);
+	} else {
+		tegra30_dam_enable_stereo_mixing(dam_ifc);
+	}
+
+	return 0;
+}
+
+static int tegra_bt_set_dam_cif(int dam_ifc,
+	int srate, int channels, int bit_size,
+	int src_on, int src_srate, int src_channels, int src_bit_size)
 {
 	tegra30_dam_set_gain(dam_ifc, TEGRA30_DAM_CHIN1, 0x1000);
 	tegra30_dam_set_samplerate(dam_ifc, TEGRA30_DAM_CHOUT,
@@ -448,8 +475,9 @@ static int tegra_max98090_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK && i2s->is_dam_used)
-		tegra_max98090_set_dam_cif(i2s->dam_ifc, srate,
-			params_channels(params), sample_size, 0, 0, 0, 0);
+		tegra_max98090_set_dam_cif(i2s->dam_ifc,
+		srate, params_channels(params), sample_size,
+		srate, params_channels(params), sample_size);
 
 	return 0;
 }
@@ -538,7 +566,7 @@ static int tegra_bt_hw_params(struct snd_pcm_substream *substream,
 	}
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK && i2s->is_dam_used)
-		tegra_max98090_set_dam_cif(i2s->dam_ifc, params_rate(params),
+		tegra_bt_set_dam_cif(i2s->dam_ifc, params_rate(params),
 			params_channels(params), sample_size, 0, 0, 0, 0);
 
 	return 0;
@@ -555,6 +583,195 @@ static int tegra_hw_free(struct snd_pcm_substream *substream)
 }
 
 static int tegra_max98090_startup(struct snd_pcm_substream *substream)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct tegra30_i2s *i2s = snd_soc_dai_get_drvdata(cpu_dai);
+	struct tegra_max98090 *machine = snd_soc_card_get_drvdata(rtd->card);
+	struct codec_config *codec_info;
+	int codec_index;
+
+	tegra_asoc_utils_tristate_dap(i2s->id, false);
+
+	if ((substream->stream == SNDRV_PCM_STREAM_PLAYBACK) &&
+			i2s->is_dam_used) {
+		/*dam configuration*/
+		if (!i2s->dam_ch_refcount)
+			i2s->dam_ifc = tegra30_dam_allocate_controller();
+		if (i2s->dam_ifc < 0)
+			return i2s->dam_ifc;
+
+		tegra30_dam_allocate_channel(i2s->dam_ifc,
+			TEGRA30_DAM_CHIN0_SRC);
+		i2s->dam_ch_refcount++;
+		tegra30_dam_enable_clock(i2s->dam_ifc);
+
+		if (machine->is_call_mode)
+			tegra30_ahub_set_rx_cif_source(
+				TEGRA30_AHUB_RXCIF_DAM0_RX0 +
+				(i2s->dam_ifc*2), i2s->txcif);
+		else
+			tegra30_ahub_set_rx_cif_source(
+			TEGRA30_AHUB_RXCIF_I2S0_RX0 + i2s->id,
+			i2s->txcif);
+
+		/*
+		*make the dam tx to i2s rx connection if this is the only
+		*client using i2s for playback
+		*/
+		/*if (i2s->playback_ref_count == 1)
+			tegra30_ahub_set_rx_cif_source(
+				TEGRA30_AHUB_RXCIF_I2S0_RX0 + i2s->id,
+				TEGRA30_AHUB_TXCIF_DAM0_TX0 + i2s->dam_ifc);*/
+
+		/* enable the dam*/
+		tegra30_dam_enable(i2s->dam_ifc, TEGRA30_DAM_ENABLE,
+				TEGRA30_DAM_CHIN0_SRC);
+	} else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+
+		i2s->is_call_mode_rec = machine->is_call_mode;
+
+		if (!i2s->is_call_mode_rec)
+			return 0;
+
+		codec_index = HIFI_CODEC;
+
+		codec_info = &machine->codec_info[codec_index];
+
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+		/* allocate a dam for voice call recording */
+
+		i2s->call_record_dam_ifc = tegra30_dam_allocate_controller();
+		if (i2s->call_record_dam_ifc < 0)
+			return i2s->call_record_dam_ifc;
+
+		tegra30_dam_allocate_channel(i2s->call_record_dam_ifc,
+			TEGRA30_DAM_CHIN0_SRC);
+
+		tegra30_dam_enable_clock(i2s->call_record_dam_ifc);
+
+		/* setup the connections for voice call record */
+		tegra30_ahub_unset_rx_cif_source(i2s->rxcif);
+
+		/* configure the dam */
+		tegra_max98090_set_dam_cif(i2s->call_record_dam_ifc,
+			codec_info->rate,
+			codec_info->channels,
+			codec_info->bitsize,
+			machine->ahub_bbc1_info.rate,
+			machine->ahub_bbc1_info.channels,
+			machine->ahub_bbc1_info.sample_size);
+
+		tegra30_ahub_set_rx_cif_source(
+			TEGRA30_AHUB_RXCIF_DAM0_RX0 +
+			(i2s->call_record_dam_ifc*2),
+			TEGRA30_AHUB_TXCIF_BBC1_TX1);
+
+		tegra30_ahub_set_rx_cif_source(i2s->rxcif,
+			TEGRA30_AHUB_TXCIF_DAM0_TX0 +
+			i2s->call_record_dam_ifc);
+
+		/* Configure DAM0 for SRC */
+		if (codec_info->rate != machine->ahub_bbc1_info.rate) {
+			tegra30_dam_write_coeff_ram(
+				i2s->call_record_dam_ifc,
+				machine->ahub_bbc1_info.rate, codec_info->rate);
+			tegra30_dam_set_farrow_param(
+				i2s->call_record_dam_ifc,
+				machine->ahub_bbc1_info.rate, codec_info->rate);
+			tegra30_dam_set_biquad_fixed_coef(
+				i2s->call_record_dam_ifc);
+			tegra30_dam_enable_coeff_ram(
+				i2s->call_record_dam_ifc);
+			tegra30_dam_set_filter_stages(
+				i2s->call_record_dam_ifc,
+				machine->ahub_bbc1_info.rate, codec_info->rate);
+		}
+
+		tegra30_dam_enable(i2s->call_record_dam_ifc,
+				TEGRA30_DAM_ENABLE,
+				TEGRA30_DAM_CHIN0_SRC);
+#endif
+	}
+
+	return 0;
+}
+
+static void tegra_max98090_shutdown(struct snd_pcm_substream *substream)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
+	struct tegra_max98090 *machine = snd_soc_card_get_drvdata(rtd->card);
+	struct tegra30_i2s *i2s = snd_soc_dai_get_drvdata(cpu_dai);
+	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
+
+	tegra_asoc_utils_tristate_dap(i2s->id, true);
+
+	if ((substream->stream == SNDRV_PCM_STREAM_PLAYBACK) &&
+			(i2s->is_dam_used)) {
+		/* disable the dam*/
+		tegra30_dam_enable(i2s->dam_ifc, TEGRA30_DAM_DISABLE,
+				TEGRA30_DAM_CHIN0_SRC);
+
+		/* disconnect the ahub connections*/
+		tegra30_ahub_unset_rx_cif_source(TEGRA30_AHUB_RXCIF_DAM0_RX0 +
+					(i2s->dam_ifc*2));
+
+		/* disable the dam and free the controller */
+		tegra30_dam_disable_clock(i2s->dam_ifc);
+		tegra30_dam_free_channel(i2s->dam_ifc, TEGRA30_DAM_CHIN0_SRC);
+		i2s->dam_ch_refcount--;
+		if (!i2s->dam_ch_refcount)
+			tegra30_dam_free_controller(i2s->dam_ifc);
+
+	 } else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+		if (!i2s->is_call_mode_rec)
+			return;
+
+		i2s->is_call_mode_rec = 0;
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+		/* disable the dam*/
+		tegra30_dam_enable(i2s->call_record_dam_ifc,
+			TEGRA30_DAM_DISABLE, TEGRA30_DAM_CHIN0_SRC);
+
+		/* disconnect the ahub connections*/
+		tegra30_ahub_unset_rx_cif_source(i2s->rxcif);
+		tegra30_ahub_unset_rx_cif_source(TEGRA30_AHUB_RXCIF_DAM0_RX0 +
+			(i2s->call_record_dam_ifc*2));
+
+		/* free the dam channels and dam controller */
+		tegra30_dam_disable_clock(i2s->call_record_dam_ifc);
+		tegra30_dam_free_channel(i2s->call_record_dam_ifc,
+			TEGRA30_DAM_CHIN0_SRC);
+		tegra30_dam_free_controller(i2s->call_record_dam_ifc);
+
+		if (!machine->is_device_bt) {
+			/* force enable the capture dapm path,
+			*  if voice call stream still open */
+			if (i2s->capture_ref_count) {
+				machine->is_capture_dapm_enable = true;
+				snd_soc_dapm_force_enable_pin(dapm,
+						"HiFi Capture");
+				snd_soc_dapm_sync(dapm);
+			}
+		}
+#endif
+	 }
+
+	if (!machine->is_device_bt) {
+		/* disable capture dapm path*/
+		if ((!i2s->capture_ref_count) &&
+				machine->is_capture_dapm_enable) {
+			machine->is_capture_dapm_enable = false;
+			snd_soc_dapm_disable_pin(dapm, "HiFi Capture");
+			snd_soc_dapm_sync(dapm);
+		}
+	}
+	return;
+}
+
+static int tegra_bt_startup(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
@@ -599,10 +816,7 @@ static int tegra_max98090_startup(struct snd_pcm_substream *substream)
 		if (!i2s->is_call_mode_rec)
 			return 0;
 
-		if (machine->is_device_bt)
-			codec_index = BT_SCO;
-		else
-			codec_index = HIFI_CODEC;
+		codec_index = BT_SCO;
 
 		codec_info = &machine->codec_info[codec_index];
 
@@ -622,7 +836,7 @@ static int tegra_max98090_startup(struct snd_pcm_substream *substream)
 		tegra30_ahub_unset_rx_cif_source(i2s->rxcif);
 
 		/* configure the dam */
-		tegra_max98090_set_dam_cif(i2s->call_record_dam_ifc,
+		tegra_bt_set_dam_cif(i2s->call_record_dam_ifc,
 			codec_info->rate, codec_info->channels,
 			codec_info->bitsize, 1,
 			machine->ahub_bbc1_info.rate,
@@ -664,7 +878,7 @@ static int tegra_max98090_startup(struct snd_pcm_substream *substream)
 	return 0;
 }
 
-static void tegra_max98090_shutdown(struct snd_pcm_substream *substream)
+static void tegra_bt_shutdown(struct snd_pcm_substream *substream)
 {
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = rtd->cpu_dai;
@@ -1071,8 +1285,8 @@ static struct snd_soc_ops tegra_bt_voice_call_ops = {
 static struct snd_soc_ops tegra_bt_ops = {
 	.hw_params = tegra_bt_hw_params,
 	.hw_free = tegra_hw_free,
-	.startup = tegra_max98090_startup,
-	.shutdown = tegra_max98090_shutdown,
+	.startup = tegra_bt_startup,
+	.shutdown = tegra_bt_shutdown,
 };
 /* FM support */
 static struct snd_soc_ops tegra_fm_ops = {
