@@ -20,6 +20,10 @@
 #include <asm/uaccess.h>
 #include <asm/unistd.h>
 
+#include <linux/statfs.h>
+#include <linux/mount.h>
+#include "mount.h"
+
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
 	.read		= do_sync_read,
@@ -417,9 +421,32 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 
 EXPORT_SYMBOL(do_sync_write);
 
+long long store = 0;
+#define SDCARD_LIMIT_SIZE  (200 * 1024 * 1024)
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
 	ssize_t ret;
+
+#ifdef SDCARD_LIMIT_SIZE
+	struct kstatfs stat;
+	struct mount *mount_data;
+	mount_data = real_mount(file->f_path.mnt);
+	if(!memcmp(mount_data->mnt_mountpoint->d_name.name, "emulated", 8)){
+		store -= count;
+		if(store <= (SDCARD_LIMIT_SIZE  + (10 * 1024 * 1024)*2)){		
+			vfs_statfs(&file->f_path, &stat);
+			store = stat.f_bfree * stat.f_bsize + SDCARD_LIMIT_SIZE;
+			//printk("initialize data free size when acess sdcard0 ,%llx\n",store);
+			store -= count;
+			if (store <= SDCARD_LIMIT_SIZE) {
+				//printk("wite sdcard0 over flow, %llx\n",store);
+				store += count;
+				return -ENOSPC;
+			}
+		}
+		store +=count;
+	}
+#endif
 
 	if (!(file->f_mode & FMODE_WRITE))
 		return -EBADF;

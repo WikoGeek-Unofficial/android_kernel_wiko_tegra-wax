@@ -190,6 +190,7 @@ static int max17048_get_property(struct power_supply *psy,
 		val->intval = chip->vcell * 1000;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
+		val->intval = 100;//chip->soc; //ljs
 		val->intval = chip->soc;
 		if (chip->soc == 15)
 			dev_warn(&chip->client->dev,

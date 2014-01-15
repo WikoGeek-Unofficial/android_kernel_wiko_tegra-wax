@@ -363,6 +363,7 @@ static void fuse_put_super(struct super_block *sb)
 	fuse_conn_put(fc);
 }
 
+#define SDCARD_LIMIT_SIZE  (200 * 1024 * 1024)
 static void convert_fuse_statfs(struct kstatfs *stbuf, struct fuse_kstatfs *attr)
 {
 	stbuf->f_type    = FUSE_SUPER_MAGIC;
@@ -374,6 +375,20 @@ static void convert_fuse_statfs(struct kstatfs *stbuf, struct fuse_kstatfs *attr
 	stbuf->f_files   = attr->files;
 	stbuf->f_ffree   = attr->ffree;
 	stbuf->f_namelen = attr->namelen;
+#ifdef SDCARD_LIMIT_SIZE
+	stbuf->f_blocks  -= (u32)SDCARD_LIMIT_SIZE/attr->bsize;
+	
+	if(stbuf->f_bfree < ((u32)SDCARD_LIMIT_SIZE/attr->bsize)){
+		stbuf->f_bfree = 0;
+	}else{
+		stbuf->f_bfree	 -= (u32)SDCARD_LIMIT_SIZE/attr->bsize;
+	}
+	if(stbuf->f_bavail < ((u32)SDCARD_LIMIT_SIZE/attr->bsize)){
+		stbuf->f_bavail = 0;
+	}else{
+		stbuf->f_bavail	 -= (u32)SDCARD_LIMIT_SIZE/attr->bsize;
+	}
+#endif
 	/* fsid is left zero */
 }
 
