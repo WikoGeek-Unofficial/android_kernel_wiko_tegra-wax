@@ -1775,6 +1775,16 @@ static int __init ceres_skin_init(void)
 		if ((board_info.board_id == BOARD_E1690 &&
 			board_info.fab <= BOARD_FAB_B) ||
 				is_tskin_shutdown_disabled()) {
+
+			for (i = 0; i < skin_data.num_trips; i++) {
+				if (strcmp(skin_data.trips[i].cdev_type,
+					  "skin-balanced") == 0) {
+					break;
+				}
+			}
+
+			if (i != skin_data.num_trips)
+				skin_data.trips[i].trip_temp = 120000;
 			/* we effectively disabled the shutdown trip point */
 			for (i = 0; i < skin_data.num_trips; i++) {
 				if (strcmp(skin_data.trips[i].cdev_type,
