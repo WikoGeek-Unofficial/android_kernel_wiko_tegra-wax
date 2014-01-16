@@ -920,9 +920,17 @@ static void debug_fiq(struct fiq_glue_handler *h, void *regs, void *svc_sp)
 	/* Spew regs and callstack immediately after entering FIQ handler */
 	debug_fiq_exec(state, "allregs", regs, svc_sp);
 	debug_fiq_exec(state, "bt", regs, svc_sp);
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+	do {
+		need_irq = debug_handle_uart_interrupt(state,
+						this_cpu, regs, svc_sp);
+	} while (!need_irq);
+	debug_force_irq(state);
+#else
 	need_irq = debug_handle_uart_interrupt(state, this_cpu, regs, svc_sp);
 	if (need_irq)
 		debug_force_irq(state);
+#endif
 }
 
 /*
@@ -1375,7 +1383,9 @@ static struct platform_driver fiq_debugger_driver = {
 
 static int __init fiq_debugger_init(void)
 {
+#ifdef CONFIG_FIQ_DEBUGGER_CONSOLE
 	fiq_debugger_tty_init();
+#endif
 	return platform_driver_register(&fiq_debugger_driver);
 }
 

@@ -58,6 +58,7 @@
 #include <asm/tlbflush.h>
 #include <asm/suspend.h>
 #include <asm/smp_plat.h>
+#include <asm/fiq_glue.h>
 
 #include <mach/clk.h>
 #include <mach/iomap.h>
@@ -804,6 +805,10 @@ unsigned int tegra_idle_power_down_last(unsigned int sleep_time,
 	} else {
 		tegra_sleep_cpu(PHYS_OFFSET - PAGE_OFFSET);
 	}
+
+#if defined(CONFIG_TEGRA_FIQ_DEBUGGER)
+	fiq_glue_resume();
+#endif
 
 #if defined(CONFIG_ARCH_TEGRA_14x_SOC)
 	tegra_init_cache(true);
