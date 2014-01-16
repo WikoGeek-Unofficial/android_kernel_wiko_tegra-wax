@@ -210,12 +210,13 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 	void __iomem *reset = IO_ADDRESS(TEGRA_PMC_BASE + 0);
 	u32 reg;
 
+/*
 	if (tegra_get_pmic_rst_reason() == 0x4) {
 		pr_info("%s: ignore system reset since watchdog timeout before!\n",
 			__func__);
 		return;
 	}
-
+*/
 	reg = readl_relaxed(reset + PMC_SCRATCH0);
 	/* Writing recovery kernel or Bootloader mode in SCRATCH0 31:30:1 */
 	if (cmd) {
