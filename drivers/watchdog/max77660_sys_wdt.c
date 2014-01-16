@@ -58,6 +58,7 @@ struct max77660_sys_wdt {
 	bool sw_wdt_reset;
 	bool stop_kthread;
 	int system_watchdog_reset_timeout;
+	bool system_watchdog_timeout_shutdown;
 	bool suspended;
 	struct mutex reset_lock;
 };
@@ -112,6 +113,19 @@ static int max77660_sys_wdt_start(struct watchdog_device *wdt_dev)
 {
 	struct max77660_sys_wdt *wdt = watchdog_get_drvdata(wdt_dev);
 	int ret;
+
+	if (wdt->system_watchdog_timeout_shutdown)
+		ret = max77660_reg_clr_bits(wdt->parent, MAX77660_PWR_SLAVE,
+				MAX77660_REG_GLOBAL_CFG2,
+				MAX77660_GLBLCNFG2_WDTWKEN);
+	else
+		ret = max77660_reg_set_bits(wdt->parent, MAX77660_PWR_SLAVE,
+				MAX77660_REG_GLOBAL_CFG2,
+				MAX77660_GLBLCNFG2_WDTWKEN);
+	if (ret < 0) {
+		dev_err(wdt->dev, "GLOBAL_CFG2 update failed: %d\n", ret);
+		return ret;
+	}
 
 	ret = max77660_reg_set_bits(wdt->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_GLOBAL_CFG1, MAX77660_GLBLCNFG1_WDTEN_SYS);
@@ -260,6 +274,8 @@ static int __devinit max77660_sys_wdt_probe(struct platform_device *pdev)
 		wdt->sw_wdt_reset = true;
 		wdt->system_watchdog_reset_timeout =
 				pdata->system_watchdog_reset_timeout;
+		wdt->system_watchdog_timeout_shutdown =
+				pdata->system_watchdog_timeout_shutdown;
 	}
 
 	if (pdata && (pdata->system_watchdog_timeout > 0)) {

@@ -716,6 +716,7 @@ static struct max77660_platform_data max77660_pdata = {
 	.use_power_off	= true,
 	.system_watchdog_timeout = 32,
 	.system_watchdog_reset_timeout = 20,
+	.system_watchdog_timeout_shutdown = false,
 	.dvfs_pd = {
 		.en_pwm = true,
 		.step_voltage_uV = 25000,

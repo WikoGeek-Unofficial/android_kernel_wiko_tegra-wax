@@ -1298,6 +1298,7 @@ struct max77660_platform_data {
 
 	int system_watchdog_timeout;
 	int system_watchdog_reset_timeout;
+	bool system_watchdog_timeout_shutdown;
 	bool led_disable;
 	struct max77660_pwm_dvfs_init_data dvfs_pd;
 };
