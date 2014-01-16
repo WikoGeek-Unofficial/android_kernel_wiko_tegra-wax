@@ -1562,7 +1562,7 @@ int __init ceres_soctherm_init(void)
 static struct edp_manager ceres_sysedp_manager = {
 	.name = "battery",
 	/* .max = 18500 */
-	.max = 13700,
+	.max = 11700,
 };
 
 void __init ceres_sysedp_init(void)
@@ -1696,7 +1696,7 @@ static struct psy_depletion_platform_data ceres_psydepl_pdata = {
 	.states = ceres_psydepl_states,
 	.num_states = ARRAY_SIZE(ceres_psydepl_states),
 	.e0_index = 47,
-	.r_const = 130000,
+	.r_const = 230000,
 	.vsys_min = 3250000,
 	.vcharge = 4200000,
 	.ibat_nom = 2000,

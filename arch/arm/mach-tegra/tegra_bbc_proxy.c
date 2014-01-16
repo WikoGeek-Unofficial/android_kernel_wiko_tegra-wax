@@ -115,6 +115,9 @@ int tegra_bbc_proxy_edp_register(struct device *dev, u32 num_states,
 	int ret;
 	int i;
 	struct tegra_bbc_proxy *bbc = dev_get_drvdata(dev);
+	#define num_states_experiment 5
+	u32 states_experiment[num_states_experiment] = {
+		2000, 1500, 700, 80, 14};
 
 	mutex_lock(&bbc->edp_lock);
 
@@ -128,11 +131,22 @@ int tegra_bbc_proxy_edp_register(struct device *dev, u32 num_states,
 	memset(bbc->modem_edp_states, 0, sizeof(bbc->modem_edp_states));
 	memset(&bbc->modem_edp_client, 0, sizeof(bbc->modem_edp_client));
 
+
+#if 0
 	/* retrieve max current for supported states */
 	for (i = 0; i < num_states; i++) {
 		bbc->modem_edp_states[i] = *states;
 		states++;
 	}
+#else
+	if (num_states_experiment == num_states)
+		states = states_experiment;
+
+	for (i = 0; i < num_states; i++) {
+		bbc->modem_edp_states[i] = *states;
+		states++;
+	}
+#endif
 
 	strncpy(bbc->modem_edp_client.name, "bbc", EDP_NAME_LEN);
 	bbc->modem_edp_client.name[EDP_NAME_LEN - 1] = '\0';
