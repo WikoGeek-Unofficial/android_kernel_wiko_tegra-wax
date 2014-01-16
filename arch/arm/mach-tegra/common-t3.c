@@ -3,7 +3,7 @@
  *
  * Tegra 3 SoC-specific initialization.
  *
- * Copyright (c) 2009-2012 NVIDIA Corporation.
+ * Copyright (c) 2009-2013, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@
 
 #ifdef CONFIG_PM_SLEEP
 static u32 mc_boot_timing[MC_TIMING_REG_NUM1 + MC_TIMING_REG_NUM2
-			  + MC_TIMING_REG_NUM3 + 4];
+			  + MC_TIMING_REG_NUM3 + 5];
 
 static void tegra_mc_timing_save(void)
 {
@@ -58,6 +58,10 @@ static void tegra_mc_timing_save(void)
 		*ctx++ = readl((u32)mc + off);
 
 	*ctx++ = readl((u32)mc + MC_INT_MASK);
+
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+	*ctx++ = readl((u32)mc + MC_EMEM_ARB_HYSTERESIS_2);
+#endif
 }
 
 void tegra_mc_timing_restore(void)
@@ -82,6 +86,10 @@ void tegra_mc_timing_restore(void)
 	writel(*ctx++, (u32)mc + MC_INT_MASK);
 	off = readl((u32)mc + MC_INT_MASK);
 
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+	writel(*ctx++, (u32)mc + MC_EMEM_ARB_HYSTERESIS_2);
+#endif
+
 	writel(0x1, mc + MC_TIMING_CONTROL);
 	off = readl(mc + MC_TIMING_CONTROL);
 #if defined(CONFIG_ARCH_TEGRA_3x_SOC)
@@ -97,6 +105,12 @@ void tegra_mc_timing_restore(void)
 
 static int __init tegra_mc_timing_init(void)
 {
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+	u32 reg = readl(mc + MC_EMEM_ARB_HYSTERESIS_2);
+	reg &= ~HYST_DISPLAYD;
+	writel(reg, mc + MC_EMEM_ARB_HYSTERESIS_2);
+#endif
+
 	tegra_mc_timing_save();
 	return 0;
 }
