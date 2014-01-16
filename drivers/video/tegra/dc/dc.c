@@ -2134,7 +2134,11 @@ static int tegra_dc_init(struct tegra_dc *dc)
 			DC_CMD_CONT_SYNCPT_VSYNC);
 
 	tegra_dc_writel(dc, 0x00004700, DC_CMD_INT_TYPE);
+#if defined(CONFIG_ARCH_TEGRA_14x_SOC)
+	tegra_dc_writel(dc, 0x0381c700, DC_CMD_INT_POLARITY);
+#else
 	tegra_dc_writel(dc, 0x0001c700, DC_CMD_INT_POLARITY);
+#endif
 	tegra_dc_writel(dc, 0x00202020, DC_DISP_MEM_HIGH_PRIORITY);
 	tegra_dc_writel(dc, 0x00010101, DC_DISP_MEM_HIGH_PRIORITY_TIMER);
 #ifdef CONFIG_ARCH_TEGRA_3x_SOC
