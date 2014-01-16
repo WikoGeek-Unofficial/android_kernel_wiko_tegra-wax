@@ -1195,7 +1195,9 @@ static void __init tegra_ceres_late_init(void)
 	ceres_setup_bluedroid_pm();
 #endif
 	ceres_audio_init();
+#ifdef S8515_HAS_PMON
 	ceres_pmon_init();
+#endif
 	ceres_sysedp_core_init();
 	sysedp_psydepl_init();
 }
