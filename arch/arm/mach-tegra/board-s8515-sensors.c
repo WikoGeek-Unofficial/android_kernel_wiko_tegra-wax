@@ -1624,7 +1624,7 @@ static void mpuirq_init(void)
 static struct thermal_trip_info skin_trips[] = {
 	{
 		.cdev_type = "skin-balanced",
-		.trip_temp = 43000,
+		.trip_temp = 45000,
 		.trip_type = THERMAL_TRIP_PASSIVE,
 		.upper = THERMAL_NO_LIMIT,
 		.lower = THERMAL_NO_LIMIT,
@@ -1644,21 +1644,21 @@ static struct therm_est_subdevice skin_devs[] = {
 	{
 		.dev_data = "Tdiode",
 		.coeffs = {
-			-2, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, 0,
-			0, 0, 0, -1,
-			-1, -1, -1, -3
+			3, 1, 0, -1,
+			-1, -2, -1, -1,
+			-1, -1, -1, -1,
+			-1, -1, -1, -2,
+			-2, -2, -3, -4
 		},
 	},
 	{
 		.dev_data = "Tboard",
 		.coeffs = {
-			6, 5, 5, 5,
-			5, 5, 5, 5,
-			5, 5, 4, 4,
-			4, 4, 4, 3,
-			3, 2, 2, 1
+			17, 10, 7, 4,
+			3, 4, 3, 3,
+			4, 3, 3, 3,
+			3, 4, 4, 4,
+			5, 6, 10, 16
 		},
 	},
 };
@@ -1682,7 +1682,7 @@ static struct thermal_zone_params skin_tzp = {
 static struct therm_est_data skin_data = {
 	.num_trips = ARRAY_SIZE(skin_trips),
 	.trips = skin_trips,
-	.toffset = 7450,
+	.toffset = -1231,
 	.polling_period = 1100,
 	.passive_delay = 15000,
 	.tc1 = 10,
