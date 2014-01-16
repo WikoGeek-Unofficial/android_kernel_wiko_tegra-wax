@@ -20,7 +20,7 @@
 #ifndef __TEGRA_EMC_H_
 #define __TEGRA_EMC_H_
 
-#define TEGRA_MAX_TABLE_ID_LEN	16
+#define TEGRA_MAX_TABLE_ID_LEN	64
 
 #define TEGRA_EMC_NUM_REGS 46
 #define TEGRA30_EMC_NUM_REGS 110
