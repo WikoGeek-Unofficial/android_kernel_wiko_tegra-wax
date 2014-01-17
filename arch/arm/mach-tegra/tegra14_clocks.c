@@ -5033,6 +5033,15 @@ static unsigned long tegra14_clk_shared_bus_update(struct clk *bus,
 		ceiling_but_iso = max(ceiling_but_iso, iso_bw_min);
 	}
 
+	//Magnum 2014-1-15 ,advice from Luis
+	#if 0
+	if (bus->flags & PERIPH_EMC_ENB) {
+		if (rate < 500000000) {
+			rate = 500000000;
+		}
+	}
+	#endif
+	//end
 	rate = override_rate ? : max(rate, bw);
 	ceiling = min(ceiling, ceiling_but_iso);
 	ceiling = override_rate ? bus->max_rate : ceiling;
