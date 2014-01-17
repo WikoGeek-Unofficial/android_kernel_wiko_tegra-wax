@@ -1207,7 +1207,8 @@ static void __init tegra_ceres_late_init(void)
 	/* make bb early in list of devices, this helps it to be the
 	 * last to suspend.
 	 */
-	ceres_tegra_bb_init();
+	if( !get_androidboot_mode_charger() )
+		ceres_tegra_bb_init();
 #endif
 	ceres_i2c_init();
 	ceres_spi_init();
@@ -1219,7 +1220,8 @@ static void __init tegra_ceres_late_init(void)
 	//ceres_dtv_init();
 
 	ceres_suspend_init();
-	ceres_touch_init();
+	if( !get_androidboot_mode_charger() )
+		ceres_touch_init();	
 	ceres_sdhci_init();
 	platform_add_devices(ceres_devices, ARRAY_SIZE(ceres_devices));
 	tegra_ram_console_debug_init();
@@ -1229,16 +1231,21 @@ static void __init tegra_ceres_late_init(void)
 	isomgr_init();
 	ceres_panel_init();
 	ceres_sensors_init();
-	ceres_modem_init();
+
+	if( !get_androidboot_mode_charger() )
+		ceres_modem_init();
 	tegra_register_fuse();
 	ceres_soctherm_init();
+	if( !get_androidboot_mode_charger() )
+	{
 #ifdef CONFIG_BT_BLUESLEEP
-	ceres_setup_bluesleep();
-	ceres_setup_bt_rfkill();
+	  ceres_setup_bluesleep();
+	  ceres_setup_bt_rfkill();
 #elif defined CONFIG_BLUEDROID_PM
-	ceres_setup_bluedroid_pm();
+	  ceres_setup_bluedroid_pm();
 #endif
-	ceres_audio_init();
+	  ceres_audio_init();
+	}
 	ceres_pmon_init();
 	ceres_sysedp_core_init();
 	sysedp_psydepl_init();

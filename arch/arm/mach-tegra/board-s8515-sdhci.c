@@ -323,6 +323,8 @@ static int __init ceres_wifi_init(void)
 #ifdef CONFIG_TEGRA_PREPOWER_WIFI
 static int __init ceres_wifi_prepower(void)
 {
+	if(get_androidboot_mode_charger())
+		return 0;
 	if (!of_machine_is_compatible("nvidia,ceres"))
 		return 0; 
 	ceres_wifi_power(1);
@@ -374,8 +376,10 @@ int __init ceres_sdhci_init(void)
 	}
 
 	platform_device_register(&tegra_sdhci_device3);
-	platform_device_register(&tegra_sdhci_device2);
-	platform_device_register(&tegra_sdhci_device0);
-	ceres_wifi_init();
+	if( !get_androidboot_mode_charger() ){
+		platform_device_register(&tegra_sdhci_device2);
+		platform_device_register(&tegra_sdhci_device0);
+		ceres_wifi_init();
+	}
 	return 0;
 }
