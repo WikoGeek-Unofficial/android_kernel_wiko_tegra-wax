@@ -1822,11 +1822,11 @@ int __init ceres_sensors_init(void)
 	else
 		i2c_register_board_info(0, ceres_i2c0_nct1008_board_info,
 				ARRAY_SIZE(ceres_i2c0_nct1008_board_info));
-	if( !get_androidboot_mode_charger() )
-	{
+
 	  if ((board_info.board_id != BOARD_E1670) &&
 		  (board_info.board_id != BOARD_E1740)) {
-
+	    
+	    if( !get_androidboot_mode_charger() )
 		  i2c_register_board_info(0, ceres_i2c_board_info_ap3220,
 				  ARRAY_SIZE(ceres_i2c_board_info_ap3220));	
 
@@ -1836,6 +1836,6 @@ int __init ceres_sensors_init(void)
 		  i2c_register_board_info(0, ceres_i2c_board_info_tcs3772,
 				  ARRAY_SIZE(ceres_i2c_board_info_tcs3772));
 	  }
-	}
+
 	return 0;
 }
