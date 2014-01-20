@@ -29,7 +29,7 @@ endif
 
 
 ###############Synaptics edit by Magnum 2013-11-12  ######################################
-fw-shipped-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE) += rmi4/PR1296077_30303032.img
+fw-shipped-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE) += rmi4/PR1296077-s3202_30303034.img
 ##########################################################################################
 
 

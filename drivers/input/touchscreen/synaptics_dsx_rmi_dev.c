@@ -73,7 +73,7 @@ struct rmidev_data {
 static struct bin_attribute attr_data = {
 	.attr = {
 		.name = "data",
-		.mode = (S_IRUGO | S_IWUGO),
+		.mode = (S_IRUGO),
 	},
 	.size = 0,
 	.read = rmidev_sysfs_data_show,
@@ -81,10 +81,10 @@ static struct bin_attribute attr_data = {
 };
 
 static struct device_attribute attrs[] = {
-	__ATTR(open, S_IWUGO,
+	__ATTR(open, S_IRUGO,
 			synaptics_rmi4_show_error,
 			rmidev_sysfs_open_store),
-	__ATTR(release, S_IWUGO,
+	__ATTR(release, S_IRUGO,
 			synaptics_rmi4_show_error,
 			rmidev_sysfs_release_store),
 	__ATTR(attn_state, S_IRUGO,
