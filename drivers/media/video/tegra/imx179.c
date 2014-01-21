@@ -26,6 +26,7 @@
 #include "imx179_otp.h"
 #include <media/sgm3780.h>
 #include <linux/platform_device.h>
+#include <mach/board.h>
 
 static u16 imx179_ids[] = {
 	0x0179,
@@ -979,10 +980,17 @@ static int imx179_edp_req(struct imx179_info *info, unsigned new_state)
 static inline void imx179_frame_length_reg(struct imx179_reg *regs,
 					   u32 frame_length)
 {
+        //edit  2013-1-20:fixed the fps to 30 in FTM mode
+	boot_mode = tegra_get_bootmode_id();
+    if(boot_mode == 1 ||boot_mode == 3){
+         printk(" fixed the fps to 30 in FTM mode  ");
+    }
+     else{
 	regs->addr = 0x0340;
 	regs->val = (frame_length >> 8) & 0xFF;
 	(regs + 1)->addr = 0x0341;
 	(regs + 1)->val = (frame_length) & 0xFF;
+      }
 }
 
 static inline void imx179_coarse_time_reg(struct imx179_reg *regs,
