@@ -1811,11 +1811,8 @@ int __init ceres_sensors_init(void)
 	int err;
 
 	tegra_get_board_info(&board_info);
-	if( !get_androidboot_mode_charger() )
-	{
-	  ceres_camera_init();
-	  mpuirq_init();
-	}
+	ceres_camera_init();
+	mpuirq_init();
 	err = ceres_nct1008_init();
 	if (err)
 		pr_err("%s: nct1008 init failed\n", __func__);
@@ -1826,7 +1823,6 @@ int __init ceres_sensors_init(void)
 	  if ((board_info.board_id != BOARD_E1670) &&
 		  (board_info.board_id != BOARD_E1740)) {
 	    
-	    if( !get_androidboot_mode_charger() )
 		  i2c_register_board_info(0, ceres_i2c_board_info_ap3220,
 				  ARRAY_SIZE(ceres_i2c_board_info_ap3220));	
 
