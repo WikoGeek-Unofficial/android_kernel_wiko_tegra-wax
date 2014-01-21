@@ -1388,13 +1388,13 @@ static int tegra_usb_set_charging_current(struct tegra_udc *udc)
 		max_ua = USB_CHARGING_DCP_CURRENT_LIMIT_UA;
 		break;
 	case CONNECT_TYPE_CDP:
-		dev_info(dev, "connected to CDP(1.5A)\n");
+		dev_info(dev, "connected to CDP(1.5A) current_limit =%d\n",udc->current_limit );
 		/*
 		 * if current is more than VBUS suspend current, we draw CDP
 		 * allowed maximum current (override SDP max current which is
 		 * set by the upper level driver).
 		 */
-		if (udc->current_limit > 2)
+		if (udc->current_limit == 0 || udc->current_limit > 2)
 			max_ua = USB_CHARGING_CDP_CURRENT_LIMIT_UA;
 		else
 			max_ua = udc->current_limit * 1000;
@@ -1466,7 +1466,6 @@ static void tegra_detect_charging_type_is_cdp_or_dcp(struct tegra_udc *udc)
 		 * as CDP.
 		 */
 		tegra_udc_set_charger_type(udc, CONNECT_TYPE_CDP);
-
 	spin_unlock_irqrestore(&udc->lock, flags);
 }
 
@@ -1478,7 +1477,6 @@ static int tegra_detect_cable_type(struct tegra_udc *udc)
 		tegra_udc_set_charger_type(udc, CONNECT_TYPE_NV_CHARGER);
 	else
 		tegra_udc_set_charger_type(udc, CONNECT_TYPE_SDP);
-
 	/*
 	 * If it is charger type, we start charging now. If it is connected to
 	 * USB host(CDP/SDP), we let upper gadget driver to decide the current
@@ -1540,7 +1538,9 @@ static int tegra_vbus_session(struct usb_gadget *gadget, int is_active)
 		/* start the controller if USB host detected */
 		if ((udc->connect_type == CONNECT_TYPE_SDP) ||
 		    (udc->connect_type == CONNECT_TYPE_CDP))
+		{
 			dr_controller_run(udc);
+		}
 	}
 	mutex_unlock(&udc->sync_lock);
 

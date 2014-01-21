@@ -378,7 +378,8 @@ static int max77660_set_charging_current(struct regulator_dev *rdev,
 	struct max77660_charger *charger = chip->charger;
 	int ret;
 	u8 status;
-
+	
+	printk("Ivan max77660_set_charging_current min_uA =%d; max_uA =%d \n",min_uA,max_uA);
 	ret = max77660_battery_detect(chip);
 	if (ret < 0) {
 		dev_err(chip->dev,
