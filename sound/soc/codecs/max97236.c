@@ -463,12 +463,12 @@ EXPORT_SYMBOL_GPL(switch_key_state);
 static void max97236_keypress(struct max97236_priv *max97236,
 		unsigned int *status_reg)
 {
-        wake_lock(&jack_key_lock);
 	unsigned char keystr[MAX_STRING] = "";
 	unsigned int key = 0;
 	unsigned int reg;
 	int press;
 /* headset key feature   WJ  22/11/13 */
+        wake_lock(&jack_key_lock);
         g_max97236 = max97236;
 /* headset key feature   WJ  22/11/13 */
 	regmap_read(max97236->regmap, M97236_REG_17_PASSIVE_MBH_KEYSCAN_DATA,
@@ -559,7 +559,7 @@ static void max97236_report_jack_state(struct max97236_priv *max97236,
 				M97236_MUTER_MASK, 0);
 	}
 
-	if (max97236->jack_state != state) {
+	if(max97236->jack_state != state ) {
 		snd_soc_jack_report(max97236->jack, state,
 				SND_JACK_HEADSET | SND_JACK_LINEOUT);
 		max97236->jack_state = state;
@@ -821,7 +821,25 @@ static void max97236_jack_event(struct max97236_priv *max97236)
 	if ((status_reg[0] & M97236_IMBH_MASK)      ||
 			(status_reg[0] & M97236_IMCSW_MASK) ||
 			(status_reg[1] & M97236_IKEY_MASK)) {
-		max97236_keypress(max97236, status_reg);
+/* headset detect feature   WJ  21/01/14 */
+		if (max97236_jacksw_active(max97236)){
+		    max97236_keypress(max97236, status_reg);
+                }else{
+        		regmap_update_bits(max97236->regmap, M97236_REG_07_LEFT_VOLUME,
+        				M97236_MUTEL_MASK, M97236_MUTEL_MASK);
+        		regmap_update_bits(max97236->regmap, M97236_REG_08_RIGHT_VOLUME,
+        				M97236_MUTER_MASK, M97236_MUTER_MASK);
+        		regmap_write(max97236->regmap, M97236_REG_23_TEST_DATA_3, 0x00);
+        		regmap_write(max97236->regmap, M97236_REG_19_STATE_FORCING,
+        				M97236_STATE_FLOAT);
+        		regmap_update_bits(max97236->regmap, M97236_REG_1D_ENABLE_1,
+        				M97236_SHDNN_MASK, 0);
+        		status_reg[0] = 0;
+        		status_reg[1] = 0;
+        		status_reg[2] = 0;
+        		max97236_report_jack_state(max97236, status_reg);
+                }
+/* headset detect feature   WJ  21/01/14  end*/
 	} else {
 		if (max97236_jacksw_active(max97236))
 			goto max97236_jack_event_10;
@@ -959,7 +977,7 @@ static void max97236_jack_work(struct work_struct *work)
 	int ret;
 
 	ret = clk_enable(clk_cdev1);
-	printk("Ivan max97236_jack_work \n");
+        printk("Ivan max97236_jack_work \n");
 	if (ret)
 		pr_info("Can't enable clk extern1\n");
 
@@ -1036,13 +1054,11 @@ int max97236_mic_detect(struct snd_soc_codec *codec,
 	unsigned int reg;
 	int test_value;
 	int ret = -1;
-
 	/* dev_info(codec->dev, "%s enter\n", __func__); */
 
 	if (jack) {
 		max97236->jack = jack;
 		max97236->jack_state = M97236_JACK_STATE_NONE;
-
 		regmap_read(max97236->regmap, M97236_REG_00_STATUS1, &reg);
 #ifdef M97236_JACK_SWITCH_NORMALLY_CLOSED
 		test_value = 4;
@@ -1061,6 +1077,9 @@ int max97236_mic_detect(struct snd_soc_codec *codec,
 			schedule_delayed_work(&max97236->jack_work,
 				msecs_to_jiffies(250));
 		} else {
+/* headset detect feature   WJ  21/01/14 */
+		        max97236->jack_state = SND_JACK_HEADSET;
+/* headset detect feature   WJ  21/01/14  end*/
 			/* Clear any interrupts then enable jack detection */
 			regmap_read(max97236->regmap, M97236_REG_00_STATUS1,
 				&reg);
@@ -1079,6 +1098,10 @@ int max97236_mic_detect(struct snd_soc_codec *codec,
 			max97236_configure_for_detection(max97236,
 				M97236_AUTO_MODE_0);
 #endif
+/* headset detect feature   WJ  21/01/14*/
+			schedule_delayed_work(&max97236->jack_work,
+				msecs_to_jiffies(250));
+/* headset detect feature   WJ  21/01/14  end*/
 		}
 
 		ret = 0;
@@ -1238,7 +1261,6 @@ static int max97236_resume(struct snd_soc_codec *codec)
 	regmap_read(max97236->regmap, M97236_REG_08_RIGHT_VOLUME, &reg);
 	regmap_write(max97236->regmap, M97236_REG_08_RIGHT_VOLUME,
 			reg);
-
 	return 0;
 }
 #else
