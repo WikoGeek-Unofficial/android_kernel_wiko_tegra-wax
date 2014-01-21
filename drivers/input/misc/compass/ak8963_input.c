@@ -25,7 +25,7 @@
 #define AKM_VERSION			(23)
 #define AKM_NAME			"akm89xx"
 #define AKM_HW_DELAY_POR_MS		(50)
-#define AKM_HW_DELAY_TSM_MS		(10)	/* Time Single Measurement */
+#define AKM_HW_DELAY_TSM_MS		(100)	/* Time Single Measurement */
 #define AKM_HW_DELAY_US			(100)
 #define AKM_HW_DELAY_ROM_ACCESS_US	(200)
 #define AKM_POLL_DELAY_MS_DFLT		(200)
