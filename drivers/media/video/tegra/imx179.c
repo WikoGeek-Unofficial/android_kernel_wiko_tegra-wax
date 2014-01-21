@@ -981,6 +981,7 @@ static inline void imx179_frame_length_reg(struct imx179_reg *regs,
 					   u32 frame_length)
 {
         //edit  2013-1-20:fixed the fps to 30 in FTM mode
+        static int boot_mode;
 	boot_mode = tegra_get_bootmode_id();
     if(boot_mode == 1 ||boot_mode == 3){
          printk(" fixed the fps to 30 in FTM mode  ");
