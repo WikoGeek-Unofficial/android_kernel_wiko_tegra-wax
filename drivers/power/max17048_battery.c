@@ -43,12 +43,14 @@
 #define MAX17048_CMD		0xFF
 #define MAX17048_UNLOCK_VALUE	0x4a57
 #define MAX17048_RESET_VALUE	0x5400
-#define MAX17048_DELAY		(30*HZ)
+#define MAX17048_DELAY		(10*HZ)
 #define MAX17048_BATTERY_FULL	100
 #define MAX17048_BATTERY_LOW	15
 #define MAX17048_VERSION_NO	0x11
 
 extern void max77660_power_forceoff(void);
+static int max_fg_w[128];
+static uint8_t g_17048_fg_byte[128];
 
 
 struct max17048_chip {
@@ -286,9 +288,26 @@ static uint16_t max17048_get_version(struct i2c_client *client)
 static void max17048_work(struct work_struct *work)
 {
 	struct max17048_chip *chip;
-
+//Ivan added
+	int loop;
+	
 	chip = container_of(work, struct max17048_chip, work.work);
+//Ivan add Maxim Fuel Gauge log
+	for (loop = 0; loop < 40 ; loop++)
+	  max_fg_w[loop] = max17048_read_word(chip->client, loop*2);
+	for (loop = 112; loop < 128 ; loop++)
+	  max_fg_w[loop] = max17048_read_word(chip->client, loop*2);
+	
 
+	printk("MAX17048_FG: %02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x\n",
+	       max_fg_w[0]&0x00ff,max_fg_w[0]>>8,max_fg_w[1]&0x00ff,max_fg_w[1]>>8,max_fg_w[2]&0x00ff,max_fg_w[2]>>8,max_fg_w[3]&0x00ff,max_fg_w[3]>>8,max_fg_w[4]&0x00ff,max_fg_w[4]>>8,max_fg_w[5]&0x00ff,max_fg_w[5]>>8,max_fg_w[6]&0x00ff,max_fg_w[6]>>8,max_fg_w[7]&0x00ff,max_fg_w[7]>>8,
+	       max_fg_w[8]&0x00ff,max_fg_w[8]>>8,max_fg_w[9]&0x00ff,max_fg_w[9]>>8,max_fg_w[10]&0x00ff,max_fg_w[10]>>8,max_fg_w[11]&0x00ff,max_fg_w[11]>>8,max_fg_w[12]&0x00ff,max_fg_w[12]>>8,max_fg_w[13]&0x00ff,max_fg_w[13]>>8,max_fg_w[14]&0x00ff,max_fg_w[14]>>8,max_fg_w[15]&0x00ff,max_fg_w[15]>>8,
+	       max_fg_w[16]&0x00ff,max_fg_w[16]>>8,max_fg_w[17]&0x00ff,max_fg_w[17]>>8,max_fg_w[18]&0x00ff,max_fg_w[18]>>8,max_fg_w[19]&0x00ff,max_fg_w[19]>>8,max_fg_w[20]&0x00ff,max_fg_w[20]>>8,max_fg_w[21]&0x00ff,max_fg_w[21]>>8,max_fg_w[22]&0x00ff,max_fg_w[22]>>8,max_fg_w[23]&0x00ff,max_fg_w[23]>>8,
+	       max_fg_w[24]&0x00ff,max_fg_w[24]>>8,max_fg_w[25]&0x00ff,max_fg_w[25]>>8,max_fg_w[26]&0x00ff,max_fg_w[26]>>8,max_fg_w[27]&0x00ff,max_fg_w[27]>>8,max_fg_w[28]&0x00ff,max_fg_w[28]>>8,max_fg_w[29]&0x00ff,max_fg_w[29]>>8,max_fg_w[30]&0x00ff,max_fg_w[30]>>8,max_fg_w[31]&0x00ff,max_fg_w[31]>>8,
+	       max_fg_w[32]&0x00ff,max_fg_w[32]>>8,max_fg_w[33]&0x00ff,max_fg_w[33]>>8,max_fg_w[34]&0x00ff,max_fg_w[34]>>8,max_fg_w[35]&0x00ff,max_fg_w[35]>>8,max_fg_w[36]&0x00ff,max_fg_w[36]>>8,max_fg_w[37]&0x00ff,max_fg_w[37]>>8,max_fg_w[38]&0x00ff,max_fg_w[38]>>8,max_fg_w[39]&0x00ff,max_fg_w[39]>>8,
+	       max_fg_w[112]&0x00ff,max_fg_w[112]>>8,max_fg_w[113]&0x00ff,max_fg_w[113]>>8,max_fg_w[114]&0x00ff,max_fg_w[114]>>8,max_fg_w[115]&0x00ff,max_fg_w[115]>>8,max_fg_w[116]&0x00ff,max_fg_w[116]>>8,max_fg_w[117]&0x00ff,max_fg_w[117]>>8,max_fg_w[118]&0x00ff,max_fg_w[118]>>8,max_fg_w[119]&0x00ff,max_fg_w[119]>>8,
+	       max_fg_w[120]&0x00ff,max_fg_w[120]>>8,max_fg_w[121]&0x00ff,max_fg_w[121]>>8,max_fg_w[122]&0x00ff,max_fg_w[122]>>8,max_fg_w[123]&0x00ff,max_fg_w[123]>>8,max_fg_w[124]&0x00ff,max_fg_w[124]>>8,max_fg_w[125]&0x00ff,max_fg_w[125]>>8,max_fg_w[126]&0x00ff,max_fg_w[126]>>8,max_fg_w[127]&0x00ff,max_fg_w[127]>>8);
+	
 	max17048_get_vcell(chip->client);
 	max17048_get_soc(chip->client);
 
@@ -665,6 +684,51 @@ static int max17048_update_battery_status(struct battery_gauge_dev *bg_dev,
 	return 0;
 }
 
+static ssize_t max17048_reg_show(struct device *dev, struct device_attribute *attr,
+			    char *buf)
+{
+
+	printk("Ivan max17048_reg_show! \n");
+/*
+	return sprintf(buf,
+	"%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x\n",
+		max_fg_w[0], max_fg_w[0]>>8, max_fg_w[1], max_fg_w[1]>>8, max_fg_w[2], max_fg_w[2]>>8, max_fg_w[3],
+		max_fg_w[3]>>8, key[8], key[9], key[10], key[11], key[12],
+		key[13], key[14], key[15]);
+
+*/
+	return sprintf(buf,": %02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x\n",
+	       max_fg_w[0]&0x00ff,max_fg_w[0]>>8,max_fg_w[1]&0x00ff,max_fg_w[1]>>8,max_fg_w[2]&0x00ff,max_fg_w[2]>>8,max_fg_w[3]&0x00ff,max_fg_w[3]>>8,max_fg_w[4]&0x00ff,max_fg_w[4]>>8,max_fg_w[5]&0x00ff,max_fg_w[5]>>8,max_fg_w[6]&0x00ff,max_fg_w[6]>>8,max_fg_w[7]&0x00ff,max_fg_w[7]>>8,
+	       max_fg_w[8]&0x00ff,max_fg_w[8]>>8,max_fg_w[9]&0x00ff,max_fg_w[9]>>8,max_fg_w[10]&0x00ff,max_fg_w[10]>>8,max_fg_w[11]&0x00ff,max_fg_w[11]>>8,max_fg_w[12]&0x00ff,max_fg_w[12]>>8,max_fg_w[13]&0x00ff,max_fg_w[13]>>8,max_fg_w[14]&0x00ff,max_fg_w[14]>>8,max_fg_w[15]&0x00ff,max_fg_w[15]>>8,
+	       max_fg_w[16]&0x00ff,max_fg_w[16]>>8,max_fg_w[17]&0x00ff,max_fg_w[17]>>8,max_fg_w[18]&0x00ff,max_fg_w[18]>>8,max_fg_w[19]&0x00ff,max_fg_w[19]>>8,max_fg_w[20]&0x00ff,max_fg_w[20]>>8,max_fg_w[21]&0x00ff,max_fg_w[21]>>8,max_fg_w[22]&0x00ff,max_fg_w[22]>>8,max_fg_w[23]&0x00ff,max_fg_w[23]>>8,
+	       max_fg_w[24]&0x00ff,max_fg_w[24]>>8,max_fg_w[25]&0x00ff,max_fg_w[25]>>8,max_fg_w[26]&0x00ff,max_fg_w[26]>>8,max_fg_w[27]&0x00ff,max_fg_w[27]>>8,max_fg_w[28]&0x00ff,max_fg_w[28]>>8,max_fg_w[29]&0x00ff,max_fg_w[29]>>8,max_fg_w[30]&0x00ff,max_fg_w[30]>>8,max_fg_w[31]&0x00ff,max_fg_w[31]>>8,
+	       max_fg_w[32]&0x00ff,max_fg_w[32]>>8,max_fg_w[33]&0x00ff,max_fg_w[33]>>8,max_fg_w[34]&0x00ff,max_fg_w[34]>>8,max_fg_w[35]&0x00ff,max_fg_w[35]>>8,max_fg_w[36]&0x00ff,max_fg_w[36]>>8,max_fg_w[37]&0x00ff,max_fg_w[37]>>8,max_fg_w[38]&0x00ff,max_fg_w[38]>>8,max_fg_w[39]&0x00ff,max_fg_w[39]>>8,
+	       max_fg_w[112]&0x00ff,max_fg_w[112]>>8,max_fg_w[113]&0x00ff,max_fg_w[113]>>8,max_fg_w[114]&0x00ff,max_fg_w[114]>>8,max_fg_w[115]&0x00ff,max_fg_w[115]>>8,max_fg_w[116]&0x00ff,max_fg_w[116]>>8,max_fg_w[117]&0x00ff,max_fg_w[117]>>8,max_fg_w[118]&0x00ff,max_fg_w[118]>>8,max_fg_w[119]&0x00ff,max_fg_w[119]>>8,
+	       max_fg_w[120]&0x00ff,max_fg_w[120]>>8,max_fg_w[121]&0x00ff,max_fg_w[121]>>8,max_fg_w[122]&0x00ff,max_fg_w[122]>>8,max_fg_w[123]&0x00ff,max_fg_w[123]>>8,max_fg_w[124]&0x00ff,max_fg_w[124]>>8,max_fg_w[125]&0x00ff,max_fg_w[125]>>8,max_fg_w[126]&0x00ff,max_fg_w[126]>>8,max_fg_w[127]&0x00ff,max_fg_w[127]>>8);
+}
+
+
+static DEVICE_ATTR(readreg, S_IRUGO | S_IWUSR | S_IWGRP,
+		   max17048_reg_show, NULL);
+
+static struct attribute *max17048_attrs[] = {
+	&dev_attr_readreg,	
+	NULL
+};
+
+static struct attribute_group max17048_attr_group = {
+	.name = "max17048",
+	.attrs = max17048_attrs
+};
+
+static int max17048_sysfs_create(struct i2c_client *client)
+{
+	int err;
+
+	err = sysfs_create_group(&client->dev.kobj, &max17048_attr_group);
+	return err;
+}
+
 static struct battery_gauge_ops max17048_bg_ops = {
 	.update_battery_status = max17048_update_battery_status,
 	.get_soc_value = max17048_read_soc_raw_value,
@@ -742,7 +806,9 @@ static int __devinit max17048_probe(struct i2c_client *client,
 
 	INIT_DELAYED_WORK_DEFERRABLE(&chip->work, max17048_work);
 	schedule_delayed_work(&chip->work, 0);
-
+	ret = max17048_sysfs_create(client);
+	if (ret)
+		printk("Ivan max17048_probe Create FS Error!");;
 	return 0;
 bg_err:
 	power_supply_unregister(&chip->battery);
