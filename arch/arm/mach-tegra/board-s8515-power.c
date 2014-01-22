@@ -209,7 +209,11 @@ static struct regulator_consumer_supply max77660_ldo9_supply[] = {
 	REGULATOR_SUPPLY("vdd_pm_2v8", NULL),
 	REGULATOR_SUPPLY("vdd", "0-004c"),
 	REGULATOR_SUPPLY("vdd", "0-0069"),
+#if (CONFIG_S8515_PR_VERSION == 2)
+	REGULATOR_SUPPLY("vdd", "0-000e"),
+#else
 	REGULATOR_SUPPLY("vdd", "0-000c"),
+#endif
 	REGULATOR_SUPPLY("vdd", "0-0078"),
 	REGULATOR_SUPPLY("vdd_prox", "0-001c"),	
 };
@@ -286,7 +290,11 @@ static struct regulator_consumer_supply max77660_sw3_supply[] = {
 	REGULATOR_SUPPLY("vdd_aud_mic", NULL),
 	REGULATOR_SUPPLY("vdd", "0-0044"),
 	REGULATOR_SUPPLY("vlogic", "0-0069"),
+#if (CONFIG_S8515_PR_VERSION == 2)
+	REGULATOR_SUPPLY("vid", "0-000e"),
+#else
 	REGULATOR_SUPPLY("vid", "0-000c"),
+#endif
 	REGULATOR_SUPPLY("vddio", "0-0078"),
 	//edit by Magnum 2013-11-13
 #ifndef TINNO_TP_2_CAM	    
