@@ -1870,7 +1870,7 @@ set_attr:
 	return count;
 }
 
-static DEVICE_ATTR(d, 0777, ov5648_status_show, ov5648_attr_set);
+static DEVICE_ATTR(d, 0755, ov5648_status_show, ov5648_attr_set);
 
 static int ov5648_sysfs_init(struct ov5648_info *info)
 {

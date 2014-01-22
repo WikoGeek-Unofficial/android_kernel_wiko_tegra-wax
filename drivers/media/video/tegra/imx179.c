@@ -1678,6 +1678,8 @@ static int imx179_mode_wr(struct imx179_info *info,
 		goto imx179_mode_wr_err;
 
 	//ReadOTPIMX179(info);
+	if( (mode->res_x == 1640) || (mode->res_y == 1232))
+		msleep(50);
 
 	return 0;
 
