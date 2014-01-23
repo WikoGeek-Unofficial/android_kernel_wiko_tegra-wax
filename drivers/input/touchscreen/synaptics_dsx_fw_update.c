@@ -1593,17 +1593,14 @@ exit:
 unsigned int synaptics_get_fw_version(void)
 {
    
-    if (!fwu)
-    return -ENODEV;
+	if (!fwu)
+	return -ENODEV;
 
-    if (!fwu->initialized)
-    return -ENODEV;
+	if (!fwu->initialized)
+	return -ENODEV;
 
-//    ret = fwu->fn_ptr->read(fwu->rmi4_data,fwu->f34_fd.ctrl_base_addr,config_id,4);
-    
-//    device_configID = ConvertConfigID(config_id);
 	int retval; 	
-    	int deviceFirmwareID;
+	int deviceFirmwareID;
 	int imageConfigID;
 	int deviceConfigID;
 	unsigned long imageFirmwareID;
@@ -1620,7 +1617,6 @@ unsigned int synaptics_get_fw_version(void)
 			__func__,
 			retval);
 	}
-	//deviceConfigID =  extract_uint_be(config_id);
 
 	dev_dbg(&fwu->rmi4_data->i2c_client->dev,
 		"%s: Device config ID 0x%02X, 0x%02X, 0x%02X, 0x%02X\n",
@@ -1631,7 +1627,6 @@ unsigned int synaptics_get_fw_version(void)
     return deviceConfigID;
     
 }
-//EXPORT_SYMBOL(synaptics_get_fw_version);
 
 char * synaptics_get_vendor_info(void)
 {
@@ -1648,7 +1643,6 @@ char * synaptics_get_vendor_info(void)
     return fwu->rmi4_data->rmi4_mod_info.product_id_string;
     
 }
-//EXPORT_SYMBOL(synaptics_get_vendor_info);
 
 int synaptics_fw_updater(unsigned char *fw_data)
 {

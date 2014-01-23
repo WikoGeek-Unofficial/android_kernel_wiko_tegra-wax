@@ -950,8 +950,7 @@ static void smart_report_key(struct synaptics_rmi4_data *rmi4_data,struct synapt
 	if(boot_mode == 1 ||boot_mode == 3)
 		input_report_key(rmi4_data->input_dev,f1a->button_map[button],down);  
 	else{
-		if(down){
-			
+		if(down){		
 				dev_dbg(&rmi4_data->i2c_client->dev,"Magnum report Virtual key X == %d, y == %d n",x,y);
 				#ifdef TYPE_B_PROTOCOL
 				input_mt_slot(rmi4_data->input_dev, 0);
@@ -963,15 +962,12 @@ static void smart_report_key(struct synaptics_rmi4_data *rmi4_data,struct synapt
 				input_report_abs(rmi4_data->input_dev,ABS_MT_POSITION_X, x);
 				input_report_abs(rmi4_data->input_dev,ABS_MT_POSITION_Y, y);
 				input_report_abs(rmi4_data->input_dev,ABS_MT_PRESSURE, 50);	
-				//input_mt_sync(rmi4_data->input_dev);
-		
 		}
 		else{
 				#ifdef TYPE_B_PROTOCOL
 				input_mt_slot(rmi4_data->input_dev, 0);
 				input_mt_report_slot_state(rmi4_data->input_dev,MT_TOOL_FINGER, false);
-				#endif
-			
+				#endif	
 		}
 	}
 }

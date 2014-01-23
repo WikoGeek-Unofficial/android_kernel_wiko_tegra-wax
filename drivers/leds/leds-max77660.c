@@ -983,7 +983,7 @@ void  tinno_max77660_get_rg_blink_onms(unsigned long onms){
 ***/
 int tinno_max77660_leds_suspend()
 {
-	printk("Magnum %s() \n",__func__);
+	//printk("Magnum %s() \n",__func__);
 	set_rg_leds_brt(g_blink_brightness);
 	max77660_led_set_hardware_blink(g_rg_blink_onms, g_rg_blink_offms);
 	return 0;
@@ -991,13 +991,13 @@ int tinno_max77660_leds_suspend()
 
 int tinno_max77660_leds_resume()
 {
-	printk("Magnum %s() \n",__func__);
+	//printk("Magnum %s() \n",__func__);
 	max77660_led_one_shot_mode();
 	return 0;
 }
 static int max77660_leds_suspend(struct platform_device *ndev, pm_message_t state)
 {
-	printk("Magnum %s() \n",__func__);
+	//printk("Magnum %s() \n",__func__);
 	led_classdev_suspend(&max77660_rg_led);
 	max77660_rg_led.brightness = LED_OFF;
 	led_classdev_suspend(&max77660_button1_led);
@@ -1013,7 +1013,7 @@ static int max77660_leds_suspend(struct platform_device *ndev, pm_message_t stat
 
 static int max77660_leds_resume(struct platform_device *ndev)
 {
-	printk("Magnum %s() \n",__func__);
+	//printk("Magnum %s() \n",__func__);
 	led_classdev_resume(&max77660_rg_led);
 	led_classdev_resume(&max77660_button1_led);
 
