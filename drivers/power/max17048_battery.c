@@ -43,15 +43,19 @@
 #define MAX17048_CMD		0xFF
 #define MAX17048_UNLOCK_VALUE	0x4a57
 #define MAX17048_RESET_VALUE	0x5400
-#define MAX17048_DELAY		(10*HZ)
+#define MAX17048_DELAY		(20*HZ)
 #define MAX17048_BATTERY_FULL	100
 #define MAX17048_BATTERY_LOW	15
 #define MAX17048_VERSION_NO	0x11
 
 extern void max77660_power_forceoff(void);
-static int max_fg_w[128];
-static uint8_t g_17048_fg_byte[128];
+//static int max_fg_w[128];
+//static uint8_t g_17048_fg_byte[128];
 
+#define VCELL_LEN	10
+static long g_fg_record_time;
+static int g_vcell_fifo[VCELL_LEN];
+static int g_vcell_fifo_init = 0;
 
 struct max17048_chip {
 	struct i2c_client		*client;
@@ -289,10 +293,13 @@ static void max17048_work(struct work_struct *work)
 {
 	struct max17048_chip *chip;
 //Ivan added
-	int loop;
+	int loop,avg_v;
+	int temp;
+	int rcomp;
 	
 	chip = container_of(work, struct max17048_chip, work.work);
 //Ivan add Maxim Fuel Gauge log
+#if 0
 	for (loop = 0; loop < 40 ; loop++)
 	  max_fg_w[loop] = max17048_read_word(chip->client, loop*2);
 	for (loop = 112; loop < 128 ; loop++)
@@ -307,11 +314,15 @@ static void max17048_work(struct work_struct *work)
 	       max_fg_w[32]&0x00ff,max_fg_w[32]>>8,max_fg_w[33]&0x00ff,max_fg_w[33]>>8,max_fg_w[34]&0x00ff,max_fg_w[34]>>8,max_fg_w[35]&0x00ff,max_fg_w[35]>>8,max_fg_w[36]&0x00ff,max_fg_w[36]>>8,max_fg_w[37]&0x00ff,max_fg_w[37]>>8,max_fg_w[38]&0x00ff,max_fg_w[38]>>8,max_fg_w[39]&0x00ff,max_fg_w[39]>>8,
 	       max_fg_w[112]&0x00ff,max_fg_w[112]>>8,max_fg_w[113]&0x00ff,max_fg_w[113]>>8,max_fg_w[114]&0x00ff,max_fg_w[114]>>8,max_fg_w[115]&0x00ff,max_fg_w[115]>>8,max_fg_w[116]&0x00ff,max_fg_w[116]>>8,max_fg_w[117]&0x00ff,max_fg_w[117]>>8,max_fg_w[118]&0x00ff,max_fg_w[118]>>8,max_fg_w[119]&0x00ff,max_fg_w[119]>>8,
 	       max_fg_w[120]&0x00ff,max_fg_w[120]>>8,max_fg_w[121]&0x00ff,max_fg_w[121]>>8,max_fg_w[122]&0x00ff,max_fg_w[122]>>8,max_fg_w[123]&0x00ff,max_fg_w[123]>>8,max_fg_w[124]&0x00ff,max_fg_w[124]>>8,max_fg_w[125]&0x00ff,max_fg_w[125]>>8,max_fg_w[126]&0x00ff,max_fg_w[126]>>8,max_fg_w[127]&0x00ff,max_fg_w[127]>>8);
-	
+#endif
 	max17048_get_vcell(chip->client);
 	max17048_get_soc(chip->client);
-
-	printk("Ivan max17048_work vcell[%d], soc[%d], raw_soc[%d]\n",chip->vcell,chip->soc,chip->raw_soc );
+	battery_gauge_get_battery_temperature(chip->bg_dev,&temp);
+	rcomp = max17048_read_word(chip->client, 0x0c);
+	g_fg_record_time+=20;
+	printk("\n");
+	printk("MAX17048_FG:%6d,%6d,%6d,%6d,%6d\n",g_fg_record_time,chip->vcell,temp,chip->raw_soc,rcomp>>8);
+	printk("Ivan max17048_work vcell[%d], soc[%d], raw_soc[%d], temp[%d], rcomp[%d]\n",chip->vcell,chip->soc,chip->raw_soc,temp,rcomp>>8 );
 	
 	if (chip->soc != chip->lasttime_soc ||
 		chip->status != chip->lasttime_status) {
@@ -319,18 +330,36 @@ static void max17048_work(struct work_struct *work)
 		power_supply_changed(&chip->battery);
 	}
 
+//Init the voltage buffer to the initialize voltage value
+	avg_v = 0;
 	schedule_delayed_work(&chip->work, MAX17048_DELAY);
+	if (g_vcell_fifo_init == 0)
+	{
+	    g_vcell_fifo_init = 1;
+	    for (loop = 0; loop < VCELL_LEN; loop ++)
+	      g_vcell_fifo[loop] = chip->vcell;
+	}
+//Ivan average the vcell voltage
+	for (loop = 0; loop < (VCELL_LEN - 1); loop ++)
+	  g_vcell_fifo[loop] = g_vcell_fifo[loop+1];
+	
+	g_vcell_fifo[VCELL_LEN-1] = chip->vcell;
 
-
+	for (loop = 0; loop < VCELL_LEN; loop ++)
+	  avg_v += g_vcell_fifo[loop];
+	
+	avg_v = avg_v/VCELL_LEN;
 	
 	if (chip->status == POWER_SUPPLY_STATUS_DISCHARGING)
 	{
-	  if (chip->vcell < 3450)
-	    chip->soc = 0;
-	  
-	  if (chip->vcell < 3400)
+	  if (avg_v < 3450)
 	  {
-	    printk("Ivan Battery too low (3.4V), power off...\n");	    
+	    printk("Ivan Battery < 3450, Android power off...\n");	    
+	    chip->soc = 0;
+	  }
+	  if (avg_v < 3400)
+	  {
+	    printk("Ivan Battery too low (3.4V), force power off...\n");	    
 	    max77660_power_forceoff();
 	  }
 	}
@@ -412,6 +441,7 @@ static int max17048_load_model_data(struct max17048_chip *chip)
 		return ret;
 	}
 	ocv = (uint16_t)ret;
+	printk("@@xu: ocv:%d\n",(ret >> 4) * 1250);	
 	if (ocv == 0xffff) {
 		dev_err(&client->dev, "%s: Failed in unlocking"
 					"max17048 err: %d\n", __func__, ocv);
@@ -487,7 +517,17 @@ static int max17048_initialize(struct max17048_chip *chip)
 	uint8_t ret, config = 0;
 	struct i2c_client *client = chip->client;
 	struct max17048_battery_model *mdata = chip->pdata->model_data;
+	uint16_t status;
+ 
+	status = max17048_read_word(client, MAX17048_STATUS);
+	printk("@@xu: MAX17048_STATUS:0x%x\n",status);
+	status = status >> 8;
 
+	if((status & 0x01) == 0){
+		printk("@@xu: return no need to initialize max17048\n");
+		return 0;
+	}
+	printk("@@xu: start initialize max17048\n");
 	/* unlock model access */
 	ret = max17048_write_word(client, MAX17048_UNLOCK,
 			MAX17048_UNLOCK_VALUE);
@@ -500,6 +540,16 @@ static int max17048_initialize(struct max17048_chip *chip)
 		dev_err(&client->dev, "%s: err %d\n", __func__, ret);
 		return ret;
 	}
+	status = max17048_read_word(client, MAX17048_STATUS);
+	printk("@@xu: clear before MAX17048_STATUS:0x%x\n",status);
+	status = status & ~0x0100;
+
+	ret = max17048_write_word(client, MAX17048_STATUS,
+			status);
+	if (ret < 0)
+		return ret;
+
+	printk("@@xu: clear after MAX17048_STATUS:0x%x\n",status);
 
 	if (mdata->bits == 19)
 		config = 32 - (mdata->alert_threshold * 2);
@@ -689,22 +739,7 @@ static ssize_t max17048_reg_show(struct device *dev, struct device_attribute *at
 {
 
 	printk("Ivan max17048_reg_show! \n");
-/*
-	return sprintf(buf,
-	"%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x\n",
-		max_fg_w[0], max_fg_w[0]>>8, max_fg_w[1], max_fg_w[1]>>8, max_fg_w[2], max_fg_w[2]>>8, max_fg_w[3],
-		max_fg_w[3]>>8, key[8], key[9], key[10], key[11], key[12],
-		key[13], key[14], key[15]);
 
-*/
-	return sprintf(buf,": %02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x;%02x\n",
-	       max_fg_w[0]&0x00ff,max_fg_w[0]>>8,max_fg_w[1]&0x00ff,max_fg_w[1]>>8,max_fg_w[2]&0x00ff,max_fg_w[2]>>8,max_fg_w[3]&0x00ff,max_fg_w[3]>>8,max_fg_w[4]&0x00ff,max_fg_w[4]>>8,max_fg_w[5]&0x00ff,max_fg_w[5]>>8,max_fg_w[6]&0x00ff,max_fg_w[6]>>8,max_fg_w[7]&0x00ff,max_fg_w[7]>>8,
-	       max_fg_w[8]&0x00ff,max_fg_w[8]>>8,max_fg_w[9]&0x00ff,max_fg_w[9]>>8,max_fg_w[10]&0x00ff,max_fg_w[10]>>8,max_fg_w[11]&0x00ff,max_fg_w[11]>>8,max_fg_w[12]&0x00ff,max_fg_w[12]>>8,max_fg_w[13]&0x00ff,max_fg_w[13]>>8,max_fg_w[14]&0x00ff,max_fg_w[14]>>8,max_fg_w[15]&0x00ff,max_fg_w[15]>>8,
-	       max_fg_w[16]&0x00ff,max_fg_w[16]>>8,max_fg_w[17]&0x00ff,max_fg_w[17]>>8,max_fg_w[18]&0x00ff,max_fg_w[18]>>8,max_fg_w[19]&0x00ff,max_fg_w[19]>>8,max_fg_w[20]&0x00ff,max_fg_w[20]>>8,max_fg_w[21]&0x00ff,max_fg_w[21]>>8,max_fg_w[22]&0x00ff,max_fg_w[22]>>8,max_fg_w[23]&0x00ff,max_fg_w[23]>>8,
-	       max_fg_w[24]&0x00ff,max_fg_w[24]>>8,max_fg_w[25]&0x00ff,max_fg_w[25]>>8,max_fg_w[26]&0x00ff,max_fg_w[26]>>8,max_fg_w[27]&0x00ff,max_fg_w[27]>>8,max_fg_w[28]&0x00ff,max_fg_w[28]>>8,max_fg_w[29]&0x00ff,max_fg_w[29]>>8,max_fg_w[30]&0x00ff,max_fg_w[30]>>8,max_fg_w[31]&0x00ff,max_fg_w[31]>>8,
-	       max_fg_w[32]&0x00ff,max_fg_w[32]>>8,max_fg_w[33]&0x00ff,max_fg_w[33]>>8,max_fg_w[34]&0x00ff,max_fg_w[34]>>8,max_fg_w[35]&0x00ff,max_fg_w[35]>>8,max_fg_w[36]&0x00ff,max_fg_w[36]>>8,max_fg_w[37]&0x00ff,max_fg_w[37]>>8,max_fg_w[38]&0x00ff,max_fg_w[38]>>8,max_fg_w[39]&0x00ff,max_fg_w[39]>>8,
-	       max_fg_w[112]&0x00ff,max_fg_w[112]>>8,max_fg_w[113]&0x00ff,max_fg_w[113]>>8,max_fg_w[114]&0x00ff,max_fg_w[114]>>8,max_fg_w[115]&0x00ff,max_fg_w[115]>>8,max_fg_w[116]&0x00ff,max_fg_w[116]>>8,max_fg_w[117]&0x00ff,max_fg_w[117]>>8,max_fg_w[118]&0x00ff,max_fg_w[118]>>8,max_fg_w[119]&0x00ff,max_fg_w[119]>>8,
-	       max_fg_w[120]&0x00ff,max_fg_w[120]>>8,max_fg_w[121]&0x00ff,max_fg_w[121]>>8,max_fg_w[122]&0x00ff,max_fg_w[122]>>8,max_fg_w[123]&0x00ff,max_fg_w[123]>>8,max_fg_w[124]&0x00ff,max_fg_w[124]>>8,max_fg_w[125]&0x00ff,max_fg_w[125]>>8,max_fg_w[126]&0x00ff,max_fg_w[126]>>8,max_fg_w[127]&0x00ff,max_fg_w[127]>>8);
 }
 
 
@@ -807,6 +842,9 @@ static int __devinit max17048_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK_DEFERRABLE(&chip->work, max17048_work);
 	schedule_delayed_work(&chip->work, 0);
 	ret = max17048_sysfs_create(client);
+	printk("MAX17048_FG:  TIME,  VOLT,  TEMP,   SOC, RCOMP\n");
+	g_fg_record_time= 0;
+	g_vcell_fifo_init = 0;
 	if (ret)
 		printk("Ivan max17048_probe Create FS Error!");;
 	return 0;
