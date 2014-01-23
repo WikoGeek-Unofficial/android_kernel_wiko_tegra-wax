@@ -286,7 +286,6 @@ static int tegra_fb_setcmap(struct fb_cmap *cmap, struct fb_info *info)
 static int tegra_fb_blank(int blank, struct fb_info *info)
 {
 	struct tegra_fb_info *tegra_fb = info->par;
-	printk("Magnum-LCM %s()\n",__func__);
 	switch (blank) {
 	case FB_BLANK_UNBLANK:
 		dev_dbg(&tegra_fb->ndev->dev, "unblank\n");
