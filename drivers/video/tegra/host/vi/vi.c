@@ -154,7 +154,8 @@ static int vi_suspend(struct device *dev)
 	if (ret) {
 		dev_info(dev, "%s: tegra_camera_suspend error=%d\n",
 		__func__, ret);
-		return ret;
+//Ivan just print the error, allow the system to suspend...
+//Ivan		return ret;
 	}
 #endif
 
