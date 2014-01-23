@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
  * 02111-1307, USA
  */
-#define DEBUG 1
+//#define DEBUG 1
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
@@ -754,7 +754,6 @@ int max77660_led_set_hardware_blink(unsigned long onms, unsigned long offms)
 	unsigned long leds_blnkp = 0;
 	unsigned long leds_blnkd = 0;
 	unsigned long val = 0;
-	printk("Magnum %s(), onms == %d, offms == %d \n",__func__,onms,offms);
 	dev_dbg(g_max77660_dev,"Magnum %s(), onms == %d, offms == %d \n",__func__,onms,offms);
 	/* look up the value need setting, matching with blinking duration time_ms. */
 	for (i = 0; i < ARRAY_SIZE(max77660_ledblnkd); i++) {
@@ -765,7 +764,6 @@ int max77660_led_set_hardware_blink(unsigned long onms, unsigned long offms)
 		dev_err(g_max77660_dev, "the time of blinking duration is too long, %d ms\n", leds_onms);
 		return -EINVAL;
 	}
-	printk("Magnum %s(), onms == %d \n",__func__,max77660_ledblnkd[i].time_ms);
 	
 	leds_blnkd |= max77660_ledblnkd[i].bits_val << 4;
 
@@ -782,19 +780,16 @@ int max77660_led_set_hardware_blink(unsigned long onms, unsigned long offms)
 		dev_err(g_max77660_dev, "the time of blinking period is too long, %d ms\n", leds_blnkp_ms);
 		return -EINVAL;
 	}
-	printk("Magnum %s(), offms == %d \n",__func__,max77660_ledblnkp[i].time_ms);
 	leds_blnkp = max77660_ledblnkd[i].bits_val;
 
 	val = leds_blnkp |leds_blnkd;
 
-	printk("Magnum %s(), blink register == 0x%x \n",__func__,val);
 	ret = max77660_reg_write(g_max77660_dev->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_LEDBLNK, val);
 	if (ret < 0) {
 		dev_err(g_max77660_dev, "LEDBLNK write failed: %d\n", ret);
 		return -1;
 	}
-    	printk("Magnum %s(), OKOKOKOK !!\n",__func__);
 	return 0;	
 }
 
@@ -962,21 +957,21 @@ static struct led_classdev max77660_rg_led = {
 void  tinno_max77660_get_rg_blink_brightness(unsigned long blink_brt){
 	if(g_blink_brightness !=blink_brt){
 		g_blink_brightness= blink_brt;
-		printk("Magnum g_blink_brightness== %d\n",g_blink_brightness);
+		dev_dbg(g_max77660_dev,"Magnum g_blink_brightness== %d\n",g_blink_brightness);
 	}
 }
 
 void  tinno_max77660_get_rg_blink_offms(unsigned long offms){
 	if(g_rg_blink_offms !=offms){
 		g_rg_blink_offms= offms;
-		printk("Magnum g_rg_blink_offms== %d\n",g_rg_blink_offms);
+		dev_dbg(g_max77660_dev,"Magnum g_rg_blink_offms== %d\n",g_rg_blink_offms);
 	}
 }
 
 void  tinno_max77660_get_rg_blink_onms(unsigned long onms){
 	if(g_rg_blink_onms !=onms){
 		g_rg_blink_onms= onms;
-		printk("Magnum g_rg_blink_onms== %d\n",g_rg_blink_onms);
+		dev_dbg(g_max77660_dev,"Magnum g_rg_blink_onms== %d\n",g_rg_blink_onms);
 	}
 }
 
