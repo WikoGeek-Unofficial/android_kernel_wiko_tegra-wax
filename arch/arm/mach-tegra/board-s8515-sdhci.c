@@ -170,6 +170,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.power_gpio = -1,
 	.tap_delay = 0x3,
 	.trim_delay = 0xA,
+	.uhs_mask = MMC_UHS_MASK_SDR104 | MMC_UHS_MASK_DDR50, //wang jian add to disable SDR104 for wifi
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 136000000,
 	.edp_support = false,
