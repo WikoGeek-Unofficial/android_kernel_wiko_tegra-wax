@@ -1417,8 +1417,8 @@ static int akm_probe(struct i2c_client *client,
 	if (err)
 		goto akm_probe_err;
 //Ivan	
-	inf->dbg = 0xFFFF;
-//Ivan	inf->dbg = 0;
+//	inf->dbg = 0xFFFF;
+	inf->dbg = 0;
 	printk("Ivan akm_probe AK8963 OK!! \n");
 	return 0;
 
