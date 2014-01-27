@@ -49,6 +49,14 @@
 #include "dsi.h"
 #include "mipi_cal.h"
 
+//Magnum 2014-1-27 
+#define TINNO_ESD_CHECK
+#ifdef TINNO_ESD_CHECK
+#include <linux/backlight.h>
+#include "../../../arch/arm/mach-tegra/gpio-names.h"
+//#include "../../../arch/arm/mach-tegra/board.h"
+#endif
+
 #define APB_MISC_GP_MIPI_PAD_CTRL_0	(TEGRA_APB_MISC_BASE + 0x820)
 #define DSIB_MODE_ENABLE		0x2
 
@@ -94,8 +102,96 @@ static atomic_t dsi_syncpt_rst = ATOMIC_INIT(0);
 
 static bool enable_read_debug;
 module_param(enable_read_debug, bool, 0644);
-MODULE_PARM_DESC(enable_read_debug,
-		"Enable to print read fifo and return packet type");
+MODULE_PARM_DESC(enable_read_debug,"Enable to print read fifo and return packet type");
+
+/*** 		Magnum 2014-1-27, from Phil --Nividia
+***   		1.check LCM status by TE input irq.  TE irq every 16ms, frequence == 60HZ.
+***         	2.when irq comes,start and modify timer
+***/
+#ifdef TINNO_ESD_CHECK
+#define TE_PIN_GPIO		TEGRA_GPIO_PG1
+#define TE_TIMEOUT_MS	500
+
+//#define DEBUG_8S_AUTO_RECOVERY
+
+#ifdef DEBUG_8S_AUTO_RECOVERY
+static  int counter = 0;
+#endif
+
+struct tegra_dc *this_dc = NULL;
+
+static void lcd_te_expiration(unsigned long data);
+static struct timer_list 	te_timer = TIMER_INITIALIZER(lcd_te_expiration, 0, 0);
+static struct work_struct	lcd_te_work;
+
+void lcd_te_enable(void)
+{
+	enable_irq(gpio_to_irq(TE_PIN_GPIO));
+	mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+}
+
+void lcd_te_disable(void)
+{
+	disable_irq(gpio_to_irq(TE_PIN_GPIO));
+	del_timer(&te_timer);
+}
+
+static void lcd_te_work_func(struct work_struct *work)
+{
+	struct backlight_device *bl = NULL;
+	int brightness = 0;
+
+	if(this_dc) {
+		/*turn off backlight */
+		if(!(this_dc->out->sd_settings->bl_device)) {
+			pr_info("LCD TE INT no bl_device\n");
+			lcd_te_enable();
+			return;
+		}
+
+		pr_info("LCD TE INT lcd_te_work_func\n");
+		bl = this_dc->out->sd_settings->bl_device;
+		brightness = bl->props.brightness;
+		bl->props.brightness = 0;
+		backlight_update_status(bl);
+		tegra_dc_disable(this_dc);
+
+		tegra_dc_enable(this_dc);
+		bl->props.brightness = brightness;
+		backlight_update_status(bl);
+
+		/* start timer again */
+		lcd_te_enable();
+		//enable_irq(gpio_to_irq(TE_PIN_GPIO));
+		//mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+#ifdef DEBUG_8S_AUTO_RECOVERY
+		counter = 0;
+#endif
+	}
+}
+
+static void lcd_te_expiration(unsigned long data)
+{
+	/* TE stopped, recovery LCD */
+	//pr_info("LCD TE signal stopped: recovery LCD\n");
+	disable_irq(gpio_to_irq(TE_PIN_GPIO));
+	schedule_work(&lcd_te_work);
+}
+
+static irqreturn_t lcd_te_irq(int irq, void *data)
+{
+	//pr_info("LCD TE INT handler\n");
+#ifdef DEBUG_8S_AUTO_RECOVERY
+	counter++;
+	if(counter > 500)
+		;
+	else
+#endif
+	mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+	return IRQ_HANDLED;
+};
+#endif
+
 
 /* source of video data */
 enum {
@@ -4449,6 +4545,10 @@ fail:
 
 static void tegra_dc_dsi_disable(struct tegra_dc *dc)
 {
+	//Magnum 2014-1-27
+	#ifdef TINNO_ESD_CHECK
+	lcd_te_disable();
+	#endif
 	_tegra_dc_dsi_disable(dc);
 
 	if (dc->out->dsi->ganged_type) {
@@ -4576,6 +4676,37 @@ static int tegra_dc_dsi_init(struct tegra_dc *dc)
 							dsi->mipi_cal;
 		tegra_dc_set_outdata(dc, tegra_dsi_instance[DSI_INSTANCE_0]);
 	}
+
+	//Magnum 2014-1-27 ,  using TE signal for ESD recovery 
+#ifdef TINNO_ESD_CHECK
+	if (gpio_is_valid(TE_PIN_GPIO)) {
+		INIT_WORK(&lcd_te_work, lcd_te_work_func);
+		this_dc = dc;
+		err = gpio_request(TE_PIN_GPIO, "lcd_te");
+		if (err) {
+			dev_err(&dc->ndev->dev,
+				"lcd_te gpio request failed\n");
+			return 0;  /* JUST a WAR, don't return error */
+		}
+		gpio_direction_input(TE_PIN_GPIO);
+
+		err = request_threaded_irq(gpio_to_irq(TE_PIN_GPIO), NULL,
+					 lcd_te_irq,
+					 /* IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, */
+					 IRQF_TRIGGER_RISING,
+					 "lcd_te_irq", NULL);
+
+		if (err) {
+			dev_err(&dc->ndev->dev,
+				"lcd_te irq request failed\n");
+			gpio_free(TE_PIN_GPIO);
+			return 0; /* JUST a WAR, don't return error */
+		}
+		disable_irq(gpio_to_irq(TE_PIN_GPIO));
+	}
+#endif
+
+	
 	return 0;
 err_ganged:
 	tegra_mipi_cal_destroy(dc);
@@ -4615,6 +4746,11 @@ static void tegra_dc_dsi_enable(struct tegra_dc *dc)
 		_tegra_dc_dsi_enable(dc);
 		tegra_dc_set_outdata(dc, tegra_dsi_instance[DSI_INSTANCE_0]);
 	}
+	//Magnum 2014-1-27
+	#ifdef TINNO_ESD_CHECK
+	enable_irq(gpio_to_irq(TE_PIN_GPIO));
+	pr_info("LCD TE INT enable\n");
+	#endif
 }
 
 static long tegra_dc_dsi_setup_clk(struct tegra_dc *dc, struct clk *clk)

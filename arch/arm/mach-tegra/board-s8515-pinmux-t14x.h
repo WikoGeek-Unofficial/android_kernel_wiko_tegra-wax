@@ -107,7 +107,10 @@ static __initdata struct tegra_pingroup_config ceres_pinmux_common[] = {
 
 	/* Display pinmux */
 //	DEFAULT_PINMUX(DCA_LSPII,   DISPLAYA,      NORMAL,   TRISTATE,   INPUT),	//Ivan
-	DEFAULT_PINMUX(DCA_LSPII,   DISPLAYA,      NORMAL,   NORMAL,   OUTPUT),
+//	DEFAULT_PINMUX(DCA_LSPII,   DISPLAYA,      NORMAL,   NORMAL,   OUTPUT),
+	//Magnum 2014-1-27, get TE input interrupt 
+	DEFAULT_PINMUX(DCA_LSPII,   DISPLAYA,      NORMAL,   NORMAL,   INPUT), 
+	
 
 	/* BCL pinmux */
 //Ivan removed FIXME
