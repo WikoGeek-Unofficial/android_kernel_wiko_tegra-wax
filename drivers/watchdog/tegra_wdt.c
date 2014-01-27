@@ -79,7 +79,7 @@ struct tegra_wdt {
  * For spinlock lockup detection to work, the heartbeat should be 2*lockup
  * for cases where the spinlock disabled irqs.
  */
-static int heartbeat = 120; /* must be greater than MIN_WDT_PERIOD and lower than MAX_WDT_PERIOD */
+static int heartbeat = 40; /* must be greater than MIN_WDT_PERIOD and lower than MAX_WDT_PERIOD */
 
 #if defined(CONFIG_ARCH_TEGRA_2x_SOC)
 
@@ -229,7 +229,8 @@ static void tegra_wdt_disable(struct tegra_wdt *wdt)
 static irqreturn_t tegra_wdt_interrupt(int irq, void *dev_id)
 {
 	unsigned i, status;
-
+	
+	pr_info("WDT heartbeat for Tegra WDT 1st expiry\n");
 	for (i = 0; i < MAX_NR_CPU_WDT; i++) {
 		if (tegra_wdt[i] == NULL)
 			continue;
