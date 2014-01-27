@@ -233,7 +233,8 @@ void tegra_assert_system_reset(char mode, const char *cmd)
 	else {
 		pr_info("Restarting system, cmd=NULL ");
 		/* Clearing SCRATCH0 31:30:1 on default reboot */
-		reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE);
+		reg &= ~(BOOTLOADER_MODE | RECOVERY_MODE | FORCED_RECOVERY_MODE
+				| POWEROFF_MODE);
 		if (poweroff)  //ljs move; poweroff, except cmd != null
 			reg |= POWEROFF_MODE;
 	}
