@@ -577,12 +577,15 @@ static int max77660_charger_detail_irq(int irq, void *data, u8 *val)
 		case MAX77660_CHG_DTLS_DONE:
 			dev_info(chip->dev,
 			"Fast Charge current Interrupt: DONE\n");
+			/*Charge done dicide by fuel gauge,
+			* since charging current is not correct.*/
+#if 0
 			battery_charging_status_update(chip->bc_dev,
 						BATTERY_CHARGING_DONE);
 			battery_charger_thermal_stop_monitoring(chip->bc_dev);
 			battery_charging_restart(chip->bc_dev,
 					chip->chg_restart_time_sec);
-
+#endif
 			break;
 		case MAX77660_CHG_DTLS_DONE_QBAT_ON:
 			dev_info(chip->dev,
@@ -948,6 +951,22 @@ static int max77660_charging_restart(struct battery_charger_dev *bc_dev)
 	return ret;
 }
 
+static int max77660_charger_set_charging(struct battery_charger_dev *bc_dev,
+		bool enable)
+{
+	struct max77660_chg_extcon *chip = battery_charger_get_drvdata(bc_dev);
+
+	if (enable) {
+		max77660_full_current_enable(chip);
+		battery_charger_thermal_start_monitoring(chip->bc_dev);
+	} else {
+		battery_charger_thermal_stop_monitoring(chip->bc_dev);
+		max77660_charging_disable(chip);
+	}
+
+	return 0;
+}
+
 static int max77660_init_oc_alert(struct max77660_chg_extcon *chip)
 {
 	int ret;
@@ -984,6 +1003,7 @@ static int max77660_init_oc_alert(struct max77660_chg_extcon *chip)
 
 static struct battery_charging_ops max77660_charger_bci_ops = {
 	.get_charging_status = max77660_charger_get_status,
+	.set_charging = max77660_charger_set_charging,
 	.thermal_configure = max77660_charger_thermal_configure,
 	.restart_charging = max77660_charging_restart,
 };

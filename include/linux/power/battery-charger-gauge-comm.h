@@ -41,6 +41,7 @@ struct battery_gauge_ops {
 
 struct battery_charging_ops {
 	int (*get_charging_status)(struct battery_charger_dev *bc_dev);
+	int (*set_charging)(struct battery_charger_dev *bc_dev, bool enalbe);
 	int (*restart_charging)(struct battery_charger_dev *bc_dev);
 	int (*thermal_configure)(struct battery_charger_dev *bct_dev,
 		int temp, bool enable_charger, bool enable_charg_half_current,
@@ -84,5 +85,6 @@ void battery_charger_set_drvdata(struct battery_charger_dev *bc_dev,
 			void *data);
 void *battery_gauge_get_drvdata(struct battery_gauge_dev *bg_dev);
 void battery_gauge_set_drvdata(struct battery_gauge_dev *bg_dev, void *data);
-
+int battery_set_charging(struct battery_gauge_dev *bg_dev,
+	bool enable);
 #endif /* _LINUX_POWER_BATTERY_CHARGER_GAUGE_COMM_H */

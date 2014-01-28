@@ -82,6 +82,7 @@ struct max17048_chip {
 	int lasttime_status;
 	int shutdown_complete;
 	int charge_complete;
+	int is_recharged;
 	struct mutex mutex;
 };
 struct max17048_chip *max17048_data;
@@ -276,6 +277,7 @@ static void max17048_get_soc(struct i2c_client *client)
 			topoff_count = 0;
 			max17048_update_battery_status(chip->bg_dev,
 					BATTERY_CHARGING_DONE);
+			battery_set_charging(chip->bg_dev, false);
 			chip->soc = MAX17048_BATTERY_FULL;
 		} else {
 			chip->soc = MAX17048_BATTERY_FULL-1;
@@ -284,6 +286,14 @@ static void max17048_get_soc(struct i2c_client *client)
 		topoff_count = 0;
 	}
 	if (chip->status == POWER_SUPPLY_STATUS_FULL && chip->charge_complete) {
+		if (chip->soc < MAX17048_BATTERY_FULL && !chip->is_recharged) {
+			battery_set_charging(chip->bg_dev, true);
+			chip->is_recharged = 1;
+		} else if (chip->soc >= MAX17048_BATTERY_FULL
+							&& chip->is_recharged) {
+			battery_set_charging(chip->bg_dev, false);
+			chip->is_recharged = 0;
+		}
 		chip->soc = MAX17048_BATTERY_FULL;
 		chip->capacity_level = POWER_SUPPLY_CAPACITY_LEVEL_FULL;
 		chip->health = POWER_SUPPLY_HEALTH_GOOD;
@@ -291,10 +301,12 @@ static void max17048_get_soc(struct i2c_client *client)
 		chip->status = chip->lasttime_status;
 		chip->health = POWER_SUPPLY_HEALTH_DEAD;
 		chip->capacity_level = POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
+		chip->is_recharged = 0;
 	} else {
 		chip->status = chip->lasttime_status;
 		chip->health = POWER_SUPPLY_HEALTH_GOOD;
 		chip->capacity_level = POWER_SUPPLY_CAPACITY_LEVEL_NORMAL;
+		chip->is_recharged = 0;
 	}
 }
 
@@ -824,6 +836,7 @@ static int __devinit max17048_probe(struct i2c_client *client,
 	chip->status			= POWER_SUPPLY_STATUS_DISCHARGING;
 	chip->lasttime_status   	= POWER_SUPPLY_STATUS_DISCHARGING;
 	chip->charge_complete   	= 0;
+	chip->is_recharged		= 0;
 
 	ret = power_supply_register(&client->dev, &chip->battery);
 	if (ret) {

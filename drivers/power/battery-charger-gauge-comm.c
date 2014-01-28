@@ -418,3 +418,28 @@ void battery_gauge_set_drvdata(struct battery_gauge_dev *bg_dev, void *data)
 		bg_dev->drv_data = data;
 }
 EXPORT_SYMBOL_GPL(battery_gauge_set_drvdata);
+
+int battery_set_charging(struct battery_gauge_dev *bg_dev,
+	bool enable)
+{
+	struct battery_charger_dev *node;
+	int ret = -EINVAL;
+
+	if (!bg_dev) {
+		dev_err(bg_dev->parent_dev, "Invalid parameters\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&charger_gauge_list_mutex);
+
+	list_for_each_entry(node, &charger_list, list) {
+		if (node->cell_id != bg_dev->cell_id)
+			continue;
+		if (node->ops && node->ops->set_charging)
+			ret = node->ops->set_charging(node, enable);
+	}
+
+	mutex_unlock(&charger_gauge_list_mutex);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(battery_set_charging);
