@@ -744,7 +744,7 @@ static ssize_t akm_delay_store(struct device *dev,
 	err = kstrtouint(buf, 10, &delay_us);
 	if (err)
 		return -EINVAL;
-	delay_us = delay_us * 1000;
+	printk("Ivan akm_delay_store = %d \n",delay_us );
 
 	if (delay_us < (AKM_INPUT_DELAY_MS_MIN * 1000))
 		delay_us = (AKM_INPUT_DELAY_MS_MIN * 1000);
@@ -1417,8 +1417,8 @@ static int akm_probe(struct i2c_client *client,
 	if (err)
 		goto akm_probe_err;
 //Ivan	
-//	inf->dbg = 0xFFFF;
-	inf->dbg = 0;
+	inf->dbg = 0xFFFF;
+//	inf->dbg = 0;
 	printk("Ivan akm_probe AK8963 OK!! \n");
 	return 0;
 
