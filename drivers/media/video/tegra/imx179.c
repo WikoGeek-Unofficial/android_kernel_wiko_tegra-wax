@@ -2089,7 +2089,7 @@ static int imx179_get_fuse_id(struct imx179_info *info)
 	int ret;
 	if (info->fuse_id.size)
 		return 0;
-	info->fuse_id.size = 5;
+	info->fuse_id.size = 9;
 	ret = IMX179_ReadFuseIDFromOTP(info);
 
 	if (ret){
