@@ -106,31 +106,31 @@ MODULE_PARM_DESC(enable_read_debug,"Enable to print read fifo and return packet 
 
 /*** 		Magnum 2014-1-27, from Phil --Nividia
 ***   		1.check LCM status by TE input irq.  TE irq every 16ms, frequence == 60HZ.
-***         	2.when irq comes,start and modify timer
+***         	2.when irq comes,start and modify timer.
 ***/
 #ifdef TINNO_ESD_CHECK
 #define TE_PIN_GPIO		TEGRA_GPIO_PG1
-#define TE_TIMEOUT_MS	500
-
+#define TE_TIMEOUT_MS	2*HZ//1000//500
 //#define DEBUG_8S_AUTO_RECOVERY
 
 #ifdef DEBUG_8S_AUTO_RECOVERY
 static  int counter = 0;
 #endif
 
-struct tegra_dc *this_dc = NULL;
+static struct tegra_dc *this_dc = NULL;
+static bool first_boot = true;
 
 static void lcd_te_expiration(unsigned long data);
 static struct timer_list 	te_timer = TIMER_INITIALIZER(lcd_te_expiration, 0, 0);
 static struct work_struct	lcd_te_work;
 
-void lcd_te_enable(void)
+static void activate_te_timer(void)
 {
-	enable_irq(gpio_to_irq(TE_PIN_GPIO));
-	mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+	//mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+	mod_timer(&te_timer, jiffies +TE_TIMEOUT_MS);
 }
 
-void lcd_te_disable(void)
+static void lcd_te_disable(void)
 {
 	disable_irq(gpio_to_irq(TE_PIN_GPIO));
 	del_timer(&te_timer);
@@ -140,12 +140,17 @@ static void lcd_te_work_func(struct work_struct *work)
 {
 	struct backlight_device *bl = NULL;
 	int brightness = 0;
-
+	if(first_boot){
+		pr_info("LCD TE first boot\n");
+		first_boot = false;
+		enable_irq(gpio_to_irq(TE_PIN_GPIO));
+		return;
+	}
 	if(this_dc) {
 		/*turn off backlight */
 		if(!(this_dc->out->sd_settings->bl_device)) {
 			pr_info("LCD TE INT no bl_device\n");
-			lcd_te_enable();
+			enable_irq(gpio_to_irq(TE_PIN_GPIO));
 			return;
 		}
 
@@ -161,9 +166,7 @@ static void lcd_te_work_func(struct work_struct *work)
 		backlight_update_status(bl);
 
 		/* start timer again */
-		lcd_te_enable();
-		//enable_irq(gpio_to_irq(TE_PIN_GPIO));
-		//mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+		enable_irq(gpio_to_irq(TE_PIN_GPIO));
 #ifdef DEBUG_8S_AUTO_RECOVERY
 		counter = 0;
 #endif
@@ -173,8 +176,8 @@ static void lcd_te_work_func(struct work_struct *work)
 static void lcd_te_expiration(unsigned long data)
 {
 	/* TE stopped, recovery LCD */
-	//pr_info("LCD TE signal stopped: recovery LCD\n");
-	disable_irq(gpio_to_irq(TE_PIN_GPIO));
+	pr_info("LCD TE signal stopped: recovery LCD\n");
+	disable_irq_nosync(gpio_to_irq(TE_PIN_GPIO));
 	schedule_work(&lcd_te_work);
 }
 
@@ -187,7 +190,7 @@ static irqreturn_t lcd_te_irq(int irq, void *data)
 		;
 	else
 #endif
-	mod_timer(&te_timer, jiffies + msecs_to_jiffies(TE_TIMEOUT_MS));
+	activate_te_timer();
 	return IRQ_HANDLED;
 };
 #endif
