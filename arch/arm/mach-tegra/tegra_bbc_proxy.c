@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/tegra_bbc_proxy.c
  *
- * Copyright (C) 2013 NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2013-2014 NVIDIA Corporation. All rights reserved.
  *
  *
  * This software is licensed under the terms of the GNU General Public
@@ -26,6 +26,7 @@
 #include <mach/isomgr.h>
 #include <mach/latency_allowance.h>
 #include <mach/tegra_bbc_proxy.h>
+#include <mach/tegra_bbc_power.h>
 #include <mach/tegra_bbc_thermal.h>
 
 #define MAX_MODEM_EDP_STATES 10
@@ -898,6 +899,9 @@ static int tegra_bbc_proxy_probe(struct platform_device *pdev)
 
 	/* thermal zones from bbc */
 	tegra_bbc_thermal_init();
+
+	/* power values to bbc */
+	tegra_bbc_power_init(pdev);
 
 	attrs = mc_attributes;
 	while ((attr = *attrs++)) {

@@ -399,6 +399,7 @@ obj-${CONFIG_TEGRA_BB_XMM_POWER}        += baseband-xmm-power.o
 obj-${CONFIG_TEGRA_BB_XMM_POWER2}       += baseband-xmm-power2.o
 
 obj-${CONFIG_TEGRA_BASEBAND}            += tegra_bb.o
+obj-$(CONFIG_TEGRA_BBC_POWER)           += tegra_bbc_power.o
 obj-$(CONFIG_TEGRA_BBC_PROXY)           += tegra_bbc_proxy.o
 obj-$(CONFIG_TEGRA_BBC_THERMAL)         += tegra_bbc_thermal.o
 

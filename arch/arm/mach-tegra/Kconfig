@@ -814,6 +814,17 @@ config TEGRA_BB_XMM_POWER2
 	  insert this LKM to initiate 2nd USB enumeration power sequence
 	  - after modem software has been downloaded to flashless device.
 
+config TEGRA_BBC_POWER
+	bool "Enable AP Power reporting support"
+	depends on NVSHM
+	depends on TEGRA_BBC_PROXY
+	default y
+	help
+	  Enables the reporting of AP power parameters to the BBC.
+	  This uses the statistics framework where the data reside, and
+	  thus depends on the NVSHM driver to provides the API to browse
+	  the BBC statistics and be notified of modem [re-]boot.
+
 config TEGRA_BBC_PROXY
 	bool "Enable BBC Proxy driver"
 	default n
