@@ -702,12 +702,8 @@ static irqreturn_t tegra_bb_mem_req_soon(int irq, void *data)
 	u32 fc_sts;
 
 	spin_lock(&bb->lock);
-	/* clear the interrupt */
 	fc_sts = readl(fctrl + FLOW_IPC_STS_0);
 	if (fc_sts & (0x8 << AP2BB_MSC_STS_SHIFT)) {
-
-		writel((0x8 << AP2BB_MSC_STS_SHIFT), fctrl + FLOW_IPC_CLR_0);
-
 		irq_set_irq_type(bb->mem_req_soon, IRQF_TRIGGER_RISING);
 		bb->state = BBC_SET_FLOOR;
 		queue_work(bb->workqueue, &bb->work);
@@ -722,6 +718,14 @@ static inline void pmc_32kwritel(u32 val, unsigned long offs)
 	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
 	writel(val, pmc + offs);
 	udelay(130);
+}
+
+static void tegra_bb_disable_pmc_wake(void)
+{
+	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
+	u32 reg = readl(pmc + PMC_CTRL2);
+	reg &= ~(PMC_CTRL2_WAKE_DET_EN);
+	pmc_32kwritel(reg, PMC_CTRL2);
 }
 
 static void tegra_bb_enable_pmc_wake(void)
@@ -742,8 +746,7 @@ static void tegra_bb_enable_pmc_wake(void)
 	pmc_32kwritel(1, PMC_AUTO_WAKE_LVL);
 
 	usleep_range(1000, 1100);
-	reg = readl(pmc + PMC_WAKE2_MASK);
-	reg |= PMC_WAKE2_BB_MEM_REQ;
+	reg = PMC_WAKE2_BB_MEM_REQ;
 	pmc_32kwritel(reg, PMC_WAKE2_MASK);
 
 	reg = readl(pmc + PMC_CTRL2);
@@ -759,11 +762,12 @@ static irqreturn_t tegra_pmc_wake_intr(int irq, void *data)
 	void __iomem *pmc = IO_ADDRESS(TEGRA_PMC_BASE);
 	static void __iomem *tert_ictlr = IO_ADDRESS(TEGRA_TERTIARY_ICTLR_BASE);
 	u32 lic, sts;
-	int mem_req_soon;
+	int mem_req_soon, mem_req;
 
 	spin_lock(&bb->lock);
 	sts = readl(pmc + PMC_IPC_STS_0);
 	mem_req_soon = (sts >> BB2AP_MEM_REQ_SOON_SHIFT) & 1;
+	mem_req = (sts >> BB2AP_MEM_REQ_SHIFT) & 1;
 
 	/* clear interrupt */
 	lic = readl(tert_ictlr + TRI_ICTLR_VIRQ_CPU);
@@ -771,12 +775,18 @@ static irqreturn_t tegra_pmc_wake_intr(int irq, void *data)
 		writel(TRI_ICTLR_PMC_WAKE_INT,
 				tert_ictlr + TRI_ICTLR_CPU_IER_CLR);
 
-	irq_set_irq_type(INT_PMC_WAKE_INT, IRQF_TRIGGER_RISING);
-	if (!mem_req_soon) {
+	if (mem_req) {
+		pr_debug("%s: spurious irq\n", __func__);
+		spin_unlock(&bb->lock);
+		return IRQ_HANDLED;
+	}
 
+	if (!mem_req_soon) {
+		tegra_bb_disable_pmc_wake();
 		bb->state = BBC_REMOVE_FLOOR;
 		queue_work(bb->workqueue, &bb->work);
-	}
+	} else
+		pr_debug("%s: mem_req 0 but mem_req_soon 1\n", __func__);
 	spin_unlock(&bb->lock);
 
 	return IRQ_HANDLED;
@@ -812,7 +822,7 @@ static void tegra_bb_emc_dvfs(struct work_struct *work)
 			tegra_emc_request_low_latency_mode(true);
 		}
 		clk_set_rate(bb->emc_clk, bb->emc_min_freq);
-		pr_debug("bbc setting floor to %lu\nMHz",
+		pr_debug("bbc setting floor to %luMHz\n",
 						bb->emc_min_freq/1000000);
 
 		/* restore iso bw request*/
@@ -820,7 +830,6 @@ static void tegra_bb_emc_dvfs(struct work_struct *work)
 
 		/* reenable pmc_wake_det irq */
 		tegra_bb_enable_pmc_wake();
-		irq_set_irq_type(INT_PMC_WAKE_INT, IRQF_TRIGGER_HIGH);
 		return;
 	case BBC_REMOVE_FLOOR:
 		/* discard erroneous request */
@@ -1268,6 +1277,8 @@ static int tegra_bb_suspend(struct device *dev)
 {
 	dev_dbg(dev, "%s\n", __func__);
 
+	tegra_bb_disable_pmc_wake();
+
 	return 0;
 }
 
@@ -1284,7 +1295,6 @@ static int tegra_bb_resume(struct device *dev)
 	irq_set_irq_type(bb->mem_req_soon, IRQF_TRIGGER_HIGH);
 
 	tegra_bb_enable_pmc_wake();
-	irq_set_irq_type(INT_PMC_WAKE_INT, IRQF_TRIGGER_HIGH);
 #endif
 	return 0;
 }
