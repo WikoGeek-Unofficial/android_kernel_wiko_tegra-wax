@@ -254,8 +254,9 @@ void tegra_bb_generate_ipc(struct platform_device *pdev)
 	{
 		/* Do we need to restore BB MC frequency floor? */
 		spin_lock_irqsave(&bb->lock, irq_flags);
-		if (bb->current_state == BBC_REMOVE_FLOOR) {
-			/* Yes => add work to workqueue */
+		if ((bb->current_state == BBC_REMOVE_FLOOR) &&
+		    !bb->send_ul_flag) {
+			/* Yes => add work to kernel thread */
 			pr_debug("%s Request BBC floor", __func__);
 			bb->next_state = BBC_SET_FLOOR;
 			/* set flag to let work know that we have a
@@ -342,6 +343,18 @@ static int tegra_bb_vm_fault(struct vm_area_struct *vma, struct vm_fault *vmf)
 		(unsigned int)vma->vm_pgoff);
 	vmf = vmf;
 	return VM_FAULT_NOPAGE;
+}
+
+static inline void tegra_bb_disable_mem_req_soon(void)
+{
+	void __iomem *fctrl = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
+
+	/* AP2BB_MSC_STS[3] is to mask or unmask
+	 * mem_req_soon interrupt to interrupt controller */
+	writel((0x8 << AP2BB_MSC_STS_SHIFT), fctrl + FLOW_IPC_CLR_0);
+
+	trace_printk("%s: fctrl ipc_sts = %x\n", __func__,
+		readl(fctrl + FLOW_IPC_STS_0));
 }
 
 static inline void tegra_bb_enable_mem_req_soon(void)
@@ -754,22 +767,17 @@ static irqreturn_t tegra_bb_isr_handler(int irq, void *data)
 static irqreturn_t tegra_bb_mem_req_soon(int irq, void *data)
 {
 	struct tegra_bb *bb = (struct tegra_bb *)data;
-	void __iomem *fctrl = IO_ADDRESS(TEGRA_FLOW_CTRL_BASE);
-	u32 fc_sts;
-	unsigned int prev_state = 0;
+	unsigned int prev_state;
 
 	bb->t[0] = jiffies;
 	spin_lock(&bb->lock);
-	fc_sts = readl(fctrl + FLOW_IPC_STS_0);
-	if (fc_sts & (0x8 << AP2BB_MSC_STS_SHIFT)) {
-		irq_set_irq_type(bb->mem_req_soon, IRQF_TRIGGER_RISING);
-		bb->next_state = BBC_SET_FLOOR;
-		prev_state = atomic_xchg(&bb->state_for_thread, BBC_SET_FLOOR);
-		wake_up(&(bb->emc_wait_q));
-		if (prev_state)
-			pr_info("previous state[%u] will be skipped in %s\n",
-					prev_state, __func__);
-	}
+	tegra_bb_disable_mem_req_soon();
+	bb->next_state = BBC_SET_FLOOR;
+	prev_state = atomic_xchg(&bb->state_for_thread, BBC_SET_FLOOR);
+	wake_up(&(bb->emc_wait_q));
+	if (prev_state)
+		pr_info("previous state[%u] will be skipped in %s\n",
+				prev_state, __func__);
 	spin_unlock(&bb->lock);
 
 	return IRQ_HANDLED;
@@ -929,15 +937,17 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 		/* restore iso bw request*/
 		tegra_bbc_proxy_restore_iso(bb->proxy_dev);
 
-		/* reenable pmc_wake_det irq */
-		tegra_bb_enable_pmc_wake(MEM_REQ_DET_LOW);
 
 		spin_lock_irqsave(&bb->lock, flags);
 		if (bb->send_ul_flag) {
 			tegra_bb_set_ap2bb_int0();
 			pr_info("bbc floor applied\n");
 			bb->send_ul_flag = false;
+		} else {
+			/* reenable pmc_wake_det irq if mem_req_soon is high */
+			tegra_bb_enable_pmc_wake(MEM_REQ_DET_LOW);
 		}
+
 		/* update current state, now that BB floor
 		   is in place */
 		bb->current_state = BBC_SET_FLOOR;
@@ -972,7 +982,6 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 
 		/* reenable mem_req_soon irq */
 		tegra_bb_enable_mem_req_soon();
-		irq_set_irq_type(bb->mem_req_soon, IRQF_TRIGGER_HIGH);
 		pm_runtime_put(bb->dev);
 		return;
 
