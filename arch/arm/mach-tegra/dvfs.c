@@ -46,7 +46,7 @@ struct dvfs_rail *tegra_cpu_rail;
 struct dvfs_rail *tegra_core_rail;
 
 static LIST_HEAD(dvfs_rail_list);
-static DEFINE_MUTEX(dvfs_lock);
+static DEFINE_RT_MUTEX(dvfs_lock);
 static DEFINE_MUTEX(rail_disable_lock);
 
 static int dvfs_rail_update(struct dvfs_rail *rail);
@@ -66,7 +66,7 @@ void tegra_dvfs_add_relationships(struct dvfs_relationship *rels, int n)
 	int i;
 	struct dvfs_relationship *rel;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	for (i = 0; i < n; i++) {
 		rel = &rels[i];
@@ -74,7 +74,7 @@ void tegra_dvfs_add_relationships(struct dvfs_relationship *rels, int n)
 		list_add_tail(&rel->to_node, &rel->from->relationships_to);
 	}
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 }
 
 /* Make sure there is a matching cooling device for thermal limit profile. */
@@ -107,7 +107,7 @@ int tegra_dvfs_init_rails(struct dvfs_rail *rails[], int n)
 {
 	int i, mv;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	for (i = 0; i < n; i++) {
 		INIT_LIST_HEAD(&rails[i]->dvfs);
@@ -141,7 +141,7 @@ int tegra_dvfs_init_rails(struct dvfs_rail *rails[], int n)
 			tegra_core_rail = rails[i];
 	}
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	return 0;
 };
@@ -544,14 +544,14 @@ int tegra_dvfs_alt_freqs_set(struct dvfs *d, unsigned long *alt_freqs)
 {
 	int ret = 0;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	if (d->alt_freqs != alt_freqs) {
 		d->alt_freqs = alt_freqs;
 		ret = __tegra_dvfs_set_rate(d, d->cur_rate);
 	}
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return ret;
 }
 
@@ -559,7 +559,7 @@ int tegra_dvfs_voltages_set(struct dvfs *d, const int *new_millivolts)
 {
 	int i, ret = 0;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	/*
 	 * Allow to change only if peak voltages across all possible ladders
 	 * are specified.
@@ -579,7 +579,7 @@ int tegra_dvfs_voltages_set(struct dvfs *d, const int *new_millivolts)
 	ret = __tegra_dvfs_set_rate(d, d->cur_rate);
 
 out:
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return ret;
 }
 
@@ -664,9 +664,9 @@ int tegra_dvfs_set_rate(struct clk *c, unsigned long rate)
 	if (!c->dvfs)
 		return -EINVAL;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	ret = __tegra_dvfs_set_rate(c->dvfs, rate);
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	return ret;
 }
@@ -707,13 +707,13 @@ static int dvfs_override_core_voltage(int override_mv)
 		}
 	}
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	if (rail->disabled || rail->suspended) {
 		pr_err("%s: cannot scale %s rail\n", __func__,
 		       rail->disabled ? "disabled" : "suspended");
 		ret = -EPERM;
 		if (!override_mv) {
-			mutex_unlock(&dvfs_lock);
+			rt_mutex_unlock(&dvfs_lock);
 			goto out;
 		}
 	} else {
@@ -726,7 +726,7 @@ static int dvfs_override_core_voltage(int override_mv)
 			dvfs_rail_update(rail);
 		}
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	if (!override_mv || ret)
 		tegra_dvfs_core_cap_level_apply(0);
@@ -742,7 +742,7 @@ static int dvfs_set_fmax_at_vmin(struct clk *c, unsigned long f_max, int v_min)
 	unsigned long f_min = 1000;	/* 1kHz min rate in DVFS tables */
 
 	mutex_lock(&rail_override_lock);
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	if (v_min > d->dvfs_rail->override_millivolts) {
 		pr_err("%s: new %s vmin %dmV is above override voltage %dmV\n",
@@ -785,7 +785,7 @@ static int dvfs_set_fmax_at_vmin(struct clk *c, unsigned long f_max, int v_min)
 		ret = __tegra_dvfs_set_rate(d, d->cur_rate);
 	}
 out:
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	mutex_unlock(&rail_override_lock);
 
 	return ret;
@@ -868,9 +868,9 @@ int __init tegra_enable_dvfs_on_clk(struct clk *c, struct dvfs *d)
 			d->dvfs_rail->min_override_millivolts = mv;
 	}
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	list_add_tail(&d->reg_node, &d->dvfs_rail->dvfs);
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	return 0;
 }
@@ -933,7 +933,7 @@ static void tegra_dvfs_resume(void)
 {
 	struct dvfs_rail *rail;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	list_for_each_entry(rail, &dvfs_rail_list, node)
 		rail->suspended = false;
@@ -941,14 +941,14 @@ static void tegra_dvfs_resume(void)
 	list_for_each_entry(rail, &dvfs_rail_list, node)
 		dvfs_rail_update(rail);
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 }
 
 static int tegra_dvfs_suspend(void)
 {
 	int ret = 0;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	while (!tegra_dvfs_all_rails_suspended()) {
 		ret = tegra_dvfs_suspend_one();
@@ -956,7 +956,7 @@ static int tegra_dvfs_suspend(void)
 			break;
 	}
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	if (ret)
 		tegra_dvfs_resume();
@@ -1053,9 +1053,9 @@ void tegra_dvfs_rail_enable(struct dvfs_rail *rail)
 	mutex_lock(&rail_disable_lock);
 
 	if (rail->disabled) {
-		mutex_lock(&dvfs_lock);
+		rt_mutex_lock(&dvfs_lock);
 		__tegra_dvfs_rail_enable(rail);
-		mutex_unlock(&dvfs_lock);
+		rt_mutex_unlock(&dvfs_lock);
 
 		tegra_dvfs_rail_post_enable(rail);
 	}
@@ -1081,9 +1081,9 @@ void tegra_dvfs_rail_disable(struct dvfs_rail *rail)
 		goto out;
 	}
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	__tegra_dvfs_rail_disable(rail);
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 out:
 	mutex_unlock(&rail_disable_lock);
 }
@@ -1102,14 +1102,14 @@ struct dvfs_rail *tegra_dvfs_get_rail_by_name(const char *reg_id)
 {
 	struct dvfs_rail *rail;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	list_for_each_entry(rail, &dvfs_rail_list, node) {
 		if (!strcmp(reg_id, rail->reg_id)) {
-			mutex_unlock(&dvfs_lock);
+			rt_mutex_unlock(&dvfs_lock);
 			return rail;
 		}
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return NULL;
 }
 
@@ -1143,12 +1143,12 @@ int __init of_tegra_dvfs_init(const struct of_device_id *matches)
 #endif
 int tegra_dvfs_dfll_mode_set(struct dvfs *d, unsigned long rate)
 {
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	if (!d->dvfs_rail->dfll_mode) {
 		d->dvfs_rail->dfll_mode = true;
 		__tegra_dvfs_set_rate(d, rate);
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return 0;
 }
 
@@ -1156,7 +1156,7 @@ int tegra_dvfs_dfll_mode_clear(struct dvfs *d, unsigned long rate)
 {
 	int ret = 0;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	if (d->dvfs_rail->dfll_mode) {
 		d->dvfs_rail->dfll_mode = false;
 		/* avoid false detection of matching target (voltage in dfll
@@ -1168,7 +1168,7 @@ int tegra_dvfs_dfll_mode_clear(struct dvfs *d, unsigned long rate)
 		}
 		ret = __tegra_dvfs_set_rate(d, rate);
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return ret;
 }
 
@@ -1216,12 +1216,12 @@ static int tegra_dvfs_rail_set_vmin_cdev_state(
 {
 	struct dvfs_rail *rail = (struct dvfs_rail *)cdev->devdata;
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	if (rail->therm_floor_idx != cur_state) {
 		rail->therm_floor_idx = cur_state;
 		dvfs_rail_update(rail);
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return 0;
 }
 
@@ -1261,13 +1261,13 @@ int tegra_dvfs_rail_dfll_mode_set_cold(struct dvfs_rail *rail)
 	 * thermal index can be used to decide if cold limit should be set in
 	 * dfll mode.
 	 */
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 	if (rail->dfll_mode &&
 	    (rail->therm_floor_idx < rail->therm_mv_floors_num)) {
 			int mv = rail->therm_mv_floors[rail->therm_floor_idx];
 			ret = dvfs_rail_set_voltage_reg(rail, mv);
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	return ret;
 }
@@ -1283,7 +1283,7 @@ int __init tegra_dvfs_late_init(void)
 	struct dvfs_rail *rail;
 	int cur_linear_age = tegra_get_linear_age();
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	if (cur_linear_age >= 0)
 		tegra_dvfs_age_cpu(cur_linear_age);
@@ -1298,7 +1298,7 @@ int __init tegra_dvfs_late_init(void)
 		else
 			__tegra_dvfs_rail_disable(rail);
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 #ifdef CONFIG_TEGRA_SILICON_PLATFORM
 	if (!connected) {
@@ -1326,7 +1326,7 @@ static int rail_stats_save_to_buf(char *buf, int len)
 
 	str += scnprintf(str, end - str, "%-12s %-10s\n", "millivolts", "time");
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	list_for_each_entry(rail, &dvfs_rail_list, node) {
 		str += scnprintf(str, end - str, "%s (bin: %d.%dmV)\n",
@@ -1352,7 +1352,7 @@ static int rail_stats_save_to_buf(char *buf, int len)
 			);
 		}
 	}
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 	return str - buf;
 }
 
@@ -1384,7 +1384,7 @@ static int dvfs_tree_show(struct seq_file *s, void *data)
 	seq_printf(s, "   clock      rate       mV\n");
 	seq_printf(s, "--------------------------------\n");
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	list_for_each_entry(rail, &dvfs_rail_list, node) {
 		int thermal_mv_floor = 0;
@@ -1421,7 +1421,7 @@ static int dvfs_tree_show(struct seq_file *s, void *data)
 		}
 	}
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	return 0;
 }
@@ -1476,10 +1476,10 @@ static int cpu_offs_get(void *data, u64 *val)
 static int cpu_offs_set(void *data, u64 val)
 {
 	if (tegra_cpu_rail) {
-		mutex_lock(&dvfs_lock);
+		rt_mutex_lock(&dvfs_lock);
 		tegra_cpu_rail->offs_millivolts = (int)val;
 		dvfs_rail_update(tegra_cpu_rail);
-		mutex_unlock(&dvfs_lock);
+		rt_mutex_unlock(&dvfs_lock);
 		return 0;
 	}
 	return -ENOENT;
@@ -1498,10 +1498,10 @@ static int core_offs_get(void *data, u64 *val)
 static int core_offs_set(void *data, u64 val)
 {
 	if (tegra_core_rail) {
-		mutex_lock(&dvfs_lock);
+		rt_mutex_lock(&dvfs_lock);
 		tegra_core_rail->offs_millivolts = (int)val;
 		dvfs_rail_update(tegra_core_rail);
-		mutex_unlock(&dvfs_lock);
+		rt_mutex_unlock(&dvfs_lock);
 		return 0;
 	}
 	return -ENOENT;
@@ -1534,7 +1534,7 @@ static int dvfs_table_show(struct seq_file *s, void *data)
 
 	seq_printf(s, "DVFS tables: units mV/MHz\n");
 
-	mutex_lock(&dvfs_lock);
+	rt_mutex_lock(&dvfs_lock);
 
 	list_for_each_entry(rail, &dvfs_rail_list, node) {
 		list_for_each_entry(d, &rail->dvfs, reg_node) {
@@ -1575,7 +1575,7 @@ static int dvfs_table_show(struct seq_file *s, void *data)
 		}
 	}
 
-	mutex_unlock(&dvfs_lock);
+	rt_mutex_unlock(&dvfs_lock);
 
 	return 0;
 }
