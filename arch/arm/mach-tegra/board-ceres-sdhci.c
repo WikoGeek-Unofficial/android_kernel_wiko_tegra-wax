@@ -173,6 +173,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.ddr_clk_limit = 41000000,
 	.max_clk_limit = 136000000,
 	.edp_support = false,
+	.uhs_mask = MMC_MASK_HS200 | MMC_UHS_MASK_SDR104 | MMC_UHS_MASK_DDR50,
 	.en_clock_gating = true,
 };
 
