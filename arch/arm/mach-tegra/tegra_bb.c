@@ -39,6 +39,7 @@
 #include <mach/iomap.h>
 #include <mach/tegra_bb.h>
 #include <mach/tegra_bbc_proxy.h>
+#include <mach/tegra_bbc_power.h>
 #include <mach/pm_domains.h>
 #include <linux/platform_data/nvshm.h>
 
@@ -940,6 +941,10 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 		/* update current state, now that BB floor
 		   is in place */
 		bb->current_state = BBC_SET_FLOOR;
+
+		/* let BB know we have set its floor */
+		bbc_power_emc_floor_set(1);
+
 		spin_unlock_irqrestore(&bb->lock, flags);
 		return;
 	case BBC_REMOVE_FLOOR:
@@ -949,6 +954,8 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 			return;
 		}
 		bb->current_state = bb->next_state;
+		/* let BB know we are removing its floor */
+		bbc_power_emc_floor_set(0);
 		spin_unlock_irqrestore(&bb->lock, flags);
 
 		/* remove iso bandwitdh request from bbc */

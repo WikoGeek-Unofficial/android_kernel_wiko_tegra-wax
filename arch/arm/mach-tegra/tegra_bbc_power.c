@@ -34,12 +34,19 @@ static struct bbc_power_private {
 	struct notifier_block memfreq_nb;
 	struct notifier_block modem_nb;
 	u32 *mem_freq_ptr;
+	u32 *emc_floor_set_ptr;
 } power;
 
 void bbc_power_set_memfreq(u32 mem_freq)
 {
 	if (power.mem_freq_ptr)
 		*power.mem_freq_ptr = mem_freq;
+}
+
+void bbc_power_emc_floor_set(u32 set)
+{
+	if (power.emc_floor_set_ptr)
+		*power.emc_floor_set_ptr = set;
 }
 
 static int bbc_power_install(void)
@@ -56,8 +63,25 @@ static int bbc_power_install(void)
 
 	/* Look for memory frequency entry */
 	while (nvshm_stats_type(&it) != NVSHM_STATS_END) {
-		if (!strcmp(nvshm_stats_name(&it), "ap_memory_frequency"))
-			break;
+		if (!strcmp(nvshm_stats_name(&it), "ap_memory_frequency")) {
+			if (nvshm_stats_type(&it) != NVSHM_STATS_UINT32) {
+				pr_err("ap_memory_frequency incorrect type: %d\n",
+					nvshm_stats_type(&it));
+				return -EINVAL;
+			}
+			power.mem_freq_ptr =
+			   nvshm_stats_valueptr_uint32(&it, 0);
+		}
+
+		if (!strcmp(nvshm_stats_name(&it), "emc_floor_set")) {
+			if (nvshm_stats_type(&it) != NVSHM_STATS_UINT32) {
+				pr_err("emc_floor_set incorrect type: %d\n",
+					nvshm_stats_type(&it));
+				return -EINVAL;
+			}
+			power.emc_floor_set_ptr =
+			   nvshm_stats_valueptr_uint32(&it, 0);
+		}
 
 		if (nvshm_stats_next(&it)) {
 			pr_err("corruption detected in shared memory\n");
@@ -65,13 +89,15 @@ static int bbc_power_install(void)
 		}
 	}
 
-	if (nvshm_stats_type(&it) != NVSHM_STATS_UINT32) {
-		pr_err("ap_memory_frequency not found or incorrect type: %d\n",
-		       nvshm_stats_type(&it));
+	if (!power.mem_freq_ptr) {
+		pr_err("ap_memory_frequency not found\n");
 		return -EINVAL;
 	}
 
-	power.mem_freq_ptr = nvshm_stats_valueptr_uint32(&it, 0);
+	if (!power.emc_floor_set_ptr) {
+		pr_err("emc_floor_set not found\n");
+		return -EINVAL;
+	}
 
 	return 0;
 }
@@ -97,6 +123,7 @@ static int bbc_power_modem_notify(struct notifier_block *nb,
 static int tegra_bbc_power_suspend(void)
 {
 	bbc_power_set_memfreq(0);
+	bbc_power_emc_floor_set(1);
 	return 0;
 }
 

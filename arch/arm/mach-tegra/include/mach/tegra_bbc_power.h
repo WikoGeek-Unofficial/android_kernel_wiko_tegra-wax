@@ -20,6 +20,7 @@
 #ifdef CONFIG_TEGRA_BBC_POWER
 extern int tegra_bbc_power_init(struct platform_device *pdev);
 extern void bbc_power_set_memfreq(u32 mem_freq);
+extern void bbc_power_emc_floor_set(u32 set);
 #else
 static inline int tegra_bbc_power_init(struct platform_device *pdev)
 {
@@ -27,6 +28,10 @@ static inline int tegra_bbc_power_init(struct platform_device *pdev)
 }
 
 static inline void bbc_power_set_memfreq(u32 mem_freq)
+{
+}
+
+static inline void bbc_power_emc_floor_set(u32 set)
 {
 }
 #endif
