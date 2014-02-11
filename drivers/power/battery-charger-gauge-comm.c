@@ -34,7 +34,7 @@
 #include <linux/power/battery-charger-gauge-comm.h>
 #include <linux/wakelock.h>
 
-#define JETI_TEMP_COLD		0
+#define JETI_TEMP_COLD		-13   //0
 #define JETI_TEMP_COOL		10
 #define JETI_TEMP_WARM		45
 #define JETI_TEMP_HOT		60
