@@ -13,7 +13,6 @@
 #include <linux/slab.h>
 #include <linux/delay.h>
 #include <linux/uaccess.h>
-#include <linux/atomic.h>
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #include <linux/gpio.h>
@@ -115,10 +114,6 @@ static struct nvc_imager_static_nvc imx179_dflt_sdata = {
 	.view_angle_v		= IMX179_LENS_VIEW_ANGLE_V,
 	.res_chg_wait_time	= IMX179_RES_CHG_WAIT_TIME_MS,
 };
-
-static LIST_HEAD(imx179_info_list);
-static DEFINE_SPINLOCK(imx179_spinlock);
-
 
 static struct imx179_reg tp_none_seq[] = {
 	{IMX179_TABLE_END, 0x0000}
@@ -1270,18 +1265,6 @@ static void imx179_gpio_able(struct imx179_info *info, int val)
     myval = gpio_get_value_cansleep(info->gpio[IMX179_GPIO_GP1].gpio);
 }
 
-static void imx179_gpio_exit(struct imx179_info *info)
-{
-	unsigned i;
-
-	for (i = 0; i <= ARRAY_SIZE(imx179_gpios); i++) {
-		if (info->gpio[i].flag && info->gpio[i].own) {
-			gpio_free(info->gpio[i].gpio);
-			info->gpio[i].own = false;
-		}
-	}
-}
-
 static void imx179_gpio_init(struct imx179_info *info)
 {
 	char label[32];
@@ -1354,16 +1337,6 @@ static int imx179_vreg_en_all(struct imx179_info *info)
 		return -EFAULT;
 
 	return info->pdata->power_on(info->vreg);
-}
-
-static void imx179_vreg_exit(struct imx179_info *info)
-{
-	unsigned i;
-
-	for (i = 0; i < ARRAY_SIZE(imx179_vregs); i++) {
-		regulator_put(info->vreg[i].vreg);
-		info->vreg[i].vreg = NULL;
-	}
 }
 
 static int imx179_vreg_init(struct imx179_info *info)
@@ -1493,13 +1466,6 @@ static int imx179_pm_dev_wr(struct imx179_info *info, int pwr)
 	if (info->mode_enable)
 		pwr = NVC_PWR_ON;
 	return imx179_pm_wr(info, pwr);
-}
-
-static void imx179_pm_exit(struct imx179_info *info)
-{
-	imx179_pm_wr(info, NVC_PWR_OFF_FORCE);
-	imx179_vreg_exit(info);
-	imx179_gpio_exit(info);
 }
 
 static void imx179_pm_init(struct imx179_info *info)
@@ -2324,59 +2290,6 @@ static void imx179_sdata_init(struct imx179_info *info)
 		info->sdata.view_angle_v = info->pdata->lens_view_angle_v;
 }
 
-static int imx179_sync_en(unsigned num, unsigned sync)
-{
-	struct imx179_info *master = NULL;
-	struct imx179_info *slave = NULL;
-	struct imx179_info *pos = NULL;
-
-	rcu_read_lock();
-	list_for_each_entry_rcu(pos, &imx179_info_list, list) {
-		if (pos->pdata->num == num) {
-			master = pos;
-			break;
-		}
-	}
-	pos = NULL;
-	list_for_each_entry_rcu(pos, &imx179_info_list, list) {
-		if (pos->pdata->num == sync) {
-			slave = pos;
-			break;
-		}
-	}
-	rcu_read_unlock();
-	if (master != NULL)
-		master->s_info = NULL;
-	if (slave != NULL)
-		slave->s_info = NULL;
-	if (!sync)
-		return 0; /* no err if sync disabled */
-
-	if (num == sync)
-		return -EINVAL; /* err if sync instance is itself */
-
-	if ((master != NULL) && (slave != NULL)) {
-		master->s_info = slave;
-		slave->s_info = master;
-	}
-	return 0;
-}
-
-static int imx179_sync_dis(struct imx179_info *info)
-{
-	if (info->s_info != NULL) {
-		info->s_info->s_mode = 0;
-		info->s_info->s_info = NULL;
-		info->s_mode = 0;
-		info->s_info = NULL;
-		return 0;
-	}
-
-	return -EINVAL;
-}
-
-
-
 static void imx179_mclk_disable(struct imx179_info *info)
 {
 	dev_dbg(&info->i2c_client->dev, "%s: disable MCLK\n", __func__);
@@ -2386,14 +2299,10 @@ static void imx179_mclk_disable(struct imx179_info *info)
 static int imx179_mclk_enable(struct imx179_info *info)
 {
 	int err;
-	
-	dev_dbg(&info->i2c_client->dev, "%s: enable MCLK\n", __func__);
 
-	err = clk_set_rate(info->mclk, 24000000 );
+	err = clk_set_rate(info->mclk, 24000000);
 	if (!err)
-	{
 		err = clk_prepare_enable(info->mclk);
-	}
 
 	return err;
 }
@@ -2401,61 +2310,27 @@ static int imx179_mclk_enable(struct imx179_info *info)
 static int imx179_open(struct inode *inode, struct file *file)
 {
 	struct imx179_info *info = NULL;
-	struct imx179_info *pos = NULL;
-	int err;
-	
-	rcu_read_lock();
-	list_for_each_entry_rcu(pos, &imx179_info_list, list) {
-		if (pos->miscdev.minor == iminor(inode)) {
-			info = pos;
-			break;
-		}
-	}
-	rcu_read_unlock();
-	if (!info) {
-		pr_err("%s err @%d info is null\n", __func__, __LINE__);
-		return -ENODEV;
-	}
-	imx179_mclk_enable( info );
-	dev_dbg(&info->i2c_client->dev, "%s +++++\n", __func__);
-	err = imx179_sync_en(info->pdata->num, info->pdata->sync);
-	if (err == -EINVAL)
-		dev_err(&info->i2c_client->dev,
-			"%s err: invalid num (%u) and sync (%u) instance\n",
-			__func__, info->pdata->num, info->pdata->sync);
+	struct miscdevice   *miscdev = file->private_data;
+
+	info = container_of(miscdev, struct imx179_info, miscdev);
+	/* check if the device is in use */
 	if (atomic_xchg(&info->in_use, 1)) {
-		dev_err(&info->i2c_client->dev, "%s err @%d device is busy\n",
-			__func__, __LINE__);
+		pr_err("%s:BUSY!\n", __func__);
 		return -EBUSY;
 	}
-	if (info->s_info != NULL) {
-		if (atomic_xchg(&info->s_info->in_use, 1)) {
-			dev_err(&info->i2c_client->dev, "%s err @%d sync device is busy\n",
-					__func__, __LINE__);
-			return -EBUSY;
-		}
-		info->sdata.stereo_cap = 1;
-	}
-
 	file->private_data = info;
-	dev_dbg(&info->i2c_client->dev, "%s -----\n", __func__);
-
+	imx179_mclk_enable(info);
 	return 0;
 }
 
 static int imx179_release(struct inode *inode, struct file *file)
 {
 	struct imx179_info *info = file->private_data;
-
-	dev_dbg(&info->i2c_client->dev, "%s +++++\n", __func__);
-	imx179_pm_wr_s(info, NVC_PWR_OFF);
 	file->private_data = NULL;
+	imx179_mclk_disable(info);
+	/* warn if device is already released */
 	WARN_ON(!atomic_xchg(&info->in_use, 0));
-	if (info->s_info != NULL)
-		WARN_ON(!atomic_xchg(&info->s_info->in_use, 0));
-	imx179_sync_dis(info);
-	dev_dbg(&info->i2c_client->dev, "%s -----\n", __func__);
-	imx179_mclk_disable( info );
+	imx179_pm_wr_s(info, NVC_PWR_OFF);
 	return 0;
 }
 
@@ -2465,19 +2340,6 @@ static const struct file_operations imx179_fileops = {
 	.unlocked_ioctl = imx179_ioctl,
 	.release = imx179_release,
 };
-
-static void imx179_del(struct imx179_info *info)
-{
-	imx179_pm_exit(info);
-	if ((info->s_mode == NVC_SYNC_SLAVE) ||
-					     (info->s_mode == NVC_SYNC_STEREO))
-		imx179_pm_exit(info->s_info);
-	imx179_sync_dis(info);
-	spin_lock(&imx179_spinlock);
-	list_del_rcu(&info->list);
-	spin_unlock(&imx179_spinlock);
-	synchronize_rcu();
-}
 
 static int imx179_remove(struct i2c_client *client)
 {
@@ -2491,7 +2353,6 @@ static int imx179_remove(struct i2c_client *client)
 		debugfs_remove_recursive(info->debugfs_root);
 #endif
 	misc_deregister(&info->miscdev);
-	imx179_del(info);
 	return 0;
 }
 
@@ -2616,12 +2477,10 @@ static int imx179_probe(
 	}
 	i2c_set_clientdata(client, info);
 	INIT_LIST_HEAD(&info->list);
-	spin_lock(&imx179_spinlock);
-	list_add_rcu(&info->list, &imx179_info_list);
-	spin_unlock(&imx179_spinlock);
 	imx179_pm_init(info);
 	imx179_sdata_init(info);
 	imx179_get_flash_cap(info);
+	atomic_set(&info->in_use, 0);
 	if (info->pdata->cfg & (NVC_CFG_NODEV | NVC_CFG_BOOT_INIT)) {
 		if (info->pdata->probe_clock) {
 			if (info->cap->initial_clock_rate_khz)
@@ -2636,7 +2495,6 @@ static int imx179_probe(
 		err = imx179_dev_id(info);
 		if (err < 0) {
 			if (info->pdata->cfg & NVC_CFG_NODEV) {
-				imx179_del(info);
 				if (info->pdata->probe_clock)
 					info->pdata->probe_clock(0);
 				return -ENODEV;
@@ -2672,7 +2530,6 @@ static int imx179_probe(
 	if (misc_register(&info->miscdev)) {
 		dev_err(&client->dev, "%s unable to register misc device %s\n",
 			__func__, dname);
-		imx179_del(info);
 		return -ENODEV;
 	}
 
