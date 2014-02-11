@@ -205,7 +205,7 @@ static struct imx179_reg imx179_3280x2464_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0100, 0x01},
+	//{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -275,7 +275,7 @@ static struct imx179_reg imx179_1640x1232_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0100, 0x01},
+	//{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -345,7 +345,7 @@ static struct imx179_reg imx179_1920x1080_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0100, 0x01},
+	//{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -415,7 +415,7 @@ static struct imx179_reg imx179_1280x720_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0100, 0x01},
+	//{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -484,7 +484,7 @@ static struct imx179_reg imx179_640x480_i2c[] = {
 	{0x4100, 0x0E},
 	{0x4108, 0x01},
 	{0x4109, 0x7C},
-	{0x0100, 0x01},
+	//{0x0100, 0x01},
 
 	{IMX179_TABLE_WAIT_MS, IMX179_WAIT_MS},
 	{IMX179_TABLE_END, 0x00}
@@ -980,18 +980,18 @@ static int imx179_edp_req(struct imx179_info *info, unsigned new_state)
 static inline void imx179_frame_length_reg(struct imx179_reg *regs,
 					   u32 frame_length)
 {
-        //edit  2013-1-20:fixed the fps to 30 in FTM mode
-        static int boot_mode;
+	//edit  2013-1-20:fixed the fps to 30 in FTM mode
+	static int boot_mode;
 	boot_mode = tegra_get_bootmode_id();
-    if(boot_mode == 1 ||boot_mode == 3){
-         printk(" fixed the fps to 30 in FTM mode  ");
-    }
-     else{
-	regs->addr = 0x0340;
-	regs->val = (frame_length >> 8) & 0xFF;
-	(regs + 1)->addr = 0x0341;
-	(regs + 1)->val = (frame_length) & 0xFF;
-      }
+	if(boot_mode == 1 ||boot_mode == 3){
+		printk(" fixed the fps to 30 in FTM mode  ");
+	}
+	else{
+		regs->addr = 0x0340;
+		regs->val = (frame_length >> 8) & 0xFF;
+		(regs + 1)->addr = 0x0341;
+		(regs + 1)->val = (frame_length) & 0xFF;
+	}
 }
 
 static inline void imx179_coarse_time_reg(struct imx179_reg *regs,
@@ -1678,7 +1678,7 @@ static int imx179_mode_wr(struct imx179_info *info,
 		goto imx179_mode_wr_err;
 
 	//ReadOTPIMX179(info);
-	if( (mode->res_x == 1640) || (mode->res_y == 1232))
+	if((mode->res_x == 1640) && (mode->res_y == 1232))
 		msleep(50);
 
 	return 0;
@@ -2109,17 +2109,8 @@ static int imx179_get_fuse_id(struct imx179_info *info)
 	int ret;
 	if (info->fuse_id.size)
 		return 0;
-
+	info->fuse_id.size = 9;
 	ret = IMX179_ReadFuseIDFromOTP(info);
-
-	if (ret){
-		info->fuse_id.size = 4;
-		info->fuse_id.data[0] = ret >> 24;
-		info->fuse_id.data[1] = ret >> 16;
-		info->fuse_id.data[2] = ret >> 8;
-		info->fuse_id.data[3] = ret;
-		ret = 0;
-	}
 	return ret;
 }
 
