@@ -1,7 +1,7 @@
 /*
  * dw9714a.c - dw9714a focuser driver
  *
- * Copyright (C) 2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2009-2013, NVIDIA CORPORATION.  All rights reserved.
  * * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -159,8 +159,6 @@ static struct dw9714a_platform_data dw9714a_default_pdata = {
 	.sync = 0,
 	.dev_name = "focuser",
 };
-static LIST_HEAD(dw9714a_info_list);
-static DEFINE_SPINLOCK(dw9714a_spinlock);
 
 static int dw9714a_i2c_rd16(struct dw9714a_info *info, u16 *val)
 {
@@ -308,19 +306,6 @@ static int dw9714a_pm_wr(struct dw9714a_info *info, int pwr)
 	return err;
 }
 
-static int dw9714a_power_put(struct dw9714a_power_rail *pw)
-{
-	if (unlikely(!pw))
-		return -EFAULT;
-
-	if (likely(pw->vdd))
-		regulator_put(pw->vdd);
-
-	pw->vdd = NULL;
-
-	return 0;
-}
-
 static int dw9714a_regulator_get(struct dw9714a_info *info,
 	struct regulator **vreg, char vreg_name[])
 {
@@ -355,12 +340,6 @@ static int dw9714a_pm_dev_wr(struct dw9714a_info *info, int pwr)
 	if (pwr < info->pwr_dev)
 		pwr = info->pwr_dev;
 	return dw9714a_pm_wr(info, pwr);
-}
-
-static void dw9714a_pm_exit(struct dw9714a_info *info)
-{
-	dw9714a_pm_wr(info, NVC_PWR_OFF_FORCE);
-	dw9714a_power_put(&info->power);
 }
 
 static void dw9714a_pm_init(struct dw9714a_info *info)
@@ -823,84 +802,18 @@ static void dw9714a_sdata_init(struct dw9714a_info *info)
 	}
 }
 
-static int dw9714a_sync_en(unsigned num, unsigned sync)
-{
-	struct dw9714a_info *master = NULL;
-	struct dw9714a_info *slave = NULL;
-	struct dw9714a_info *pos = NULL;
-	rcu_read_lock();
-	list_for_each_entry_rcu(pos, &dw9714a_info_list, list) {
-		if (pos->pdata->num == num) {
-			master = pos;
-			break;
-		}
-	}
-	pos = NULL;
-	list_for_each_entry_rcu(pos, &dw9714a_info_list, list) {
-		if (pos->pdata->num == sync) {
-			slave = pos;
-			break;
-		}
-	}
-	rcu_read_unlock();
-	if (master != NULL)
-		master->s_info = NULL;
-	if (slave != NULL)
-		slave->s_info = NULL;
-	if (!sync)
-		return 0; /* no err if sync disabled */
-	if (num == sync)
-		return -EINVAL; /* err if sync instance is itself */
-	if ((master != NULL) && (slave != NULL)) {
-		master->s_info = slave;
-		slave->s_info = master;
-	}
-	return 0;
-}
-
-static int dw9714a_sync_dis(struct dw9714a_info *info)
-{
-	if (info->s_info != NULL) {
-		info->s_info->s_mode = 0;
-		info->s_info->s_info = NULL;
-		info->s_mode = 0;
-		info->s_info = NULL;
-		return 0;
-	}
-	return -EINVAL;
-}
-
 static int dw9714a_open(struct inode *inode, struct file *file)
 {
 	struct dw9714a_info *info = NULL;
-	struct dw9714a_info *pos = NULL;
-	int err;
-	rcu_read_lock();
-	list_for_each_entry_rcu(pos, &dw9714a_info_list, list) {
-		if (pos->miscdev.minor == iminor(inode)) {
-			info = pos;
-			break;
-		}
-	}
-	rcu_read_unlock();
-	if (!info)
-		return -ENODEV;
-	err = dw9714a_sync_en(info->pdata->num, info->pdata->sync);
-	if (err == -EINVAL)
-		dev_err(&info->i2c_client->dev,
-			"%s err: invalid num (%u) and sync (%u) instance\n",
-			__func__, info->pdata->num, info->pdata->sync);
-	if (atomic_xchg(&info->in_use, 1))
+	struct miscdevice   *miscdev = file->private_data;
+
+	info = container_of(miscdev, struct dw9714a_info, miscdev);
+	if (atomic_xchg(&info->in_use, 1)){
+		pr_err("%s:BUSY!\n", __func__);
 		return -EBUSY;
-	if (info->s_info != NULL) {
-		if (atomic_xchg(&info->s_info->in_use, 1))
-			return -EBUSY;
 	}
+
 	file->private_data = info;
-	dw9714a_pm_dev_wr(info, NVC_PWR_ON);
-	dw9714a_position_wr(info, info->cap.focus_infinity);
-	dw9714a_pm_dev_wr(info, NVC_PWR_OFF);
-	dev_dbg(&info->i2c_client->dev, "%s\n", __func__);
 
 	return 0;
 }
@@ -908,13 +821,9 @@ static int dw9714a_open(struct inode *inode, struct file *file)
 static int dw9714a_release(struct inode *inode, struct file *file)
 {
 	struct dw9714a_info *info = file->private_data;
-	dev_dbg(&info->i2c_client->dev, "%s \n", __func__);
 	dw9714a_pm_wr(info, NVC_PWR_OFF);
 	file->private_data = NULL;
 	WARN_ON(!atomic_xchg(&info->in_use, 0));
-	if (info->s_info != NULL)
-		WARN_ON(!atomic_xchg(&info->s_info->in_use, 0));
-	dw9714a_sync_dis(info);
 	return 0;
 }
 
@@ -925,26 +834,11 @@ static const struct file_operations dw9714a_fileops = {
 	.release = dw9714a_release,
 };
 
-static void dw9714a_del(struct dw9714a_info *info)
-{
-	dw9714a_pm_exit(info);
-	if ((info->s_mode == NVC_SYNC_SLAVE) ||
-		(info->s_mode == NVC_SYNC_STEREO))
-		dw9714a_pm_exit(info->s_info);
-
-	dw9714a_sync_dis(info);
-	spin_lock(&dw9714a_spinlock);
-	list_del_rcu(&info->list);
-	spin_unlock(&dw9714a_spinlock);
-	synchronize_rcu();
-}
-
 static int dw9714a_remove(struct i2c_client *client)
 {
 	struct dw9714a_info *info = i2c_get_clientdata(client);
 	dev_dbg(&info->i2c_client->dev, "%s\n", __func__);
 	misc_deregister(&info->miscdev);
-	dw9714a_del(info);
 	return 0;
 }
 
@@ -975,12 +869,9 @@ static int dw9714a_probe(
 
 	i2c_set_clientdata(client, info);
 	INIT_LIST_HEAD(&info->list);
-	spin_lock(&dw9714a_spinlock);
-	list_add_rcu(&info->list, &dw9714a_info_list);
-	spin_unlock(&dw9714a_spinlock);
 	dw9714a_pm_init(info);
 	dw9714a_sdata_init(info);
-
+	atomic_set(&info->in_use, 0);
 	if (info->pdata->cfg & (NVC_CFG_NODEV | NVC_CFG_BOOT_INIT)) {
 		err = dw9714a_dev_id(info);
 		if (err < 0) {
@@ -988,7 +879,6 @@ static int dw9714a_probe(
 				__func__);
 			dw9714a_pm_wr(info, NVC_PWR_OFF);
 			if (info->pdata->cfg & NVC_CFG_NODEV) {
-				dw9714a_del(info);
 				return -ENODEV;
 			}
 		} else {
@@ -1018,7 +908,6 @@ static int dw9714a_probe(
 	if (misc_register(&info->miscdev)) {
 		dev_err(&client->dev, "%s unable to register misc device %s\n",
 			__func__, dname);
-		dw9714a_del(info);
 		return -ENODEV;
 	}
 
