@@ -719,7 +719,7 @@ int ap3220_read_ps(struct ap3220_chip *chip, u16 *data)
 	else
 	  *data = g_last_ps_value;
 //Ivan
-	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
+//	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
 	
 	return 0;
 READ_PS_EXIT_ERR:
@@ -872,6 +872,8 @@ static ssize_t prox_enable(struct device *dev,
 
 	if (lval == PROXIMITY_ENABLED)
 		return count;
+	
+	printk("Ivan prox_enable = %d!\n",lval);
 
 	mutex_lock(&chip->lock);
 	if (lval) {

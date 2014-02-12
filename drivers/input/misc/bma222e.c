@@ -35,11 +35,15 @@
 #include <linux/pm_runtime.h>
 #include <linux/bma222e.h>
 #include <linux/regulator/consumer.h>
+#ifdef CONFIG_INV_MPU
 #include <linux/mpu.h>
+#else
+#include <linux/akm8963.h>
+#endif
 
 #define BMA_NAME			"bma222e"
 #define BMA_POLL_DELAY_MS_DFLT		(200)
-#define BMA_INPUT_DELAY_MS_MIN		(20)
+#define BMA_INPUT_DELAY_MS_MIN		(50)
 
 #define BMA_DEBUG_ON	1
 
@@ -173,6 +177,8 @@ enum inv_accl_fs_e {
 #define BMA222E_LOW_G_DUR_REG		BMA222E_NOT_USE
 #define BMA222E_LOW_G_THRES_REG		BMA222E_NOT_USE
 
+#define C_MAX_HWMSEN_EVENT_NUM          4 
+
 /*----------------------------------------------------------------------------*/
 #if 0
 #define GSE_TAG                  "[Gsensor] "
@@ -192,6 +198,11 @@ msleep_range(unsigned int delay_base)
 }
 /*----------------------------------------------------------------------------*/
 
+struct direction_convert {
+    s8 sign[C_MAX_HWMSEN_EVENT_NUM];
+    u8 map[C_MAX_HWMSEN_EVENT_NUM];
+};
+
 struct bma222e_data {
 	struct i2c_client *client;
 	struct input_polled_dev *input_polled;
@@ -200,9 +211,15 @@ struct bma222e_data {
 	struct input_dev *idev;
 	struct workqueue_struct *wq;
 	struct delayed_work dw;
+	struct direction_convert   cvt;
+
 	bool enable;			/* enable status */
 	unsigned int poll_delay_us;	/* requested sampling delay (us) */
+#ifdef CONFIG_INV_MPU
 	struct mpu_platform_data pdata;
+#else
+	struct akm8963_platform_data pdata;
+#endif
 	unsigned int range_i;		/* max_range index */
 	unsigned int dbg;		/* device id */
 
@@ -239,6 +256,30 @@ static struct bma222e_cfg default_cfg __devinitdata = {
 	.range = BMA222E_RANGE_2G,
 	.bandwidth = BMA222E_BW_25HZ
 };
+
+struct direction_convert map[] = {
+    { { 1, 1, 1}, {0, 1, 2} },
+    { {-1, 1, 1}, {1, 0, 2} },
+    { {-1,-1, 1}, {0, 1, 2} },
+    { { 1,-1, 1}, {1, 0, 2} },
+
+    { {-1, 1,-1}, {0, 1, 2} },
+    { { 1, 1,-1}, {1, 0, 2} },
+    { { 1,-1,-1}, {0, 1, 2} },
+    { {-1,-1,-1}, {1, 0, 2} },      
+
+};
+/*----------------------------------------------------------------------------*/
+int direction_get_convert(int direction, struct direction_convert *cvt) 
+{
+    if (!cvt)
+        return -EINVAL;
+    else if (direction >= sizeof(map)/sizeof(map[0]))
+        return -EINVAL;
+
+    *cvt = map[direction];
+    return 0;
+}
 
 static int bma222e_write_byte(struct i2c_client *client, u8 reg, u8 val)
 {
@@ -455,7 +496,8 @@ static int __devinit bma222e_set_any_motion_interrupt(struct bma222e_data *bma22
 static void bma222e_report_xyz(struct bma222e_data *bma222e)
 {
 	u8 data[BMA222E_XYZ_DATA_SIZE];
-	s16 x, y, z;
+	s16 data2[BMA222E_XYZ_DATA_SIZE];
+	s16 final_data[BMA222E_XYZ_DATA_SIZE];
 	s32 ret;
 
 	ret = i2c_smbus_read_i2c_block_data(bma222e->client,
@@ -463,37 +505,42 @@ static void bma222e_report_xyz(struct bma222e_data *bma222e)
 	if (ret < 5)
 		return;
 
-	x = (s16)data[BMA222_AXIS_X*2] ;
-	y = (s16)data[BMA222_AXIS_Y*2];
-	z = (s16)data[BMA222_AXIS_Z*2] ;
+	data2[BMA222_AXIS_X] = (s16)data[BMA222_AXIS_X*2] ;
+	data2[BMA222_AXIS_Y] = (s16)data[BMA222_AXIS_Y*2];
+	data2[BMA222_AXIS_Z] = (s16)data[BMA222_AXIS_Z*2] ;
 
-	if(x & 0x80)
+	if(data2[BMA222_AXIS_X] & 0x80)
 	{
-		x = ~x;
-		x &= 0xff;
-		x+=1;
-		x = -x;
+		data2[BMA222_AXIS_X] = ~data2[BMA222_AXIS_X];
+		data2[BMA222_AXIS_X] &= 0xff;
+		data2[BMA222_AXIS_X]+=1;
+		data2[BMA222_AXIS_X] = -data2[BMA222_AXIS_X];
 	}
-	if(y & 0x80)
+	if(data2[BMA222_AXIS_Y] & 0x80)
 	{
-		y = ~y;
-		y &= 0xff;
-		y+=1;
-		y = -y;
+		data2[BMA222_AXIS_Y] = ~data2[BMA222_AXIS_Y];
+		data2[BMA222_AXIS_Y] &= 0xff;
+		data2[BMA222_AXIS_Y]+=1;
+		data2[BMA222_AXIS_Y] = -data2[BMA222_AXIS_Y];
 	}
-	if(z & 0x80)
+	if(data2[BMA222_AXIS_Z] & 0x80)
 	{
-		z = ~z;
-		z &= 0xff;
-		z+=1;
-		z = -z;
+		data2[BMA222_AXIS_Z] = ~data2[BMA222_AXIS_Z];
+		data2[BMA222_AXIS_Z] &= 0xff;
+		data2[BMA222_AXIS_Z]+=1;
+		data2[BMA222_AXIS_Z] = -data2[BMA222_AXIS_Z];
 	}
 
-	GSE_LOG("[%08X %08X %08X] => [%5d %5d %5d] \n", data[BMA222_AXIS_X*2], data[BMA222_AXIS_Y*2], data[BMA222_AXIS_Z*2],
-				x, y, z);
-	input_report_rel(bma222e->input, REL_X, x);
-	input_report_rel(bma222e->input, REL_Y, y);
-	input_report_rel(bma222e->input, REL_Z, z);
+//	GSE_LOG("[%08X %08X %08X] => [%5d %5d %5d] \n", data[BMA222_AXIS_X*2], data[BMA222_AXIS_Y*2], data[BMA222_AXIS_Z*2],
+//				x, y, z);
+	/*remap coordinate*/
+	final_data[bma222e->cvt.map[BMA222_AXIS_X]] = bma222e->cvt.sign[BMA222_AXIS_X]*data2[BMA222_AXIS_X];
+	final_data[bma222e->cvt.map[BMA222_AXIS_Y]] = bma222e->cvt.sign[BMA222_AXIS_Y]*data2[BMA222_AXIS_Y];
+	final_data[bma222e->cvt.map[BMA222_AXIS_Z]] = bma222e->cvt.sign[BMA222_AXIS_Z]*data2[BMA222_AXIS_Z];
+	
+	input_report_rel(bma222e->input, REL_X, final_data[BMA222_AXIS_X]);
+	input_report_rel(bma222e->input, REL_Y, final_data[BMA222_AXIS_Y]);
+	input_report_rel(bma222e->input, REL_Z, final_data[BMA222_AXIS_Z]);
 	input_sync(bma222e->input);
 }
 
@@ -813,7 +860,9 @@ static ssize_t bma_orientation_show(struct device *dev,
 	signed char *m;
 
 	bma = dev_get_drvdata(dev);
+#ifdef CONFIG_INV_MPU
 	m = bma->pdata.orientation;
+#endif
 	return sprintf(buf, "%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
 		       m[0], m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8]);
 }
@@ -915,7 +964,11 @@ static int bma222e_regulator_get(struct i2c_client *client, struct regulator **v
 static int __devinit bma222e_probe(struct i2c_client *client,
 				  const struct i2c_device_id *id)
 {
+#ifdef CONFIG_INV_MPU
 	const struct mpu_platform_data *pdata = client->dev.platform_data;
+#else
+	const struct akm8963_platform_data *pdata = client->dev.platform_data;
+#endif
 	const struct bma222e_cfg *cfg;
 	struct bma222e_data *bma222e;
 	int chip_id;
@@ -961,6 +1014,7 @@ static int __devinit bma222e_probe(struct i2c_client *client,
 	}
 */
 //Ivan
+	direction_get_convert(pdata->layout,&bma222e->cvt);
 	cfg = &default_cfg;
 	bma222e_input_create(bma222e);
 	

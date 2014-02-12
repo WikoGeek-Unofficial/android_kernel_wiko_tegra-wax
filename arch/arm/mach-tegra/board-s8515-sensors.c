@@ -18,6 +18,7 @@
 
 #include <linux/i2c.h>
 #include <linux/mpu.h>
+#include <linux/akm8963.h>
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
 #include <linux/gpio.h>
@@ -1441,6 +1442,8 @@ static struct i2c_board_info __initdata ceres_i2c_board_info_tcs3772[] = {
 	},
 };
 
+#ifdef CONFIG_INV_MPU
+
 /* MPU board file definition	*/
 static struct mpu_platform_data mpu9150_gyro_data = {
 	.int_config	= 0x10,
@@ -1532,7 +1535,16 @@ static struct i2c_board_info __initdata inv_mpu9150_i2c1_board_info[] = {
 		.platform_data = &mpu_compass_data,
 	},
 };
+#else
+static struct akm8963_platform_data bma222e_gsensor_data_e1680 = {
+	.layout 	= 1,
+};
 
+static struct akm8963_platform_data ak8963_compass_data_e1680 = {
+	.layout 	= 5,		//5 OK
+	.irq		= 0, 	//TEGRA_GPIO_PO0
+};
+#endif
 //Ivan added
 /*
 static struct i2c_board_info __initdata dummy_mpu9150_i2c1_board_info[] = {
@@ -1564,7 +1576,8 @@ static struct i2c_board_info __initdata ak8963_mag_i2c1_board_info[] = {
 		 * BMP180 is behind the MPU.  Also, the BMP180 driver uses a
 		 * hard-coded address of 0x77 since it can't be changed anyway.
 		 */
-		I2C_BOARD_INFO("ak8963", 0x0E),
+//Ivan		I2C_BOARD_INFO("ak8963", 0x0E),
+		I2C_BOARD_INFO("akm8963", 0x0E),		
 		.platform_data = &ak8963_compass_data_e1680,
 	},
 };
@@ -1587,7 +1600,8 @@ static void mpuirq_init(void)
 		ARRAY_SIZE(ak8963_mag_i2c1_board_info));		
 #endif	
 	return;
-	
+
+#if (CONFIG_INV_MPU)
 	ret = gpio_request(gyro_irq_gpio, gyro_name);
 
 	if (ret < 0) {
@@ -1617,6 +1631,7 @@ static void mpuirq_init(void)
 	inv_mpu9150_i2c1_board_info[0].irq = gpio_to_irq(MPU_GYRO_IRQ_GPIO);
 	i2c_register_board_info(gyro_bus_num, inv_mpu9150_i2c1_board_info,
 		ARRAY_SIZE(inv_mpu9150_i2c1_board_info));
+#endif
 }
 
 #ifdef CONFIG_TEGRA_SKIN_THROTTLE

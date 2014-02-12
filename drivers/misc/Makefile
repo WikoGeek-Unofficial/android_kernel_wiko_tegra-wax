@@ -73,3 +73,4 @@ obj-$(CONFIG_CPULOAD_MONITOR)	+= cpuload.o
 obj-$(CONFIG_SIM_MAX77660)	+= max77660-sim.o
 obj-$(CONFIG_SIM_PALMAS)	+= palmas-sim.o
 obj-$(CONFIG_TEGRA_PROFILER)	+= tegra-profiler/
+obj-$(CONFIG_SENSORS_AK8963)	+= akm8963.o
