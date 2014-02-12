@@ -717,7 +717,8 @@ int ap3220_read_ps(struct ap3220_chip *chip, u16 *data)
 	  g_last_ps_value = *data;
 	}
 	else
-	  *data = g_last_ps_value;
+	  //*data = g_last_ps_value;
+	  *data = 0;  //far
 //Ivan
 //	printk("Ivan ap3220_read_ps raw = %x, ps_val = %x \n",ps_val, *data);
 	
