@@ -270,7 +270,7 @@ static int akm_pm(struct akm_compass_data *akm, bool enable)
 		dev_dbg(&akm->i2c->dev, "%s pwr=%x\n",
 			__func__, enable);
 	udelay(200);
-		
+	printk("akm8963 akm_pm = %d\n",enable);
 	return err;
 }
 
@@ -389,6 +389,7 @@ static int AKECS_Set_PowerDown(
 	atomic_set(&akm->drdy, 0);
 
 	mutex_unlock(&akm->sensor_mutex);
+	printk("akm8963 AKECS_Set_PowerDown\n");
 	/***** unlock *****/
 
 	return err;
@@ -405,12 +406,12 @@ static int AKECS_Reset(
 
 	/***** lock *****/
 	mutex_lock(&akm->sensor_mutex);
-
-	if (1 /*hard != 0*/) {
+	printk("akm8963 AKECS_Reset\n");
+	if (hard != 0) {
 //Ivan		gpio_set_value(akm->gpio_rstn, 0);
-		akm_pm(akm, false);
+//		akm_pm(akm, false);
 		udelay(5);
-		akm_pm(akm, true);
+//		akm_pm(akm, true);
 //Ivan		gpio_set_value(akm->gpio_rstn, 1);
 		/* No error is returned */
 		err = 0;
@@ -602,13 +603,20 @@ static int AKECS_GetData_Poll(
 static int AKECS_GetOpenStatus(
 	struct akm_compass_data *akm)
 {
+	wait_event_interruptible(akm->open_wq, (atomic_read(&akm->active) != 0));
+	return atomic_read(&akm->active);
+	
 	return wait_event_interruptible(
-			akm->open_wq, (atomic_read(&akm->active) > 0));
+		  akm->open_wq, (atomic_read(&akm->active) > 0));
+
 }
 
 static int AKECS_GetCloseStatus(
 	struct akm_compass_data *akm)
 {
+	wait_event_interruptible(akm->open_wq, (atomic_read(&akm->active) <= 0));
+	return atomic_read(&akm->active);
+	
 	return wait_event_interruptible(
 			akm->open_wq, (atomic_read(&akm->active) <= 0));
 }
@@ -712,7 +720,8 @@ AKECS_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 		break;
 	case ECS_IOCTL_RESET:
 		dev_vdbg(&akm->i2c->dev, "IOCTL_RESET called.");
-		ret = AKECS_Reset(akm, akm->gpio_rstn);
+//		ret = AKECS_Reset(akm, akm->gpio_rstn);
+		ret = AKECS_Reset(akm, 0);	//Ivan
 		if (ret < 0)
 			return ret;
 		break;
@@ -1001,15 +1010,15 @@ static ssize_t akm_compass_sysfs_enable_store(
 		return -EINVAL;
 
 	en = en ? 1 : 0;
-
 	mutex_lock(&akm->val_mutex);
 	akm->enable_flag &= ~(1<<pos);
 	akm->enable_flag |= ((uint32_t)(en))<<pos;
+	printk("akm8963 enable = %d; pos = %d; flag = %x \n",en,pos,akm->enable_flag);
 	mutex_unlock(&akm->val_mutex);
-	if (akm->enable_flag | MAG_DATA_FLAG)
-	  akm_pm(akm, true);
+	if (akm->enable_flag & MAG_DATA_READY || akm->enable_flag & FUSION_DATA_READY)
+	  akm_pm(akm, 1);
 	else
-	  akm_pm(akm, false);
+	  akm_pm(akm, 0);
 	akm_compass_sysfs_update_status(akm);
 
 	return count;
