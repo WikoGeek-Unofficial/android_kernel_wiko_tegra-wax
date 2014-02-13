@@ -57,6 +57,7 @@ extern void max77660_power_forceoff(void);
 static long g_fg_record_time;
 static int g_vcell_fifo[VCELL_LEN];
 static int g_vcell_fifo_init = 0;
+static int g_bat_temperature = 0xffff;
 
 struct max17048_chip {
 	struct i2c_client		*client;
@@ -183,6 +184,53 @@ static int max17048_get_ocv(struct max17048_chip *chip)
 	return ocv;
 }
 
+
+static int max17048_rcomp_adjust(struct max17048_chip *chip)
+{
+	struct max17048_battery_model *mdata = chip->pdata->model_data;
+
+	int rcomp0 = 115;
+	int tempCoUp = -0.15 * 100;
+	int tempCoDown = -4.95 * 100;
+	int rcomp, ret = 0;
+	int config_reg;
+	int temp;
+
+	ret = battery_gauge_get_battery_temperature(chip->bg_dev, &temp);
+	if (ret < 0) {
+		dev_err(&chip->client->dev, "Failed to read battery temperature!\n");
+		return ret;
+	}
+
+	if (g_bat_temperature == temp)
+	  return ret;
+
+	g_bat_temperature = temp;
+	
+	if (temp > 20)
+		rcomp = rcomp0 + (int)((temp - 20)*tempCoUp/(100));
+	else
+		rcomp = rcomp0 + (int)((temp - 20)*tempCoDown/(100));
+
+	config_reg = max17048_read_word(chip->client, MAX17048_CONFIG);
+	if (config_reg < 0) {
+		dev_err(&chip->client->dev, "Error reading config register.\n");
+		return config_reg;
+	}
+
+	config_reg &= 0x00ff;
+	config_reg |= (rcomp << 8);
+
+	ret = max17048_write_word(chip->client, MAX17048_CONFIG, config_reg);
+	if (ret < 0) {
+		dev_err(&chip->client->dev, "Error writing to config register.\n");
+		return ret;
+	}
+
+	return ret;
+}
+
+
 static int max17048_get_property(struct power_supply *psy,
 			    enum power_supply_property psp,
 			    union power_supply_propval *val)
@@ -232,6 +280,14 @@ static int max17048_get_property(struct power_supply *psy,
 	default:
 	return -EINVAL;
 	}
+
+	ret = max17048_rcomp_adjust(chip);
+	if (ret < 0) {
+		dev_err(&chip->client->dev,
+			"Temperature adjustment failed.\n");
+		return -EINVAL;
+	}
+
 	return 0;
 }
 
@@ -570,7 +626,7 @@ static int max17048_initialize(struct max17048_chip *chip)
 		config = 32 - mdata->alert_threshold;
 
 	config = mdata->one_percent_alerts | config;
-
+      
 	ret = max17048_write_word(client, MAX17048_CONFIG,
 			((mdata->rcomp << 8) | config));
 	if (ret < 0)
