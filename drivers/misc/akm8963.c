@@ -378,9 +378,9 @@ static int AKECS_Set_PowerDown(
 	err = akm_i2c_txdata(akm->i2c, buffer, 2);
 	if (err < 0) {
 		dev_err(&akm->i2c->dev,
-			"%s: Can not set to powerdown mode.", __func__);
+			"%s: Can not set to powerdown mode.\n", __func__);
 	} else {
-		dev_dbg(&akm->i2c->dev, "Powerdown mode is set.");
+		dev_dbg(&akm->i2c->dev, "Powerdown mode is set.\n");
 		/* wait at least 100us after changing mode */
 		udelay(100);
 	}
