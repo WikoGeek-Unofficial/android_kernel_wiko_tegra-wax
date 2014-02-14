@@ -319,6 +319,7 @@ power_on_fail:
 	return ret;
 }
 
+void turnoff_torch(int on);
 static int tegra_camera_release(struct inode *inode, struct file *file)
 {
 	int ret = 0;
@@ -328,6 +329,7 @@ static int tegra_camera_release(struct inode *inode, struct file *file)
 
 	mutex_lock(&camera->tegra_camera_lock);
 
+	turnoff_torch(0);
 #ifdef CONFIG_THERMAL
 	/* unregister camera thermal cooling device */
 	tegra_camera_throttle_unregister(camera);
@@ -500,6 +502,7 @@ int tegra_camera_suspend(struct tegra_camera *camera)
 		"tegra_camera cannot suspend, "
 		"application is holding on to camera.\n");
 	}
+	turnoff_torch(0);
 	mutex_unlock(&camera->tegra_camera_lock);
 
 	return ret;

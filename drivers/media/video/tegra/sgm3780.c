@@ -123,6 +123,7 @@ struct tinno_flash_info {
 	spinlock_t lock;
 };
 
+struct tinno_flash_info *info;
 static struct nvc_torch_lumi_level_v1
 		tinno_flash_def_flash_levels[tinno_flash_FLASH_LEVELS];
 
@@ -767,6 +768,10 @@ static void tinno_flash_set_torch(struct tinno_flash_info *info, int on)
 	}
 }
 
+void turnoff_torch(int on)
+{
+	tinno_flash_set_torch(info, on);
+}
 static void tinno_flash_set_flash(struct tinno_flash_info *info, int on)
 {
 	if (info->gpio_en_flash > 0) {
@@ -1011,7 +1016,6 @@ static void start_timer(struct tinno_flash_info *info)
 }
 static int tinno_flash_probe(struct platform_device *dev)
 {
-	struct tinno_flash_info *info;
 	char dname[16];
 	int ret;
 

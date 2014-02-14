@@ -2511,6 +2511,7 @@ static void _tegra_dc_disable(struct tegra_dc *dc)
 	tegra_log_suspend_time();
 }
 
+extern void turnoff_torch(int on);
 void tegra_dc_disable(struct tegra_dc *dc)
 {
 	tegra_dc_ext_disable(dc->ext);
@@ -2521,6 +2522,7 @@ void tegra_dc_disable(struct tegra_dc *dc)
 
 	mutex_lock(&dc->lock);
 
+	turnoff_torch(0);
 	if (dc->enabled) {
 		dc->enabled = false;
 
