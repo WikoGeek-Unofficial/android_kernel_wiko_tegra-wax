@@ -137,7 +137,7 @@ unsigned long nvdumper_reserved;
 unsigned long tegra_tzram_start;
 unsigned long tegra_tzram_size;
 #endif
-unsigned int poweroff;
+unsigned int poweroff = 0;
 bool tegra_lp0_vec_relocate;
 unsigned long tegra_grhost_aperture = ~0ul;
 static   bool is_tegra_debug_uart_hsport;
