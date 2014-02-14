@@ -595,6 +595,22 @@ static int max17048_initialize(struct max17048_chip *chip)
 //Ivan 01 or 09
 	if (((status >> 8) & 0x01) == 0) {
 		dev_info(&client->dev, "don't need initialise fuel gauge.\n");
+//Ivan only init VRESET value		
+	ret = max17048_write_word(client, MAX17048_UNLOCK,
+			MAX17048_UNLOCK_VALUE);
+	if (ret < 0)
+		return ret;
+	
+	ret = max17048_write_word(client, MAX17048_VRESET, mdata->vreset);
+	if (ret < 0)
+		return ret;
+
+	/* Lock model access */
+	ret = max17048_write_word(client, MAX17048_UNLOCK, 0x0000);
+	if (ret < 0)
+		return ret;	
+//Ivan END
+	
 		return 0;
 	}
 	dev_info(&client->dev, "initialise fuel gauge.\n");

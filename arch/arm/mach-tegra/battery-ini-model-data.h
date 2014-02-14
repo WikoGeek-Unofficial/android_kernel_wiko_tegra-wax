@@ -155,7 +155,7 @@ static struct max17048_battery_model __maybe_unused
 	.alert_on_reset = 0x40,
 	.rcomp_seg	= 0x0080,
 	.hibernate	= 0x3080,
-	.vreset		= 0xA096,
+	.vreset		= 0x8696,
 	.valert		= 0xD4AA,
 	.ocvtest	= 57040,
 	.data_tbl = {
@@ -186,7 +186,7 @@ static struct max17048_battery_model __maybe_unused
 	.alert_on_reset = 0x40,
 	.rcomp_seg	= 0x0080,
 	.hibernate	= 0x3080,
-	.vreset		= 0xA096,
+	.vreset		= 0x8696,
 	.valert		= 0xD4AA,
 	.ocvtest	= 55808,
 	.data_tbl = {
@@ -217,7 +217,7 @@ static struct max17048_battery_model __maybe_unused
 	.alert_on_reset = 0x40,
 	.rcomp_seg	= 0x0080,
 	.hibernate	= 0x3080,
-	.vreset		= 0xA096,
+	.vreset		= 0x8696,
 	.valert		= 0xD4AA,
 	.ocvtest	= 56016,
 	.data_tbl = {
