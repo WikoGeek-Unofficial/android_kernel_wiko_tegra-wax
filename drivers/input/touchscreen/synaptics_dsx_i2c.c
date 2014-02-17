@@ -126,6 +126,9 @@ static int synaptics_suspend(struct device *dev);
 static int synaptics_resume(struct device *dev);
 #endif
 
+static int synaptics_enable(struct input_dev *input_dev);
+static int synaptics_disable(struct input_dev *input_dev);
+
 static ssize_t synaptics_rmi4_f01_reset_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
 
@@ -2065,7 +2068,6 @@ EXPORT_SYMBOL(synaptics_rmi4_new_function);
 static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 		const struct i2c_device_id *dev_id)
 {
-	dev_dbg(&client->dev,"Magnum %s\n",__func__);
 	int retval;
 	unsigned char ii;
 	unsigned char attr_count;
@@ -2202,6 +2204,10 @@ static int __devinit synaptics_rmi4_probe(struct i2c_client *client,
 	rmi4_data->input_dev->id.product = SYNAPTICS_DSX_DRIVER_PRODUCT;
 	rmi4_data->input_dev->id.version = SYNAPTICS_DSX_DRIVER_VERSION;
 	rmi4_data->input_dev->dev.parent = &client->dev;
+
+	rmi4_data->input_dev->enable = synaptics_enable;
+	rmi4_data->input_dev->disable = synaptics_disable;
+
 	input_set_drvdata(rmi4_data->input_dev, rmi4_data);
 
 	set_bit(EV_SYN, rmi4_data->input_dev->evbit);
@@ -2803,6 +2809,32 @@ static int synaptics_resume(struct device *dev)
 	//	printk("Magnum %s()\n",__func__);
 		return 0;
  }
+
+static int synaptics_enable(struct input_dev *input_dev)
+{
+	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(&input_dev->dev);
+	const struct synaptics_dsx_platform_data *platform_data =
+			rmi4_data->board;
+
+	synaptics_rmi4_sensor_wake(rmi4_data);
+	synaptics_rmi4_irq_enable(rmi4_data, true);
+
+	return 0;
+}
+
+static int synaptics_disable(struct input_dev *input_dev)
+{
+	struct synaptics_rmi4_data *rmi4_data = dev_get_drvdata(&input_dev->dev);
+	const struct synaptics_dsx_platform_data *platform_data = rmi4_data->board;
+
+	if (!rmi4_data->sensor_sleep) {
+		wake_up(&rmi4_data->wait);
+		synaptics_rmi4_irq_enable(rmi4_data, false);
+		synaptics_rmi4_sensor_sleep(rmi4_data);
+	}
+
+	return 0;
+}
 
 /*
 static const struct dev_pm_ops synaptics_rmi4_dev_pm_ops = {
