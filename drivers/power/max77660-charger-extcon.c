@@ -241,7 +241,7 @@ static int max77660_charger_init(struct max77660_chg_extcon *chip, int enable)
 				MAX77660_CHG_SLAVE,
 				MAX77660_CHARGER_TOPOFF,
 				MAX77660_ITOPOFF_200MA |
-				MAX77660_TOPOFFT_10MIN);
+				MAX77660_TOPOFFT_60MIN);
 		if (ret < 0)
 			return ret;
 		/* MBATREG to 4.2V */
@@ -407,9 +407,10 @@ static int max77660_set_charging_current(struct regulator_dev *rdev,
 		ret = max77660_charging_disable(chip);
 		if (ret < 0)
 			goto error;
+
+		battery_charger_thermal_stop_monitoring(chip->bc_dev);
 		battery_charging_status_update(chip->bc_dev,
 					BATTERY_DISCHARGING);
-		battery_charger_thermal_stop_monitoring(chip->bc_dev);
 	} else {
 		chip->cable_connected = 1;
 		charger->status = BATTERY_CHARGING;

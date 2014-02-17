@@ -196,7 +196,7 @@ int battery_charger_thermal_stop_monitoring(
 		return -EINVAL;
 
 	bc_dev->start_monitoring = false;
-	cancel_delayed_work(&bc_dev->poll_temp_monitor_wq);
+	cancel_delayed_work_sync(&bc_dev->poll_temp_monitor_wq);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(battery_charger_thermal_stop_monitoring);
