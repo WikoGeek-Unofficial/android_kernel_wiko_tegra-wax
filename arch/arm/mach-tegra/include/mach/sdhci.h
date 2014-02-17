@@ -65,6 +65,7 @@ struct tegra_sdhci_platform_data {
 	bool cd_wakeup_incapable;
 	bool en_nominal_vcore_tuning;
 	bool en_clock_gating;
+	u32 cpu_speedo;
 };
 #ifdef CONFIG_THERMAL
 struct tegra_cooling_device *tegra_sdhci_edp_get_dev(int instance);

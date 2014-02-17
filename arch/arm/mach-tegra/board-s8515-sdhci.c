@@ -33,6 +33,7 @@
 #include <mach/iomap.h>
 #include <mach/sdhci.h>
 #include<mach/gpio-tegra.h>
+#include <mach/nct.h>
 
 #include "gpio-names.h"
 #include "board.h"
@@ -40,6 +41,9 @@
 #include "board-atlantis.h"
 #include "tegra-board-id.h"
 #include "dvfs.h"
+#include "fuse.h"
+
+#define FUSE_CORE_SPEEDO_0	0x134
 
 #define CERES_WLAN_PWR  TEGRA_GPIO_PL7
 #define CERES_WLAN_WOW  TEGRA_GPIO_PO2
@@ -170,10 +174,10 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data0 = {
 	.power_gpio = -1,
 	.tap_delay = 0x3,
 	.trim_delay = 0xA,
-	.uhs_mask = MMC_UHS_MASK_SDR104 | MMC_UHS_MASK_DDR50, //wang jian add to disable SDR104 for wifi
 	.ddr_clk_limit = 41000000,
-	.max_clk_limit = 136000000,
+	.max_clk_limit = 82000000,//136000000,
 	.edp_support = false,
+//	.uhs_mask = MMC_UHS_MASK_SDR104 | MMC_UHS_MASK_DDR50, //wang jian add to disable SDR104 for wifi
 	.en_clock_gating = true,
 };
 
@@ -263,11 +267,9 @@ static int ceres_wifi_set_carddetect(int val)
 static int ceres_wifi_power(int on)
 {
 	pr_err("%s: %d\n", __func__, on);
-// wangjian modify for wifi open fail
-    gpio_set_value(CERES_WLAN_PWR, 0);
-    mdelay(250);
-    gpio_set_value(CERES_WLAN_PWR, on);
-    mdelay(250);
+
+	gpio_set_value(CERES_WLAN_PWR, on);
+	mdelay(100);
 // wangjian modify for wifi open fail end
 	return 0;
 }
@@ -341,6 +343,7 @@ int __init ceres_sdhci_init(void)
 	int nominal_core_mv;
 	int min_vcore_override_mv;
 	int boot_vcore_mv;
+	int speedo;
 
 	nominal_core_mv =
 		tegra_dvfs_rail_get_nominal_millivolts(tegra_core_rail);
@@ -375,6 +378,11 @@ int __init ceres_sdhci_init(void)
 		tegra_sdhci_platform_data2.en_freq_scaling = true;
 		tegra_sdhci_platform_data0.max_clk_limit = 136000000;
 	}
+
+	speedo = tegra_fuse_readl(FUSE_CORE_SPEEDO_0);
+	tegra_sdhci_platform_data0.cpu_speedo = speedo;
+	tegra_sdhci_platform_data2.cpu_speedo = speedo;
+	tegra_sdhci_platform_data3.cpu_speedo = speedo;
 
 	platform_device_register(&tegra_sdhci_device3);
 	if( !get_androidboot_mode_charger() ){
