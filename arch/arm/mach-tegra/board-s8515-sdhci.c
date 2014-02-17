@@ -376,7 +376,7 @@ int __init ceres_sdhci_init(void)
 	else {
 		tegra_sdhci_platform_data2.max_clk_limit = 204000000;
 		tegra_sdhci_platform_data2.en_freq_scaling = true;
-		tegra_sdhci_platform_data0.max_clk_limit = 136000000;
+		tegra_sdhci_platform_data0.max_clk_limit = 82000000;
 	}
 
 	speedo = tegra_fuse_readl(FUSE_CORE_SPEEDO_0);
