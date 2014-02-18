@@ -363,7 +363,7 @@ static void fuse_put_super(struct super_block *sb)
 	fuse_conn_put(fc);
 }
 
-#define SDCARD_LIMIT_SIZE  (200 * 1024 * 1024)
+//#define SDCARD_LIMIT_SIZE  (200 * 1024 * 1024)
 static void convert_fuse_statfs(struct kstatfs *stbuf, struct fuse_kstatfs *attr)
 {
 	stbuf->f_type    = FUSE_SUPER_MAGIC;

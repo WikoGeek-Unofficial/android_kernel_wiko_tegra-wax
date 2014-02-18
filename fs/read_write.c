@@ -421,8 +421,8 @@ ssize_t do_sync_write(struct file *filp, const char __user *buf, size_t len, lof
 
 EXPORT_SYMBOL(do_sync_write);
 
-long long store = 0;
-#define SDCARD_LIMIT_SIZE  (200 * 1024 * 1024)
+//long long store = 0;
+//#define SDCARD_LIMIT_SIZE  (200 * 1024 * 1024)
 ssize_t vfs_write(struct file *file, const char __user *buf, size_t count, loff_t *pos)
 {
 	ssize_t ret;
