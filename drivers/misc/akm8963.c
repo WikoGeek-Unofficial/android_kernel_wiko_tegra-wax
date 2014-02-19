@@ -1634,7 +1634,8 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	/* set client data */
 	i2c_set_clientdata(client, s_akm);
 	akm_pm_init(s_akm);
-	
+	udelay(1000);
+
 	/* check connection */
 	err = akm8963_i2c_check_device(client);
 	if (err < 0)
