@@ -1010,6 +1010,9 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
     
 	if (unlikely(WARN_ON(!vreg)))
 		return -EFAULT;
+	/* put front sensor into pwerdonw mode */
+	gpio_set_value(CAM_RSTN, 0);
+	gpio_set_value(CAM2_POWER_DWN_GPIO, 0);
 
 	tegra_pinmux_config_table(&mclk_enable, 1);
 
@@ -1045,6 +1048,12 @@ static int pluto_imx179_power_on(struct nvc_regulator *vreg)
 		goto imx179_dvdd_fail;
 
 	usleep_range(100, 110);
+	gpio_set_value(CAM_PWDN_TINNO, 1);
+#if (CONFIG_S8515_PR_VERSION == 1)
+	gpio_set_value(CAM_RSTN_TINNO, 1);
+#endif
+	usleep_range(300, 350);
+
 
 	return 0;
 
