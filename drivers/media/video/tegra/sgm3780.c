@@ -740,10 +740,7 @@ static int tinno_torch_edp_set_leds(struct tinno_flash_info *info,
 	err = tinno_flash_edp_req(info, mask, &curr1, &curr2);
 	if (err)
 		goto edp_set_leds_end;
-        printk("mingji curr1: %d.\n",curr1);
-        printk("mingji curr2: %d.\n",curr2);
-        printk("mingji mask: %d.\n",mask);
-	if(curr1 > 0)
+	if (curr1 > 0)
 		tinno_flash_set_torch(info,  1);
 	else
 		tinno_flash_set_torch(info,  0);
