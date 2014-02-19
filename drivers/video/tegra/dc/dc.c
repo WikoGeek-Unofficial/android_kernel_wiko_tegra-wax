@@ -2521,8 +2521,8 @@ void tegra_dc_disable(struct tegra_dc *dc)
 	cancel_delayed_work_sync(&dc->underflow_work);
 
 	mutex_lock(&dc->lock);
-
-	turnoff_torch(0);
+// wangjian remove for torch app suspend
+	//turnoff_torch(0);
 	if (dc->enabled) {
 		dc->enabled = false;
 

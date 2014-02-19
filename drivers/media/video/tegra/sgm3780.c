@@ -760,12 +760,39 @@ static int tinno_flash_strobe(struct tinno_flash_info *info, int t_on)
 {
 	return 0;
 }
+/* wangjian add attr for torch app*/
 
+int torch_status = 0;
+static struct platform_driver tinno_flash_driver;
+void turnoff_torch(int on);
+static ssize_t torch_value_show(struct device_driver *ddri, char *buf)
+{
+	return sprintf(buf, "%d", torch_status);
+}
+
+static ssize_t torch_value_store(struct device_driver *ddri, const char *buf, size_t count)
+{
+	if (sscanf(buf, "%u", &torch_status) != 1) {
+			printk("[sgm3780]: Invalid values\n");
+			return -EINVAL;
+	}
+        turnoff_torch(torch_status);
+	return count;
+}
+static DRIVER_ATTR(value, 0644,torch_value_show, torch_value_store);
+
+/* wangjian add attr for torch app end*/
 static void tinno_flash_set_torch(struct tinno_flash_info *info, int on)
 {
 	if (info->gpio_en_torch > 0) {
 		gpio_set_value(info->gpio_en_torch, on ? 1 : 0);
 	}
+/* wangjian add  for torch app*/
+        if((1==torch_status)&&(0==on)){
+            torch_status = on;
+            printk("[sgm3780] reset torch_status to off\n");
+        }
+/* wangjian add  for torch app*/
 }
 
 void turnoff_torch(int on)
@@ -1017,7 +1044,7 @@ static void start_timer(struct tinno_flash_info *info)
 static int tinno_flash_probe(struct platform_device *dev)
 {
 	char dname[16];
-	int ret;
+	int ret,err;
 
 	dev_info(&dev->dev, "%s\n", __func__);
 
@@ -1069,6 +1096,14 @@ static int tinno_flash_probe(struct platform_device *dev)
 				__func__, dname);
 		goto free_mem;
 	}
+// wangjian add attr for torch app
+        printk("[soc_driver]:driver_create_file_call_state \n");
+	err = driver_create_file(&tinno_flash_driver.driver,&driver_attr_value);
+    	if (err) {
+        	printk( " failed to register tinno_flash_driver attributes\n");
+        	err = 0;
+        }
+// wangjian add attr for torch app end
 
 	info->gpio_en_torch = info->gpio_en_flash = -1;
 	if (info->pdata->gpio_en_torch > 0) {
