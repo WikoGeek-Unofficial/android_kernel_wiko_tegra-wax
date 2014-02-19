@@ -269,7 +269,7 @@ static int akm_pm(struct akm_compass_data *akm, bool enable)
 	else
 		dev_dbg(&akm->i2c->dev, "%s pwr=%x\n",
 			__func__, enable);
-	udelay(200);
+	udelay(2000);
 	printk("akm8963 akm_pm = %d\n",enable);
 	return err;
 }
