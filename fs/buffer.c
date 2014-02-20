@@ -1055,8 +1055,18 @@ __getblk_slow(struct block_device *bdev, sector_t block, int size)
 		int ret;
 
 		bh = __find_get_block(bdev, block, size);
-		if (bh)
+		if (bh) {
+			
+			//nvidia
+			if (bh && bh->b_data == NULL)
+				printk("nvidia %s b_data error %lx %llx %x\n",
+					__func__,
+					bh->b_state,
+					bh->b_blocknr,
+					bh->b_size);
+			
 			return bh;
+		}
 
 		ret = grow_buffers(bdev, block, size);
 		if (ret < 0)
@@ -1303,8 +1313,27 @@ __find_get_block(struct block_device *bdev, sector_t block, unsigned size)
 {
 	struct buffer_head *bh = lookup_bh_lru(bdev, block, size);
 
+	//nvidia
+	if (bh && bh->b_data == NULL)
+		printk("nvidia %s lookup_bh_lru %lx %llx %x\n",
+			__func__,
+			bh->b_state,
+			bh->b_blocknr,
+			bh->b_size);
+
+
 	if (bh == NULL) {
 		bh = __find_get_block_slow(bdev, block);
+		
+		//nvidia
+		if (bh && bh->b_data == NULL)
+			printk("nvidia %s lookup_bh_lru %lx %llx %x\n",
+				__func__,
+				bh->b_state,
+				bh->b_blocknr,
+				bh->b_size);
+
+		
 		if (bh)
 			bh_lru_install(bh);
 	}
@@ -1408,12 +1437,20 @@ void set_bh_page(struct buffer_head *bh,
 {
 	bh->b_page = page;
 	BUG_ON(offset >= PAGE_SIZE);
-	if (PageHighMem(page))
+	if (PageHighMem(page)) {
 		/*
 		 * This catches illegal uses and preserves the offset:
 		 */
 		bh->b_data = (char *)(0 + offset);
-	else
+
+		//nvidia
+		printk("nvidia %s %lx %llx %x\n",
+			__func__,
+			bh->b_state,
+			bh->b_blocknr,
+			bh->b_size);
+		
+	} else
 		bh->b_data = page_address(page) + offset;
 }
 EXPORT_SYMBOL(set_bh_page);
