@@ -664,6 +664,11 @@ static void soc_resume_deferred(struct work_struct *work)
 	}
 
 	list_for_each_entry(codec, &card->codec_dev_list, card_list) {
+
+		if (codec->driver->resume_even_inlp1 == true &&
+			!codec->suspended)
+			codec->driver->resume(codec);
+
 		/* If the CODEC was idle over suspend then it will have been
 		 * left with bias OFF or STANDBY and suspended so we must now
 		 * resume.  Otherwise the suspend was suppressed.

@@ -674,6 +674,8 @@ struct snd_soc_codec_driver {
 	/* probe ordering - for components with runtime dependencies */
 	int probe_order;
 	int remove_order;
+
+	bool resume_even_inlp1;
 };
 
 /* SoC platform interface */

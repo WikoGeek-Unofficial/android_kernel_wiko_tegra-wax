@@ -51,6 +51,7 @@ static int extclk_freq = EXTCLK_FREQUENCY;
 module_param(extclk_freq, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(extclk_freq, "EXTCLK frequency in hertz");
 struct clk *clk_cdev1;
+static bool suspend = true;
 
 /* Allows for sparsely populated register maps */
 static struct reg_default max97236_reg[] = {
@@ -1226,6 +1227,7 @@ static int max97236_suspend(struct snd_soc_codec *codec)
 	if (gpio_is_valid(max97236->irq))
 		disable_irq(gpio_to_irq(max97236->irq));
 	max97236_set_bias_level(codec, SND_SOC_BIAS_OFF);
+	suspend = true;
 	return 0;
 }
 
@@ -1250,7 +1252,7 @@ static int max97236_resume(struct snd_soc_codec *codec)
 			M97236_AUTO_MODE_0);
 #endif
 	max97236_mic_detect(codec, max97236->jack);
-	if (gpio_is_valid(max97236->irq))
+	if (gpio_is_valid(max97236->irq) && suspend == true)
 		enable_irq(gpio_to_irq(max97236->irq));
 
 	regmap_read(max97236->regmap, M97236_REG_07_LEFT_VOLUME, &reg);
@@ -1259,6 +1261,11 @@ static int max97236_resume(struct snd_soc_codec *codec)
 	regmap_read(max97236->regmap, M97236_REG_08_RIGHT_VOLUME, &reg);
 	regmap_write(max97236->regmap, M97236_REG_08_RIGHT_VOLUME,
 			reg);
+<<<<<<< HEAD
+=======
+
+	suspend = false;
+>>>>>>> 9e044d2... tegra:tinno:audio: Forbit headset lost in Lp1
 	return 0;
 }
 #else
@@ -1273,6 +1280,7 @@ static struct snd_soc_codec_driver soc_codec_dev_max97236 = {
 	.suspend = max97236_suspend,
 	.resume  = max97236_resume,
 	.set_bias_level = max97236_set_bias_level,
+	.resume_even_inlp1 = true,
 };
 
 static const struct regmap_config max97236_regmap = {
@@ -1367,6 +1375,7 @@ static int max97236_i2c_remove(struct i2c_client *client)
 	return 0;
 }
 
+
 static int max97236_runtime_resume(struct device *dev)
 {
 	struct max97236_priv *max97236 = dev_get_drvdata(dev);
@@ -1380,7 +1389,6 @@ static int max97236_runtime_resume(struct device *dev)
 			return 0;
 
 	regcache_cache_only(max97236->regmap, false);
-	/* max97236_reset(max97236); */
 	regcache_sync(max97236->regmap);
 
 	return 0;
