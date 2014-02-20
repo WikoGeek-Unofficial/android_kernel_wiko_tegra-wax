@@ -593,16 +593,35 @@ static int max17048_initialize(struct max17048_chip *chip)
 	struct i2c_client *client = chip->client;
 	struct max17048_battery_model *mdata = chip->pdata->model_data;
 	uint16_t status;
+	uint16_t vcell,ocv;
  
 	status = max17048_read_word(client, MAX17048_STATUS);
 //Ivan 01 or 09
 	if (((status >> 8) & 0x01) == 0) {
 		dev_info(&client->dev, "don't need initialise fuel gauge.\n");
+		
+	vcell = max17048_read_word(client, MAX17048_VCELL);
+	printk("Ivan max17048_initialize vcell[%d]\n",vcell );
+
 //Ivan only init VRESET value		
 	ret = max17048_write_word(client, MAX17048_UNLOCK,
 			MAX17048_UNLOCK_VALUE);
 	if (ret < 0)
 		return ret;
+
+	ocv = max17048_read_word(client, MAX17048_OCV);
+	if (ocv < 0) {
+		dev_err(&client->dev, "%s: err %d\n", __func__, ocv);
+		return ret;
+	}
+	printk("max17048_initialize: ocv:%d\n",ocv);	
+	
+	if (chip->status == POWER_SUPPLY_STATUS_DISCHARGING)
+	{
+	    if ((vcell + 650) > ocv)		//around 50mV
+	      	max17048_write_word(client, MAX17048_OCV, vcell + 650);
+	}
+	
 	
 	ret = max17048_write_word(client, MAX17048_VRESET, mdata->vreset);
 	if (ret < 0)
