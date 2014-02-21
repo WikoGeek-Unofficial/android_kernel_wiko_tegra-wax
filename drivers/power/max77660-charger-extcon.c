@@ -875,6 +875,7 @@ static int max77660_charger_thermal_configure(
 	int ret;
 //Ivan added
 	u8 status1,status2,status3,status4;
+	u8 jeitaStatus;
 	
 	if (!chip->cable_connected)
 		return 0;
@@ -883,6 +884,14 @@ static int max77660_charger_thermal_configure(
 	dev_info(chip->dev, "Battery temp %d\n", temperature);
 	
 	if (enable_charger) {
+		ret = max77660_reg_clr_bits(chip->parent, MAX77660_CHG_SLAVE,
+			MAX77660_CHARGER_CHGCTRL1, MAX77660_CHARGER_JEITA_EN_MASK);
+		if (ret < 0) {
+			ret = max77660_reg_read(chip->parent,
+					MAX77660_CHG_SLAVE,
+					MAX77660_CHARGER_CHGCTRL1, &jeitaStatus);
+			dev_info(chip->dev, "Battery failed write CHGCTRL1[0x%x], \n", jeitaStatus);
+		}
 		if (!enable_charg_half_current &&
 			chip->charging_state != ENABLED_FULL_IBAT) {
 			max77660_full_current_enable(chip);
@@ -929,6 +938,13 @@ static int max77660_charger_thermal_configure(
     
 	dev_info(chip->dev, "Battery BATREGCTRL[%x], CHGSTAT[%x], DETAILS1[%x], DETAILS2[%x] \n", status1,status2,status3,status4);
     
+  #if 1
+    ret = max77660_reg_read(chip->parent,
+		    MAX77660_CHG_SLAVE,
+		    MAX77660_CHARGER_CHGCTRL1, &jeitaStatus);
+	dev_info(chip->dev, "Battery CHGCTRL1[0x%x] \n", jeitaStatus);
+  #endif
+
 	return 0;
 }
 
