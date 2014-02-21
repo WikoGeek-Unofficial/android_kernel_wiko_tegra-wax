@@ -81,7 +81,7 @@
 #define   RECOVERY_MODE	BIT(31)
 #define   BOOTLOADER_MODE	BIT(30)
 #define   FORCED_RECOVERY_MODE	BIT(1)
-#define   POWEROFF_MODE  BIT(29)
+#define   POWEROFF_MODE  BIT(7)
 
 #define AHB_GIZMO_USB		0x1c
 #define AHB_GIZMO_USB2		0x78
