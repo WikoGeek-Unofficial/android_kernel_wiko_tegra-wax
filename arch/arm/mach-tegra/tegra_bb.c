@@ -40,7 +40,6 @@
 #include <mach/tegra_bb.h>
 #include <mach/tegra_bbc_proxy.h>
 #include <mach/tegra_bbc_power.h>
-#include <mach/pm_domains.h>
 #include <linux/platform_data/nvshm.h>
 
 #include "clock.h"
@@ -1353,7 +1352,6 @@ static int tegra_bb_probe(struct platform_device *pdev)
 	bb->nvshm_device.dev.platform_data = &bb->nvshm_pdata;
 	platform_device_register(&bb->nvshm_device);
 
-	tegra_pd_add_device(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
 
 #ifndef CONFIG_TEGRA_BASEBAND_SIMU

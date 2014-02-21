@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/pm_domains.c
  *
- * Copyright (c) 2012-2013, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION. All rights reserved.
  *
  *
  * This software is licensed under the terms of the GNU General Public
@@ -215,7 +215,6 @@ static struct domain_client client_list[] = {
 	{ .name = "nvavp", .domain = &tegra_mc_chain_b.gpd },
 	{ .name = "sdhci-tegra", .domain = &tegra_mc_chain_b.gpd },
 	{ .name = "tegra11-se", .domain = &tegra_mc_chain_b.gpd },
-	{ .name = "tegra_bb", .domain = &tegra_mc_clk.gpd },
 #endif
 #ifdef CONFIG_ARCH_TEGRA_11x_SOC
 	{ .name = "gr2d", .domain = &tegra_mc_clk.gpd },
