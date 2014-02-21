@@ -3441,6 +3441,7 @@ dhd_serialconsole(dhd_bus_t *bus, bool set, bool enable, int *bcmerror)
 	}
 	else if (bus->sih->chip == BCM4334_CHIP_ID ||
 		bus->sih->chip == BCM43341_CHIP_ID ||
+		bus->sih->chip == BCM43340_CHIP_ID ||
 		0) {
 		if (enable) {
 			/* Moved to PMU chipcontrol 1 from 4330 */
@@ -6921,6 +6922,8 @@ dhdsdio_chipmatch(uint16 chipid)
 	if (chipid == BCM4314_CHIP_ID)
 		return TRUE;
 	if (chipid == BCM43242_CHIP_ID)
+		return TRUE;
+	if (chipid == BCM43340_CHIP_ID)
 		return TRUE;
 	if (chipid == BCM43341_CHIP_ID)
 		return TRUE;
