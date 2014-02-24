@@ -49,6 +49,7 @@
 #define MAX17048_VERSION_NO	0x11
 #define TOPOFF_TIME_COUNT 30
 #define BATTERY_MAX_OCV 4200000
+#define BATTERY_RECHARGE_OCV 4190000
 
 extern void max77660_power_forceoff(void);
 //static int max_fg_w[128];
@@ -338,14 +339,18 @@ static void max17048_get_soc(struct i2c_client *client)
 			battery_set_charging(chip->bg_dev, false);
 			chip->soc = MAX17048_BATTERY_FULL;
 		} else {
-			chip->soc = MAX17048_BATTERY_FULL-1;
+//Ivan removed			chip->soc = MAX17048_BATTERY_FULL-1;
+			max17048_update_battery_status(chip->bg_dev,
+					BATTERY_CHARGING_DONE);
+			chip->soc = MAX17048_BATTERY_FULL;
 		}
 	} else {
 		topoff_count = 0;
 	}
 	if (chip->status == POWER_SUPPLY_STATUS_FULL && chip->charge_complete) {
 		ocv = max17048_get_ocv(chip);
-		if (ocv < BATTERY_MAX_OCV && !chip->is_recharged) {
+//Ivan		if (ocv < BATTERY_MAX_OCV && !chip->is_recharged) {
+		if (ocv < BATTERY_RECHARGE_OCV && !chip->is_recharged) {
 			battery_set_charging(chip->bg_dev, true);
 			chip->is_recharged = 1;
 		} else if (ocv >= BATTERY_MAX_OCV
