@@ -4380,8 +4380,8 @@ static int tegra14_clk_emc_suspend(struct clk *c, u32 *ctx)
 		mv = max(mv, floor_mv);
 		tegra_lp1bb_suspend_mv_set(mv);
 		tegra_lp0bb_suspend_mv_set(mv);
-		pr_debug("EMC suspend: BB IPC pending: voltage %d rate %lu\n",
-			 mv, old_rate);
+		pr_info("EMC suspend: BB IPC pending: voltage %d rate %lu\n",
+			mv, old_rate);
 		return 0;
 	}
 
@@ -4392,19 +4392,19 @@ static int tegra14_clk_emc_suspend(struct clk *c, u32 *ctx)
 	mv = tegra_dvfs_predict_millivolts(c, lp0_rate);
 	mv = max(mv, floor_mv);
 	tegra_lp0bb_suspend_mv_set(mv);
-	pr_debug("EMC lp0 voltage requested before suspend: %d\n", mv);
+	pr_info("EMC lp0 voltage requested before suspend: %d\n", mv);
 
 	/* get ready lp1 entry voltage */
 	rate = tegra14_emc_clk_round_rate(c, rate);
 	mv = tegra_dvfs_predict_millivolts(c, rate);
 	mv = max(mv, floor_mv);
 	tegra_lp1bb_suspend_mv_set(mv);
-	pr_debug("EMC lp1 voltage requested before suspend: %d\n", mv);
+	pr_info("EMC lp1 voltage requested before suspend: %d\n", mv);
 
 	if (rate == old_rate)
 		return 0;
 
-	pr_debug("EMC rate change before suspend: %lu => %lu\n",
+	pr_info("EMC rate change before suspend: %lu => %lu\n",
 		 old_rate, rate);
 
 	return emc_bus_set_rate(c, rate);
@@ -4420,9 +4420,9 @@ static void tegra14_clk_emc_resume(struct clk *c, const u32 *ctx)
 		return;
 	}
 
-	pr_debug("EMC rate change after suspend: %lu => %lu\n",
+	pr_info("EMC rate change after suspend: %lu => %lu\n",
 		 old_rate, rate);
-	pr_debug("µs timerafter suspend = %d",
+	pr_info("µs timerafter suspend = %d",
 		 readl(IO_ADDRESS(TEGRA_TMRUS_BASE)));
 
 	emc_bus_set_rate(c, rate);
