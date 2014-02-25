@@ -2419,6 +2419,8 @@ static int ext4_da_write_begin(struct file *file, struct address_space *mapping,
 	pgoff_t index;
 	struct inode *inode = mapping->host;
 	handle_t *handle;
+	//nvidia
+	int bit_set = 0;
 
 	index = pos >> PAGE_CACHE_SHIFT;
 
@@ -2444,13 +2446,26 @@ retry:
 	/* We cannot recurse into the filesystem as the transaction is already
 	 * started */
 	flags |= AOP_FLAG_NOFS;
+	//nvidia
+	if (test_bit(1, &mapping->flags)) {
+		bit_set = 1;
+		clear_bit(1, &mapping->flags);
+	}
 
 	page = grab_cache_page_write_begin(mapping, index, flags);
 	if (!page) {
+		//nvidia
+		if (bit_set)
+			set_bit(1, &mapping->flags);
 		ext4_journal_stop(handle);
 		ret = -ENOMEM;
 		goto out;
 	}
+
+	//nvidia
+	if (bit_set)
+		set_bit(1, &mapping->flags);
+
 	*pagep = page;
 
 	ret = __block_write_begin(page, pos, len, ext4_da_get_block_prep);
