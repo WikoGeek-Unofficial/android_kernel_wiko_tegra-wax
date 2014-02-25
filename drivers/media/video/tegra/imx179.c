@@ -2459,6 +2459,16 @@ err_out:
 }
 #endif
 
+static struct i2c_driver imx179_i2c_driver;
+int fuseid_value[9] = {0};
+static ssize_t imx179_fuseid_show(struct device_driver *ddri, char *buf)
+{
+	return sprintf(buf, "%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x",
+		fuseid_value[0], fuseid_value[1], fuseid_value[2], fuseid_value[3], fuseid_value[4],
+		fuseid_value[5], fuseid_value[6], fuseid_value[7], fuseid_value[8]);
+}
+static DRIVER_ATTR(fuseid, 0644, imx179_fuseid_show, NULL);
+
 static int imx179_probe(
 	struct i2c_client *client,
 	const struct i2c_device_id *id)
@@ -2466,7 +2476,7 @@ static int imx179_probe(
 	struct imx179_info *info;
 	char dname[16];
 	unsigned long clock_probe_rate;
-	int err;
+	int err, i;
 
 	dev_dbg(&client->dev, "%s +++++\n", __func__);
 	info = devm_kzalloc(&client->dev, sizeof(*info), GFP_KERNEL);
@@ -2488,6 +2498,7 @@ static int imx179_probe(
 	imx179_pm_init(info);
 	imx179_sdata_init(info);
 	imx179_get_flash_cap(info);
+
 	atomic_set(&info->in_use, 0);
 	if (info->pdata->cfg & (NVC_CFG_NODEV | NVC_CFG_BOOT_INIT)) {
 		if (info->pdata->probe_clock) {
@@ -2523,7 +2534,6 @@ static int imx179_probe(
 
 	imx179_edp_register(info);
 
-
 	info->mclk = devm_clk_get(&client->dev, "mclk2" );
 	if (info->pdata->dev_name != 0)
 		strcpy(dname, info->pdata->dev_name);
@@ -2539,6 +2549,17 @@ static int imx179_probe(
 		dev_err(&client->dev, "%s unable to register misc device %s\n",
 			__func__, dname);
 		return -ENODEV;
+	}
+
+	imx179_pm_dev_wr(info, NVC_PWR_COMM);
+	imx179_get_fuse_id(info);
+	imx179_pm_dev_wr(info, NVC_PWR_OFF);
+	for (i = 0; i < info->fuse_id.size; i++)
+            fuseid_value[i] = info->fuse_id.data[i];
+	err = driver_create_file(&imx179_i2c_driver.driver, &driver_attr_fuseid);
+	if (err) {
+                printk( " failed to register fuse id attributes\n");
+                err = 0;
 	}
 
 #ifdef CONFIG_DEBUG_FS
