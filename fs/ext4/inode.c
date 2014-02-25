@@ -3482,28 +3482,6 @@ static int __ext4_get_inode_loc(struct inode *inode,
 				       "unable to read itable block");
 		return -EIO;
 	}
-
-	//nvidia fix for block layer
-	if (buffer_uptodate(bh) && bh->b_data == NULL && bh->b_size == 4096)
-	{
-		printk("nvidia %s ------ \n", __func__);
-		printk("nvidia %s dump state for bh %p \n", __func__, bh);
-		printk("nvidia %s state %lx \n", __func__, bh->b_state);
-		printk("nvidia %s blocknr %llx \n", __func__, bh->b_blocknr);
-		printk("nvidia %s size %x \n", __func__, bh->b_size);
-
-		if (bh->b_page /*&& bh->b_size == 4096 && bh->b_end_io */) {
-			//try to save the life of this buffer head
-			lock_buffer(bh);
-			set_bh_page(bh, bh->b_page, 0);
-			unlock_buffer(bh);
-
-			printk("nvidia %s PageHighMem %d b_data %p\n", __func__, PageHighMem(bh->b_page), bh->b_data);
-			if (bh->b_data == NULL)
-				return -EIO;
-		}
-	}
-	
 	if (!buffer_uptodate(bh)) {
 		lock_buffer(bh);
 
