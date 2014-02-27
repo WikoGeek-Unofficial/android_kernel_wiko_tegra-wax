@@ -4749,7 +4749,7 @@ static void tegra_dc_dsi_enable(struct tegra_dc *dc)
 	//Magnum 2014-1-27
 	#ifdef TINNO_ESD_CHECK
 	enable_irq(gpio_to_irq(TE_PIN_GPIO));
-	pr_info("LCD TE INT enable\n");
+	//pr_info("LCD TE INT enable\n");
 	#endif
 }
 
