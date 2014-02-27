@@ -39,7 +39,7 @@
 #define JETI_TEMP_WARM		45
 #define JETI_TEMP_HOT		60
 
-static DEFINE_MUTEX(charger_gauge_list_mutex);
+DEFINE_MUTEX(charger_gauge_list_mutex);
 static LIST_HEAD(charger_list);
 static LIST_HEAD(gauge_list);
 
@@ -430,8 +430,6 @@ int battery_set_charging(struct battery_gauge_dev *bg_dev,
 		return -EINVAL;
 	}
 
-	mutex_lock(&charger_gauge_list_mutex);
-
 	list_for_each_entry(node, &charger_list, list) {
 		if (node->cell_id != bg_dev->cell_id)
 			continue;
@@ -439,7 +437,6 @@ int battery_set_charging(struct battery_gauge_dev *bg_dev,
 			ret = node->ops->set_charging(node, enable);
 	}
 
-	mutex_unlock(&charger_gauge_list_mutex);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(battery_set_charging);

@@ -87,4 +87,7 @@ void *battery_gauge_get_drvdata(struct battery_gauge_dev *bg_dev);
 void battery_gauge_set_drvdata(struct battery_gauge_dev *bg_dev, void *data);
 int battery_set_charging(struct battery_gauge_dev *bg_dev,
 	bool enable);
+
+extern struct mutex charger_gauge_list_mutex;
+
 #endif /* _LINUX_POWER_BATTERY_CHARGER_GAUGE_COMM_H */

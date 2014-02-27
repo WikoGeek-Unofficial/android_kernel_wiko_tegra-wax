@@ -214,6 +214,12 @@ static int max77660_charger_init(struct max77660_chg_extcon *chip, int enable)
 		return ret;
 
 	if (enable) {
+		if (tegra_get_bootmode_id() == 2)	//Calibration mode
+		{
+		  max77660_reg_set_bits(chip->parent, MAX77660_CHG_SLAVE,
+				  MAX77660_CHARGER_CHGCTRL1,
+				  MAX77660_CHARGER_BUCK_EN_MASK);
+		}
 		/* enable charger */
 		/* Set DCILMT to 1A */
 		ret = max77660_reg_write(chip->parent,
@@ -312,6 +318,13 @@ static int max77660_charger_init(struct max77660_chg_extcon *chip, int enable)
 			MAX77660_CEN_MASK);
 		if (ret < 0)
 			return ret;
+//Ivan clean buck???
+		if (tegra_get_bootmode_id() == 2)	//Calibration mode
+		{
+		  max77660_reg_clr_bits(chip->parent, MAX77660_CHG_SLAVE,
+				  MAX77660_CHARGER_CHGCTRL1,
+				  MAX77660_CHARGER_BUCK_EN_MASK);
+		}
 		/* Clear top level charge */
 		ret = max77660_reg_clr_bits(chip->parent, MAX77660_PWR_SLAVE,
 			MAX77660_REG_GLOBAL_CFG1, MAX77660_GLBLCNFG1_ENCHGTL);
