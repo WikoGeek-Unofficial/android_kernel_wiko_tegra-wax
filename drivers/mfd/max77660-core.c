@@ -445,6 +445,14 @@ static bool rd_wr_reg_power(struct device *dev, unsigned int reg)
 
 static bool volatile_reg_power(struct device *dev, unsigned int reg)
 {
+	if ((reg >= MAX77660_REG_BUCK1_VOUT) &&
+	    (reg <= MAX77660_REG_BUCK7_VOUT)) {
+		struct max77660_chip *chip = dev_get_drvdata(dev);
+		if (test_bit(reg - MAX77660_REG_BUCK1_VOUT,
+			     chip->volatile_buck_vsel))
+			return true;
+	}
+
 	switch (reg) {
 		case MAX77660_REG_CNFG_FPS_AP_OFF ... MAX77660_REG_BUCK_PWR_MODE2:
 		case MAX77660_REG_LDO_PWR_MODE1 ... MAX77660_REG_SW5_CNFG:

@@ -294,6 +294,16 @@ static u8 max77660_regulator_get_power_mode(struct max77660_regulator *reg)
 	return reg->power_mode;
 }
 
+static int max77660_reg_update_val(struct device *dev, int sid, int reg, u8 val,
+				   uint8_t mask)
+{
+	if (mask == 0xFF)
+		return max77660_reg_write(dev, MAX77660_PWR_SLAVE, reg, val);
+	else
+		return max77660_reg_update(dev, MAX77660_PWR_SLAVE, reg, val,
+					   mask);
+}
+
 static int max77660_regulator_do_set_voltage(struct max77660_regulator *reg,
 					     int min_uV, int max_uV)
 {
@@ -314,6 +324,8 @@ static int max77660_regulator_do_set_voltage(struct max77660_regulator *reg,
 		return ret;
 
 	old_uV = (val & mask) * rinfo->step_uV + rinfo->min_uV;
+	if (old_uV == min_uV)
+		return 0;
 
 	if ((old_uV > min_uV) && (reg->safe_down_uV >= rinfo->step_uV)) {
 		steps = DIV_ROUND_UP(old_uV - min_uV, reg->safe_down_uV);
@@ -322,9 +334,9 @@ static int max77660_regulator_do_set_voltage(struct max77660_regulator *reg,
 
 	if (steps == 1) {
 		val = (min_uV - rinfo->min_uV) / rinfo->step_uV;
-		ret = max77660_reg_update(to_max77660_chip(reg),
-						MAX77660_PWR_SLAVE,
-						addr, val, mask);
+		ret = max77660_reg_update_val(to_max77660_chip(reg),
+					      MAX77660_PWR_SLAVE,
+					      addr, val, mask);
 	} else {
 		for (i = 0; i < steps; i++) {
 			if (abs(min_uV - old_uV) > abs(safe_uV))
@@ -337,9 +349,9 @@ static int max77660_regulator_do_set_voltage(struct max77660_regulator *reg,
 				new_uV);
 
 			val = (new_uV - rinfo->min_uV) / rinfo->step_uV;
-			ret = max77660_reg_update(to_max77660_chip(reg),
-							MAX77660_PWR_SLAVE,
-							addr, val, mask);
+			ret = max77660_reg_update_val(to_max77660_chip(reg),
+						      MAX77660_PWR_SLAVE,
+						      addr, val, mask);
 			if (ret < 0)
 				return ret;
 
@@ -1087,6 +1099,23 @@ static int max77660_pwm_dvfs_init(struct device *max77660_pmic_dev,
 	return ret;
 }
 
+static void max77660_regulator_set_vsel_volatile(struct max77660_regulator *reg)
+{
+	u8 addr;
+
+	if (!reg->pdata->vsel_volatile)
+		return;
+
+	addr = reg->rinfo->regs[VOLT_REG].addr;
+
+	if ((addr >= MAX77660_REG_BUCK1_VOUT) &&
+	    (addr <= MAX77660_REG_BUCK7_VOUT)) {
+		struct max77660_chip *chip = dev_get_drvdata(reg->dev->parent);
+		unsigned int bit = addr - MAX77660_REG_BUCK1_VOUT;
+		__set_bit(bit, chip->volatile_buck_vsel);
+	}
+}
+
 static int max77660_regulator_probe(struct platform_device *pdev)
 {
 	struct max77660_platform_data *pdata =
@@ -1138,6 +1167,7 @@ static int max77660_regulator_probe(struct platform_device *pdev)
 		dev_dbg(&pdev->dev, "probe: name=%s\n", rdesc->name);
 
 		if (reg_pdata) {
+			max77660_regulator_set_vsel_volatile(reg);
 			ret = max77660_regulator_preinit(reg);
 			if (ret < 0) {
 				dev_err(&pdev->dev,

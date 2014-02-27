@@ -821,6 +821,8 @@ struct max77660_chip {
 
 	struct i2c_client *clients[MAX77660_NUM_SLAVES];
 	struct regmap *rmap[MAX77660_NUM_SLAVES];
+	DECLARE_BITMAP(volatile_buck_vsel,
+		       MAX77660_REG_BUCK7_VOUT - MAX77660_REG_BUCK1_VOUT + 1);
 
 	struct max77660_platform_data *pdata;
 
@@ -1009,6 +1011,7 @@ struct max77660_regulator_platform_data {
 	struct max77660_regulator_fps_cfg *fps_cfgs;
 
 	unsigned int flags;
+	bool vsel_volatile;
 };
 
 /*
