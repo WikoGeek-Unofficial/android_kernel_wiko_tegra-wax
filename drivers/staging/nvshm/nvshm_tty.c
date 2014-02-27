@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2012-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -69,7 +69,8 @@ static void nvshm_tty_rx_rewrite_line(struct nvshm_tty_line *line)
 	struct tty_struct *tty;
 	int len;
 
-	BUG_ON(line == NULL);
+	if (!line)
+		return;
 	tty = tty_port_tty_get(&line->port);
 	if (!tty)
 		return;
@@ -136,8 +137,10 @@ static void nvshm_tty_rx_rewrite(struct work_struct *work)
 
 	idx = srcu_read_lock(&tty_dev_lock);
 	line = srcu_dereference(ttydev->line, &tty_dev_lock);
-	for (i = 0; i < ttydev->nlines; i++)
-		nvshm_tty_rx_rewrite_line(&line[i]);
+	if (line) {
+		for (i = 0; i < ttydev->nlines; i++)
+			nvshm_tty_rx_rewrite_line(&line[i]);
+	}
 
 	srcu_read_unlock(&tty_dev_lock, idx);
 }
@@ -213,7 +216,7 @@ static int nvshm_tty_open(struct tty_struct *tty, struct file *f)
 
 	idx = srcu_read_lock(&tty_dev_lock);
 	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
-	if (tty_dev.up)
+	if (line && tty_dev.up)
 		ret = tty_port_open(&line->port, tty, f);
 
 	srcu_read_unlock(&tty_dev_lock, idx);
@@ -227,9 +230,8 @@ static void nvshm_tty_close(struct tty_struct *tty, struct file *f)
 
 	idx = srcu_read_lock(&tty_dev_lock);
 	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
-	if (tty_dev.up)
+	if (line && tty_dev.up)
 		tty_port_close(&line->port, tty, f);
-
 	srcu_read_unlock(&tty_dev_lock, idx);
 }
 
@@ -240,7 +242,7 @@ static void nvshm_tty_hangup(struct tty_struct *tty)
 
 	idx = srcu_read_lock(&tty_dev_lock);
 	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
-	if (tty_dev.up)
+	if (line)
 		tty_port_hangup(&line->port);
 
 	srcu_read_unlock(&tty_dev_lock, idx);
@@ -268,6 +270,10 @@ static int nvshm_tty_write(struct tty_struct *tty, const unsigned char *buf,
 
 	remain = len;
 	line = srcu_dereference(tty->driver_data, &tty_dev_lock);
+	if (!line) {
+		rc = -EIO;
+		goto err;
+	}
 	while (remain) {
 		to_send = remain < MAX_OUTPUT_SIZE ? remain : MAX_OUTPUT_SIZE;
 		iob = nvshm_iobuf_alloc(line->pchan, to_send);
@@ -503,6 +509,7 @@ void nvshm_tty_cleanup(struct nvshm_handle *handle)
 		tty = tty_port_tty_get(&tty_dev.line[chan].port);
 		if (tty) {
 			tty_vhangup(tty);
+			tty->driver_data = NULL;
 			tty_kref_put(tty);
 		}
 		/* No need to cleanup data as iobufs are invalid now */

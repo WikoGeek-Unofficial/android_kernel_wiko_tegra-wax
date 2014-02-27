@@ -245,7 +245,6 @@ static int cleanup_interfaces(struct nvshm_handle *handle)
 
 	spin_lock(&handle->lock);
 	handle->configured = 0;
-	handle->recovery = 0;
 	spin_unlock(&handle->lock);
 
 	for (chan = 0; chan < handle->chan_count; chan++) {
@@ -312,29 +311,36 @@ static void ipc_work(struct work_struct *work)
 		if (handle->configured) {
 			nvshm_abort_queue(handle);
 			cleanup_interfaces(handle);
+			handle->recovery = 0;
 		}
 		goto ipc_exit;
 	}
 	switch (cmd) {
 	case NVSHM_IPC_READY:
 		/* most encountered message - process queue */
-		if (cmd != handle->old_status) {
-			if (ipc_readconfig(handle))
-				goto ipc_exit;
-
-			nvshm_iobuf_init(handle);
-			nvshm_init_queue(handle);
-			init_interfaces(handle);
-		}
-		/* Process IPC queue but do not notify sysfs */
-		if (handle->configured) {
+		if (handle->configured && !handle->recovery) {
+			/* Process IPC queue but do not notify sysfs */
 			nvshm_process_queue(handle);
 			if (handle->errno) {
 				pr_err("%s: cleanup interfaces\n",
 				       __func__);
 				nvshm_abort_queue(handle);
 				cleanup_interfaces(handle);
+				handle->recovery = 0;
 				break;
+			}
+		} else {
+			/* Transition from firmware loading to ready */
+			if ((handle->old_status ==
+			     NVSHM_IPC_BOOT_FW_REQ) ||
+			    (handle->old_status ==
+			     NVSHM_IPC_BOOT_RESTART_FW_REQ)) {
+				if (ipc_readconfig(handle))
+					goto ipc_exit;
+
+				nvshm_iobuf_init(handle);
+				nvshm_init_queue(handle);
+				init_interfaces(handle);
 			}
 		}
 		break;
@@ -344,6 +350,12 @@ static void ipc_work(struct work_struct *work)
 			nvshm_abort_queue(handle);
 			cleanup_interfaces(handle);
 			pr_debug("%s: cleanup done\n", __func__);
+		}
+		/* recovery mode is a fake ISR - do not update old_status */
+		/* Otherwise next ISR could be seen as modem startup      */
+		if (handle->recovery) {
+			handle->recovery = 0;
+			goto ipc_exit;
 		}
 		break;
 	case NVSHM_IPC_BOOT_ERROR_BT2_HDR:
