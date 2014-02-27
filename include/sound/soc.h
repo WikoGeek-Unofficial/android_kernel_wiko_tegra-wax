@@ -1,5 +1,6 @@
 /*
  * linux/sound/soc.h -- ALSA SoC Layer
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * Author:		Liam Girdwood
  * Created:		Aug 11th 2005
@@ -674,8 +675,6 @@ struct snd_soc_codec_driver {
 	/* probe ordering - for components with runtime dependencies */
 	int probe_order;
 	int remove_order;
-
-	bool resume_even_inlp1;
 };
 
 /* SoC platform interface */

@@ -2,6 +2,7 @@
  * max97236.c -- MAX97236 ALSA SoC Audio driver
  *
  * Copyright 2012-2013 Maxim Integrated Products
+ * Copyright (c) 2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -25,6 +26,7 @@
 #include <sound/max97236.h>
 #include "max97236.h"
 #include <linux/clk.h>
+#include <linux/wakelock.h>
 
 #include <linux/version.h>
 
@@ -51,7 +53,7 @@ static int extclk_freq = EXTCLK_FREQUENCY;
 module_param(extclk_freq, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(extclk_freq, "EXTCLK frequency in hertz");
 struct clk *clk_cdev1;
-static bool suspend = true;
+struct wake_lock        wakelock;
 
 /* Allows for sparsely populated register maps */
 static struct reg_default max97236_reg[] = {
@@ -565,6 +567,9 @@ static void max97236_report_jack_state(struct max97236_priv *max97236,
 				SND_JACK_HEADSET | SND_JACK_LINEOUT);
 		max97236->jack_state = state;
 	}
+	if (state == M97236_JACK_STATE_NONE)
+		snd_soc_jack_report(max97236->jack, state,
+				SND_JACK_HEADSET | SND_JACK_LINEOUT);
 }
 
 static void max97236_set_clk_dividers(struct max97236_priv *max97236)
@@ -816,10 +821,11 @@ static void max97236_jack_event(struct max97236_priv *max97236)
 
 	regmap_read(max97236->regmap, M97236_REG_00_STATUS1, &status_reg[0]);
 	regmap_read(max97236->regmap, M97236_REG_01_STATUS2, &status_reg[1]);
-
 	/* Key press or jack removal? */
-	if ((status_reg[0] & M97236_IMBH_MASK)      ||
+	/* For Key press, it need make sure it is headset connected */
+	if (((status_reg[0] & M97236_IMBH_MASK)      ||
 			(status_reg[0] & M97236_IMCSW_MASK) ||
+<<<<<<< HEAD
 			(status_reg[1] & M97236_IKEY_MASK)) {
 /* headset detect feature   WJ  21/01/14 */
 		if (max97236_jacksw_active(max97236)){
@@ -840,6 +846,11 @@ static void max97236_jack_event(struct max97236_priv *max97236)
         		max97236_report_jack_state(max97236, status_reg);
                 }
 /* headset detect feature   WJ  21/01/14  end*/
+=======
+			(status_reg[1] & M97236_IKEY_MASK)) &&
+			max97236_jacksw_active(max97236)) {
+		max97236_keypress(max97236, status_reg);
+>>>>>>> ceb5a82... tegra:tinno:audio Improve headset model
 	} else {
 		if (max97236_jacksw_active(max97236))
 			goto max97236_jack_event_10;
@@ -893,26 +904,30 @@ static void max97236_jack_plugged(struct max97236_priv *max97236)
 	int retries = M97236_DEFAULT_RETRIES;
 	int force_value = 0;
 	int count;
-
+	wake_lock(&wakelock);
 	/* Check for spurious interrupt */
-	if (!max97236_jacksw_active(max97236))
+	if (!max97236_jacksw_active(max97236)) {
+		max97236_jack_event(max97236);
 		goto max97236_jack_plugged_30;
-
+	}
 #if 1
 	/* Start debounce verifying jack presence periodically */
 	for (count = 0; count < 24; count++) {
 		msleep(20);
-		if (!max97236_jacksw_active(max97236))
+		if (!max97236_jacksw_active(max97236)) {
+			max97236_jack_event(max97236);
 			goto max97236_jack_plugged_30;
+		}
 	}
 #else
 	msleep(750);
 #endif
 
 max97236_jack_plugged_10:
-	if (!max97236_jacksw_active(max97236))
+	if (!max97236_jacksw_active(max97236)) {
+		max97236_jack_event(max97236);
 		goto max97236_jack_plugged_30;
-
+	}
 	max97236_begin_detect(max97236);
 
 	count = 10;
@@ -961,6 +976,7 @@ max97236_jack_plugged_20:
 			goto max97236_jack_plugged_20;
 		}
 	}
+	wake_unlock(&wakelock);
 
 	return;
 
@@ -975,6 +991,7 @@ static void max97236_jack_work(struct work_struct *work)
 	struct max97236_priv *max97236 =
 		container_of(work, struct max97236_priv, jack_work.work);
 	int ret;
+	unsigned int reg;
 
 	ret = clk_enable(clk_cdev1);
         printk("Ivan max97236_jack_work \n");
@@ -1074,7 +1091,8 @@ int max97236_mic_detect(struct snd_soc_codec *codec,
 
 		if ((reg & M97236_JACKSW_MASK) == test_value) {
 			schedule_delayed_work(&max97236->jack_work,
-				msecs_to_jiffies(250));
+				msecs_to_jiffies(25));
+
 		} else {
 /* headset detect feature   WJ  21/01/14 */
 		        max97236->jack_state = SND_JACK_HEADSET;
@@ -1099,8 +1117,12 @@ int max97236_mic_detect(struct snd_soc_codec *codec,
 #endif
 /* headset detect feature   WJ  21/01/14*/
 			schedule_delayed_work(&max97236->jack_work,
+<<<<<<< HEAD
 				msecs_to_jiffies(250));
 /* headset detect feature   WJ  21/01/14  end*/
+=======
+				msecs_to_jiffies(25));
+>>>>>>> ceb5a82... tegra:tinno:audio Improve headset model
 		}
 
 		ret = 0;
@@ -1206,6 +1228,7 @@ static int max97236_probe(struct snd_soc_codec *codec)
 
 	max97236_handle_pdata(codec);
 	max97236_add_widgets(codec);
+	wake_lock_init(&wakelock, WAKE_LOCK_SUSPEND, "headset detect");
 
 err_access:
 	return ret;
@@ -1224,19 +1247,26 @@ static int max97236_remove(struct snd_soc_codec *codec)
 static int max97236_suspend(struct snd_soc_codec *codec)
 {
 	struct max97236_priv *max97236 = snd_soc_codec_get_drvdata(codec);
+	struct snd_soc_card *card = codec->card;
+	unsigned int reg, i;
+	for (i = 0; i < card->num_links; i++)
+		if (card->dai_link[i].ignore_suspend)
+			return 0;
 	if (gpio_is_valid(max97236->irq))
 		disable_irq(gpio_to_irq(max97236->irq));
 	max97236_set_bias_level(codec, SND_SOC_BIAS_OFF);
-	suspend = true;
 	return 0;
 }
 
 static int max97236_resume(struct snd_soc_codec *codec)
 {
 	struct max97236_priv *max97236 = snd_soc_codec_get_drvdata(codec);
-	unsigned int reg;
-
-	max97236_reset(max97236);
+	struct snd_soc_card *card = codec->card;
+	unsigned int reg, i;
+	for (i = 0; i < card->num_links; i++)
+		if (card->dai_link[i].ignore_suspend)
+			return 0;
+	/*max97236_reset(max97236);*/
 	max97236_set_bias_level(codec, SND_SOC_BIAS_STANDBY);
 
 	/* Clear any interrupts then enable jack detection */
@@ -1252,7 +1282,7 @@ static int max97236_resume(struct snd_soc_codec *codec)
 			M97236_AUTO_MODE_0);
 #endif
 	max97236_mic_detect(codec, max97236->jack);
-	if (gpio_is_valid(max97236->irq) && suspend == true)
+	if (gpio_is_valid(max97236->irq))
 		enable_irq(gpio_to_irq(max97236->irq));
 
 	regmap_read(max97236->regmap, M97236_REG_07_LEFT_VOLUME, &reg);
@@ -1264,8 +1294,11 @@ static int max97236_resume(struct snd_soc_codec *codec)
 <<<<<<< HEAD
 =======
 
+<<<<<<< HEAD
 	suspend = false;
 >>>>>>> 9e044d2... tegra:tinno:audio: Forbit headset lost in Lp1
+=======
+>>>>>>> ceb5a82... tegra:tinno:audio Improve headset model
 	return 0;
 }
 #else
@@ -1280,7 +1313,6 @@ static struct snd_soc_codec_driver soc_codec_dev_max97236 = {
 	.suspend = max97236_suspend,
 	.resume  = max97236_resume,
 	.set_bias_level = max97236_set_bias_level,
-	.resume_even_inlp1 = true,
 };
 
 static const struct regmap_config max97236_regmap = {
