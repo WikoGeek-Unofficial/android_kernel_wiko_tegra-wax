@@ -46,7 +46,7 @@
 static int boot_mode;
 static const int TPD_KEYSFACTORY[TPD_KEY_COUNT] =  {KEY_F1, KEY_F2, KEY_F3};
 static struct synaptics_rmi4_data * g_rmi4_data;
-extern void synaptics_get_fw_version(void);
+extern unsigned int synaptics_get_fw_version(void);
 
 #ifdef TPD_HAVE_BUTTON 
 static int tpd_keys[TPD_KEY_COUNT] = TPD_KEYS;
@@ -2715,10 +2715,10 @@ int synaptics_tinno_resume(void)
 		return -ENODEV;
 	}
 
-	if (g_rmi4_data->sensor_sleep == false) {
-		printk("Magnum synaptics do not resume,as no suspend action did before\n");
-		return -1;
-	}
+//	if (g_rmi4_data->sensor_sleep == false) {
+//		printk("Magnum synaptics do not resume,as no suspend action did before\n");
+//		return -1;
+//	}
 	dev_dbg(&g_rmi4_data->i2c_client->dev,"Magnum %s\n",__func__);
 	const struct synaptics_dsx_platform_data *platform_data =
 			g_rmi4_data->board;
