@@ -2505,7 +2505,7 @@ static int max98090_set_bias_level(struct snd_soc_codec *codec,
 			 * Set to normal bias level.
 			 */
 			snd_soc_update_bits(codec, M98090_REG_12_MIC_BIAS,
-				M98090_MBVSEL_MASK, M98090_MBVSEL_2V4);
+				M98090_MBVSEL_MASK, M98090_MBVSEL_2V55);
 
 			snd_soc_update_bits(codec, M98090_REG_3E_PWR_EN_IN,
 				M98090_PWR_MBEN_MASK, M98090_PWR_MBEN_MASK);
