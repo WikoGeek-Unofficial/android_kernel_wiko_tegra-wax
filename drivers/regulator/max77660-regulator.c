@@ -458,12 +458,10 @@ static int max77660_regulator_enable(struct regulator_dev *rdev)
 
 	if (reg->external_flags & MAX77660_EXTERNAL_ENABLE)
 		return 0;
-
-	/* ES 1.1 and 1.2 suggest to keep BUCK3 and BUCK5 in GLPM */
+	
+	/* ES 1.1 and 1.2 suggest to keep LOD1/14 in GLPM */
 	if (max77660_is_es_1_1_or_1_2(reg->dev))
-		if (reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK3 ||
-			reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK5 ||
-			reg->rinfo->id == MAX77660_REGULATOR_ID_LDO1 ||
+		if (reg->rinfo->id == MAX77660_REGULATOR_ID_LDO1 ||
 			reg->rinfo->id == MAX77660_REGULATOR_ID_LDO14)
 			return max77660_regulator_set_power_mode(reg,
 					POWER_MODE_GLPM);
@@ -801,11 +799,9 @@ static int max77660_regulator_preinit(struct max77660_regulator *reg)
 			reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK7)
 			pdata->flags |= SD_FORCED_PWM_MODE;
 
-	/* ES 1.1 and 1.2 suggest to keep BUCK3/5 and LDO1/14 in GLPM */
+	/* ES 1.1 and 1.2 suggest to keep LDO1/14 in GLPM */
 	if (max77660_is_es_1_1_or_1_2(reg->dev))
-		if (reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK3 ||
-			reg->rinfo->id == MAX77660_REGULATOR_ID_BUCK5 ||
-			reg->rinfo->id == MAX77660_REGULATOR_ID_LDO1 ||
+		if (reg->rinfo->id == MAX77660_REGULATOR_ID_LDO1 ||
 			reg->rinfo->id == MAX77660_REGULATOR_ID_LDO14)
 			max77660_regulator_set_power_mode(reg,
 					POWER_MODE_GLPM);
