@@ -49,10 +49,6 @@
 #include "tegra3_emc.h"
 #include "dvfs.h"
 
-//Ivan added
-extern void external_tegra_wdt_disable(void);
-extern void external_tegra_wdt_enable(void);
-
 #define CREATE_TRACE_POINTS
 #include <trace/events/nvpower.h>
 
@@ -527,7 +523,7 @@ int tegra_switch_to_g_cluster()
 
 	if (!is_lp_cluster())
 		return 0;
-	
+
 	e = clk_set_parent(cpu_clk, cpu_g_clk);
 	if (e) {
 		pr_err("cluster switching request failed (%d)\n", e);
@@ -615,12 +611,6 @@ void tegra_lp0_cpu_mode(bool enter)
 			pr_info("Tegra: switched to %s cluster\n",
 				enter ? "LP" : "G");
 		}
-//Ivan added
-		if (enter)
-		  external_tegra_wdt_disable();
-		else
-		  external_tegra_wdt_enable();
-
 	}
 }
 

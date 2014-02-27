@@ -46,11 +46,6 @@
 /* Assign Timer 7 to Timer 10 for WDT0 to WDT3, respectively */
 #define TMR_SRC_START	7
 
-//Ivan added for testing
-static int g_tegra_wdt_status = 0xff;
-static struct tegra_wdt *p_g_wdt;
-
-
 enum tegra_wdt_status {
 	WDT_DISABLED = 1 << 0,
 	WDT_ENABLED = 1 << 1,
@@ -157,7 +152,7 @@ static irqreturn_t tegra_wdt_interrupt(int irq, void *dev_id)
 struct tegra_wdt *tegra_wdt[MAX_NR_CPU_WDT];
 
 static inline void tegra_wdt_ping(struct tegra_wdt *wdt)
-{   
+{
 	writel(WDT_CMD_START_COUNTER, wdt->wdt_source + WDT_CMD);
 #if defined(CONFIG_TEGRA_USE_SECURE_KERNEL) && \
 	defined(CONFIG_ARCH_TEGRA_14x_SOC) && defined(CONFIG_FIQ_DEBUGGER)
@@ -185,11 +180,6 @@ static void tegra_wdt_enable(struct tegra_wdt *wdt)
 {
 	u32 val;
 
-	if (g_tegra_wdt_status != 0xff && g_tegra_wdt_status == 1)
-	  return;
-	
-	g_tegra_wdt_status = 1;
-	
 	writel(TIMER_PCR_INTR, wdt->wdt_timer + TIMER_PCR);
 	val = (wdt->timeout * 1000000ul) / 4;
 	val |= (TIMER_EN | TIMER_PERIODIC);
@@ -220,17 +210,10 @@ static void tegra_wdt_enable(struct tegra_wdt *wdt)
 	writel(WDT_CMD_START_COUNTER, wdt->wdt_avp_source + WDT_CMD);
 
 #endif
-	printk("Ivan tegra_wdt_enable!\n");
-
 }
 
 static void tegra_wdt_disable(struct tegra_wdt *wdt)
 {
-	if (g_tegra_wdt_status != 0xff && g_tegra_wdt_status == 0)
-	  return;
-
-	g_tegra_wdt_status = 0;
-	
 	writel(WDT_UNLOCK_PATTERN, wdt->wdt_source + WDT_UNLOCK);
 	writel(WDT_CMD_DISABLE_COUNTER, wdt->wdt_source + WDT_CMD);
 
@@ -241,7 +224,6 @@ static void tegra_wdt_disable(struct tegra_wdt *wdt)
 #endif
 
 	writel(0, wdt->wdt_timer + TIMER_PTV);
-	printk("Ivan tegra_wdt_disable!\n");
 }
 
 static irqreturn_t tegra_wdt_interrupt(int irq, void *dev_id)
@@ -667,8 +649,6 @@ static int tegra_wdt_probe(struct platform_device *pdev)
 #endif
 	tegra_wdt[pdev->id] = wdt;
 #endif
-//Ivan added
-	p_g_wdt = wdt;
 	pr_info("%s done\n", __func__);
 	return 0;
 fail:
@@ -747,9 +727,9 @@ static int tegra_wdt_remove(struct platform_device *pdev)
 #ifdef CONFIG_PM
 static int tegra_wdt_suspend(struct platform_device *pdev, pm_message_t state)
 {
-//Ivan	struct tegra_wdt *wdt = platform_get_drvdata(pdev);
+	struct tegra_wdt *wdt = platform_get_drvdata(pdev);
 
-//Ivan	tegra_wdt_disable(wdt);
+	tegra_wdt_disable(wdt);
 	return 0;
 }
 
@@ -803,22 +783,6 @@ static void __exit tegra_wdt_exit(void)
 {
 	platform_driver_unregister(&tegra_wdt_driver);
 }
-
-//Ivan added
-void external_tegra_wdt_enable(void)
-{
-  if (p_g_wdt->status & WDT_ENABLED)
-	  tegra_wdt_enable(p_g_wdt);
-}
-
-//Ivan added
-void external_tegra_wdt_disable(void)
-{
-  tegra_wdt_disable(p_g_wdt); 
-}
-
-EXPORT_SYMBOL_GPL(external_tegra_wdt_disable);
-EXPORT_SYMBOL_GPL(external_tegra_wdt_enable);
 
 module_init(tegra_wdt_init);
 module_exit(tegra_wdt_exit);
