@@ -39,6 +39,8 @@
 #define BOOTLOADER_BL_INTENSITY 77
 #define DC_CTRL_MODE            TEGRA_DC_OUT_CONTINUOUS_MODE
 
+#define ENABLE_CE
+
 static struct regulator *vdd_lcd_s_1v8;
 static struct regulator *vdd_sys_bl_3v7;
 static struct regulator *avdd_lcd_3v0_2v8;
@@ -262,7 +264,7 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
 	{0xC4,1,{0x40}}, 
 
 	/***********************CELEVER COLOR SETTING FOR CE ****************************************/
-	
+#ifdef  ENABLE_CE	
 	{0x00,1,{0xa0}},             
 	{0xd6,12,{0x01,0xCD,0x01,0xCD,0x01,0xCD,0x01,0xCD,
 			0x01,0xCD,0x01,0xCD}}, 
@@ -293,15 +295,21 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
 	{0xd6,2,{0x03,0xff}},      
 	
 	{0x00,1,{0x00}},         
-	{0x55,1,{0x80}},         
-
+	{0x55,1,{0x80}},          
+#endif  
 	
 /************************************************************************/
+	
+//	{0x00,1,{0x00}},         // Gamma vdd  reduce from 4.8 to 4.0
+//	{0xd8,2,{0x83,0x83}},      
+
 
 	{0x00,1,{0x00}}, 
 	{0xFF,3,{0xFF,0xFF,0xFF}}, 
 
 	{0x35,1,{0x00}}, 
+
+	//{0x21,1,{0x00}},      //TEST
 
 	{0x13, 0, {0x00}}, 
 	{REGFLAG_DELAY,20,{}}, 
@@ -554,8 +562,8 @@ static tegra_dc_bl_output dsi_otm1283a_720p_lm3528_bl_response_curve = {
 };
 
 static tegra_dc_bl_output temp_bl_output_measured = {
-	0, 1, 2, 4, 5, 6, 8, 9,
-	10, 12, 13, 14, 15, 16, 16, 17,
+	16, 16, 16, 16, 16, 16, 16, 16,
+	16, 16, 16, 16, 16, 16, 16, 17,
 	18, 19, 20, 20, 21, 22, 24, 25,
 	26, 27, 28, 29, 30, 31, 33, 34,
 	35, 36, 37, 38, 39, 41, 42, 43,
