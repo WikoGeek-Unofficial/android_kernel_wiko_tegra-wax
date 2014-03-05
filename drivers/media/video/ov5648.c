@@ -1677,6 +1677,12 @@ static struct miscdevice ov5648_device = {
 	.fops = &ov5648_fileops,
 };
 
+static struct i2c_driver ov5648_i2c_driver;
+static ssize_t ov5648_caminfo_show(struct device_driver *ddri, char *buf)
+{
+	return sprintf(buf, "%s","ov5648");
+}
+static DRIVER_ATTR(subcaminfo, 0644, ov5648_caminfo_show, NULL);
 
 static int ov5648_probe(
 			struct i2c_client *client,
@@ -1730,6 +1736,13 @@ static int ov5648_probe(
 	ov5648_sysfs_init(info);
 	gpio_set_value(CAM_RSTN, 0);
 	gpio_set_value(CAM2_POWER_DWN_GPIO, 0);
+
+	err = driver_create_file(&ov5648_i2c_driver.driver, &driver_attr_subcaminfo);
+	if (err) {
+                printk("failed to register subcaminfo attributes\n");
+                err = 0;
+	}
+
 	return 0;
 }
 

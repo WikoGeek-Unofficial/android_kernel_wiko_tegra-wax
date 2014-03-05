@@ -2469,6 +2469,12 @@ static ssize_t imx179_fuseid_show(struct device_driver *ddri, char *buf)
 }
 static DRIVER_ATTR(fuseid, 0644, imx179_fuseid_show, NULL);
 
+static ssize_t imx179_caminfo_show(struct device_driver *ddri, char *buf)
+{
+	return sprintf(buf, "%s","imx179");
+}
+static DRIVER_ATTR(caminfo, 0644, imx179_caminfo_show, NULL);
+
 static int imx179_probe(
 	struct i2c_client *client,
 	const struct i2c_device_id *id)
@@ -2558,7 +2564,12 @@ static int imx179_probe(
             fuseid_value[i] = info->fuse_id.data[i];
 	err = driver_create_file(&imx179_i2c_driver.driver, &driver_attr_fuseid);
 	if (err) {
-                printk( " failed to register fuse id attributes\n");
+                printk("failed to register fuse id attributes\n");
+                err = 0;
+	}
+	err = driver_create_file(&imx179_i2c_driver.driver, &driver_attr_caminfo);
+	if (err) {
+                printk("failed to register caminfo attributes\n");
                 err = 0;
 	}
 
