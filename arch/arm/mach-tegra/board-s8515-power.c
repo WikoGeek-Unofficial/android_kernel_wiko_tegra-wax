@@ -1148,6 +1148,11 @@ int __init ceres_regulator_init(void)
 		max77660_regulator_pdata_ldo8.flags = 0;
 	}
 
+	/* Set FPS_SRC to none of buck6, buck7, and sw5 */
+	max77660_regulator_pdata_buck6.fps_src = FPS_SRC_0;
+	max77660_regulator_pdata_buck7.fps_src = FPS_SRC_0;
+	max77660_regulator_pdata_sw5.fps_src = FPS_SRC_0;
+
 	i2c_register_board_info(4, max77660_regulators,
 				ARRAY_SIZE(max77660_regulators));
 
