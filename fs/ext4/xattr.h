@@ -81,7 +81,7 @@ extern void ext4_xattr_delete_inode(handle_t *, struct inode *);
 extern void ext4_xattr_put_super(struct super_block *);
 
 extern int ext4_expand_extra_isize_ea(struct inode *inode, int new_extra_isize,
-			    struct ext4_inode *raw_inode, handle_t *handle);
+			    struct ext4_inode *raw_inode, handle_t *handle, struct ext4_iloc *iloc, int *page_mapped);
 
 extern int __init ext4_init_xattr(void);
 extern void ext4_exit_xattr(void);
@@ -131,10 +131,10 @@ static inline void
 ext4_exit_xattr(void)
 {
 }
-
+//luis
 static inline int
 ext4_expand_extra_isize_ea(struct inode *inode, int new_extra_isize,
-			    struct ext4_inode *raw_inode, handle_t *handle)
+			    struct ext4_inode *raw_inode, handle_t *handle, struct ext4_iloc *iloc, int *page_mapped)
 {
 	return -EOPNOTSUPP;
 }

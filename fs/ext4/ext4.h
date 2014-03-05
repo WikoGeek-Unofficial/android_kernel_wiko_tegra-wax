@@ -1641,10 +1641,17 @@ struct ext4_iloc
 	ext4_group_t block_group;
 };
 
+//luis
+#if 0
 static inline struct ext4_inode *ext4_raw_inode(struct ext4_iloc *iloc)
 {
 	return (struct ext4_inode *) (iloc->bh->b_data + iloc->offset);
 }
+#else
+//luis
+struct ext4_inode *ext4_raw_inode(struct ext4_iloc *iloc, int *page_mapped);
+void ext4_raw_inode_unmap(struct ext4_iloc *iloc, int *page_mapped);
+#endif
 
 /*
  * This structure is stuffed into the struct file's private_data field
