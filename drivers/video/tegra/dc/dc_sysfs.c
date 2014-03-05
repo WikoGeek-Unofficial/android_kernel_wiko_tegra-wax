@@ -426,6 +426,15 @@ static ssize_t smart_panel_show(struct device *device,
 
 static DEVICE_ATTR(smart_panel, S_IRUGO, smart_panel_show, NULL);
 
+static ssize_t panel_name_show(struct device *device,
+	struct device_attribute *attr, char  *buf)
+{
+	
+	return snprintf(buf, PAGE_SIZE, "Truly_otm1283a_HD_video_24bit\n");
+}
+
+static DEVICE_ATTR(panel_name, S_IRUGO, panel_name_show, NULL);
+
 void __devexit tegra_dc_remove_sysfs(struct device *dev)
 {
 	struct platform_device *ndev = to_platform_device(dev);
@@ -446,7 +455,7 @@ void __devexit tegra_dc_remove_sysfs(struct device *dev)
 #ifdef CONFIG_TEGRA_ISOMGR
 	device_remove_file(dev, &dev_attr_reserved_bw);
 #endif
-
+	device_remove_file(dev, &dev_attr_panel_name);
 	if (dc->out->stereo) {
 		device_remove_file(dev, &dev_attr_stereo_orientation);
 		device_remove_file(dev, &dev_attr_stereo_mode);
@@ -481,6 +490,8 @@ void tegra_dc_create_sysfs(struct device *dev)
 	error |= device_create_file(dev, &dev_attr_reserved_bw);
 #endif
 
+	//Magnum 2014-3-5 add LCM name attr
+	error |= device_create_file(dev, &dev_attr_panel_name);
 	if (dc->out->stereo) {
 		error |= device_create_file(dev, &dev_attr_stereo_orientation);
 		error |= device_create_file(dev, &dev_attr_stereo_mode);

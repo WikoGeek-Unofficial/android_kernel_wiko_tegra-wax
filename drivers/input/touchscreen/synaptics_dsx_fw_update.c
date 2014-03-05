@@ -158,6 +158,9 @@ static ssize_t fwu_sysfs_disp_config_block_count_show(struct device *dev,
 static ssize_t fwu_sysfs_firmware_id_show(struct device *dev,
 		struct device_attribute *attr, char *buf);
 
+static ssize_t fwu_sysfs_vendor_id_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
+
 static int fwu_wait_for_idle(int timeout_ms);
 
 struct image_header_data {
@@ -340,6 +343,9 @@ static struct device_attribute attrs[] = {
 			synaptics_rmi4_store_error),
 	__ATTR(firmwareid, S_IRUGO,
 			fwu_sysfs_firmware_id_show,
+			synaptics_rmi4_store_error),
+	__ATTR(vendorid, S_IRUGO,
+			fwu_sysfs_vendor_id_show,
 			synaptics_rmi4_store_error),
 	__ATTR(fwblockcount, S_IRUGO,
 			fwu_sysfs_firmware_block_count_show,
@@ -1628,6 +1634,44 @@ unsigned int synaptics_get_fw_version(void)
     
 }
 
+unsigned int synaptics_get_vendor_version(void)
+{
+   
+	if (!fwu)
+	return -ENODEV;
+
+	if (!fwu->initialized)
+	return -ENODEV;
+
+	int retval; 	
+	int deviceFirmwareID;
+	int imageConfigID;
+	int deviceConfigID;
+	unsigned long imageFirmwareID;
+	unsigned char config_id[4];
+	unsigned char firmware_id[4];
+   	/* device config id */
+	retval = fwu->fn_ptr->read(fwu->rmi4_data,
+				fwu->f34_fd.ctrl_base_addr,
+				config_id,
+				sizeof(config_id));
+	if (retval < 0) {
+		dev_err(&fwu->rmi4_data->i2c_client->dev,
+			"%s: Failed to read config ID (code %d).\n",
+			__func__,
+			retval);
+	}
+
+	dev_dbg(&fwu->rmi4_data->i2c_client->dev,
+		"%s: Device config ID 0x%02X, 0x%02X, 0x%02X, 0x%02X\n",
+		__func__,
+		config_id[0], config_id[1], config_id[2], config_id[3]);
+	deviceConfigID = config_id[2];
+
+    return deviceConfigID;
+
+}
+
 char * synaptics_get_vendor_info(void)
 {
 
@@ -1836,6 +1880,12 @@ static ssize_t fwu_sysfs_firmware_id_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	return snprintf(buf, PAGE_SIZE, "%x\n", synaptics_get_fw_version());
+}
+
+static ssize_t fwu_sysfs_vendor_id_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%x\n", synaptics_get_vendor_version());
 }
 
 static ssize_t fwu_sysfs_firmware_block_count_show(struct device *dev,
