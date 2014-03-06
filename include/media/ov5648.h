@@ -22,7 +22,6 @@
 /* The enumeration must be in the order the regulators are to be enabled */
 /* See Power Requirements note in the driver */
 enum ov5648_vreg {
-	OV5648_VREG_DVDD = 0,
 	OV5648_VREG_AVDD,
 	OV5648_VREG_IOVDD,
 	OV5648_VREG_AVDD_MIPI_SWITCH,

@@ -269,19 +269,8 @@ static struct regulator_consumer_supply max77660_sw1_supply[] = {
 };
 
 static struct regulator_consumer_supply max77660_sw2_supply[] = {
-	REGULATOR_SUPPLY("vdd_cam_1v8", NULL),
-	REGULATOR_SUPPLY("vif", "2-0036"),
-	REGULATOR_SUPPLY("dvdd", "2-003c"),
-	REGULATOR_SUPPLY("vdd_i2c", "2-000e"),
-	REGULATOR_SUPPLY("vdd_i2c", "2-000c"),
-	REGULATOR_SUPPLY("vdd", "2-004a"),
-	REGULATOR_SUPPLY("dovdd", "2-0010"),
-	REGULATOR_SUPPLY("vddio_cam_mb", ""),
-	REGULATOR_SUPPLY("vddio_cam_mb", "2-0010"),
-//edit by Magnum 2013-11-13
-#if (CONFIG_S8515_PR_VERSION == 1)
-	REGULATOR_SUPPLY("vio_tp", "2-0039"),
-#endif
+	REGULATOR_SUPPLY("vdd_cam_1v8", "2-0010"),
+	REGULATOR_SUPPLY("vdd_cam_1v8", "2-0036"),
 };
 
 static struct regulator_consumer_supply max77660_sw3_supply[] = {
@@ -450,7 +439,7 @@ MAX77660_PDATA_INIT(SW1, sw1, 1800, 1800, max77660_rails(buck5), 0,
 //Ivan        0, 0, 0, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(SW2, sw2, 1800, 1800, max77660_rails(buck5), 0,
-        1, 1, 0, FPS_SRC_DEF, -1, -1, 0);
+        0, 0, 0, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(SW3, sw3, 1800, 1800, max77660_rails(buck5), 0,
 		0, 1, 0, FPS_SRC_DEF, -1, -1, 0);

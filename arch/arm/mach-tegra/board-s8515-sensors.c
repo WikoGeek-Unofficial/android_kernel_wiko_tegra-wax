@@ -931,11 +931,6 @@ static int ceres_ov5648_power_on( struct nvc_regulator *vreg )
 	gpio_set_value(CAM_RSTN, 0); //rst
 	usleep_range(10, 20);
 
-	err = regulator_enable(vreg[OV5648_VREG_DVDD].vreg);
-	if (err)
-		goto ov5648_dvdd_fail;
-
-	usleep_range(1, 2);
 	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
 
 	gpio_set_value(CAM_RSTN, 0);
@@ -945,12 +940,6 @@ static int ceres_ov5648_power_on( struct nvc_regulator *vreg )
 
 	usleep_range(300, 310);
 	return 1;
-
-ov5648_dvdd_fail:
-	gpio_set_value(CAM_RSTN, 1);
-	gpio_set_value(CAM2_POWER_DWN_GPIO, 1);
-	regulator_disable(vreg[OV5648_VREG_AVDD].vreg);
-
 ov5648_avdd_fail:
 	regulator_disable(vreg[OV5648_VREG_IOVDD].vreg);
 
@@ -971,8 +960,6 @@ static int ceres_ov5648_power_off(struct  nvc_regulator *vreg )
 	usleep_range(1, 2);
 
 	regulator_disable(vreg[OV5648_VREG_IOVDD].vreg);
-	//regulator_disable(macallan_vcmvdd);
-	regulator_disable(vreg[OV5648_VREG_DVDD].vreg);
 	regulator_disable(vreg[OV5648_VREG_AVDD].vreg);
 	regulator_disable(vreg[OV5648_VREG_AVDD_MIPI_SWITCH].vreg);
 
