@@ -823,9 +823,8 @@ static void max97236_jack_event(struct max97236_priv *max97236)
 	regmap_read(max97236->regmap, M97236_REG_01_STATUS2, &status_reg[1]);
 	/* Key press or jack removal? */
 	/* For Key press, it need make sure it is headset connected */
-	if (((status_reg[0] & M97236_IMBH_MASK)      ||
+	if ((status_reg[0] & M97236_IMBH_MASK)      ||
 			(status_reg[0] & M97236_IMCSW_MASK) ||
-<<<<<<< HEAD
 			(status_reg[1] & M97236_IKEY_MASK)) {
 /* headset detect feature   WJ  21/01/14 */
 		if (max97236_jacksw_active(max97236)){
@@ -846,11 +845,6 @@ static void max97236_jack_event(struct max97236_priv *max97236)
         		max97236_report_jack_state(max97236, status_reg);
                 }
 /* headset detect feature   WJ  21/01/14  end*/
-=======
-			(status_reg[1] & M97236_IKEY_MASK)) &&
-			max97236_jacksw_active(max97236)) {
-		max97236_keypress(max97236, status_reg);
->>>>>>> ceb5a82... tegra:tinno:audio Improve headset model
 	} else {
 		if (max97236_jacksw_active(max97236))
 			goto max97236_jack_event_10;
@@ -1117,12 +1111,7 @@ int max97236_mic_detect(struct snd_soc_codec *codec,
 #endif
 /* headset detect feature   WJ  21/01/14*/
 			schedule_delayed_work(&max97236->jack_work,
-<<<<<<< HEAD
-				msecs_to_jiffies(250));
-/* headset detect feature   WJ  21/01/14  end*/
-=======
 				msecs_to_jiffies(25));
->>>>>>> ceb5a82... tegra:tinno:audio Improve headset model
 		}
 
 		ret = 0;
@@ -1291,14 +1280,7 @@ static int max97236_resume(struct snd_soc_codec *codec)
 	regmap_read(max97236->regmap, M97236_REG_08_RIGHT_VOLUME, &reg);
 	regmap_write(max97236->regmap, M97236_REG_08_RIGHT_VOLUME,
 			reg);
-<<<<<<< HEAD
-=======
 
-<<<<<<< HEAD
-	suspend = false;
->>>>>>> 9e044d2... tegra:tinno:audio: Forbit headset lost in Lp1
-=======
->>>>>>> ceb5a82... tegra:tinno:audio Improve headset model
 	return 0;
 }
 #else
