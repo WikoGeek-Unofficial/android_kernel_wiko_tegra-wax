@@ -6374,7 +6374,7 @@ static bool wl_is_linkdown(struct wl_priv *wl, const wl_event_msg_t *e)
 	event == WLC_E_DISASSOC ||
 	event == WLC_E_DEAUTH) {
 #if (WL_DBG_LEVEL > 0)
-	WL_ERR(("Link down Reason : WLC_E_%s\n", wl_dbg_estr[event]));
+//	WL_ERR(("Link down Reason : WLC_E_%s\n", wl_dbg_estr[event]));
 #endif /* (WL_DBG_LEVEL > 0) */
 		return true;
 	} else if (event == WLC_E_LINK) {
@@ -6642,14 +6642,14 @@ wl_notify_connect_status(struct wl_priv *wl, bcm_struct_cfgdev *cfgdev,
 				/* WLAN_REASON_UNSPECIFIED is used for hang up event in Android */
 				reason = (reason == WLAN_REASON_UNSPECIFIED)? 0 : reason;
 
-				printk("link down if %s may call cfg80211_disconnected. "
+/*				printk("link down if %s may call cfg80211_disconnected. "
 					"event : %d, reason=%d from " MACDBG "\n",
 					ndev->name, event, ntoh32(e->reason),
-					MAC2STRDBG((u8*)(&e->addr)));
+					MAC2STRDBG((u8*)(&e->addr)));*/
 				if (memcmp(curbssid, &e->addr, ETHER_ADDR_LEN) != 0) {
-					WL_ERR(("BSSID of event is not the connected BSSID"
+/*					WL_ERR(("BSSID of event is not the connected BSSID"
 						"(ignore it) cur: " MACDBG " event: " MACDBG"\n",
-						MAC2STRDBG(curbssid), MAC2STRDBG((u8*)(&e->addr))));
+						MAC2STRDBG(curbssid), MAC2STRDBG((u8*)(&e->addr))));*/
 					return 0;
 				}
 				wl_clr_drv_status(wl, CONNECTED, ndev);
