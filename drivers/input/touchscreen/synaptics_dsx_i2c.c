@@ -1225,6 +1225,10 @@ static int synaptics_rmi4_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 	int retval = 0;
 	unsigned char intr_status;
 	dev_dbg(&rmi4_data->i2c_client->dev,"Magnum  %s()\n",__func__);
+
+	if (rmi4_data->irq_enabled == enable)
+		return retval;
+
 	if (enable) {
 		/* Clear interrupts first */
 		retval = synaptics_rmi4_i2c_read(rmi4_data,
@@ -1238,6 +1242,8 @@ static int synaptics_rmi4_irq_enable(struct synaptics_rmi4_data *rmi4_data,
 		enable_irq(rmi4_data->irq);
 	} else
 		disable_irq(rmi4_data->irq);
+
+	rmi4_data->irq_enabled = enable;
 
 	return retval;
 }
@@ -1278,6 +1284,9 @@ static int synaptics_rmi4_irq_acquire(struct synaptics_rmi4_data *rmi4_data,
 		}
 	} else
 		free_irq(rmi4_data->irq, rmi4_data);
+
+	rmi4_data->irq_enabled = enable;
+
 	return retval;
 }
  

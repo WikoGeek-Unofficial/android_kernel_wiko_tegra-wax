@@ -252,6 +252,7 @@ struct synaptics_rmi4_data {
 	unsigned short f01_ctrl_base_addr;
 	unsigned short f01_data_base_addr;
 	int irq;
+	bool irq_enabled;
 	int sensor_max_x;
 	int sensor_max_y;
 	bool touch_stopped;
