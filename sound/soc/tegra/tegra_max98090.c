@@ -1647,8 +1647,6 @@ static int tegra_max98090_suspend_post(struct snd_soc_card *card)
 			tegra_asoc_utils_clk_disable(&machine->util_data);
 		}
 
-		if (machine->avdd_aud_reg)
-			regulator_disable(machine->avdd_aud_reg);
 		if (machine->vdd_sw_1v8_reg)
 			regulator_disable(machine->vdd_sw_1v8_reg);
 	}
@@ -1683,8 +1681,6 @@ static int tegra_max98090_resume_pre(struct snd_soc_card *card)
 			tegra_asoc_utils_clk_enable(&machine->util_data);
 		}
 
-		if (machine->avdd_aud_reg)
-			regulator_enable(machine->avdd_aud_reg);
 		if (machine->vdd_sw_1v8_reg)
 			regulator_enable(machine->vdd_sw_1v8_reg);
 	}
