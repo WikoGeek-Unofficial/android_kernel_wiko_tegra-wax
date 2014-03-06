@@ -1020,6 +1020,26 @@ static int imx179_bin_wr(struct imx179_info *info, u8 enable)
 	return err;
 }
 
+static int imx179_exposure_wr(struct imx179_info *info,
+			      struct nvc_imager_bayer *mode)
+{
+	struct imx179_reg reg_list[8];
+	int err;
+
+	reg_list[0].addr = 0x0104;
+	reg_list[0].val = 0x01;
+	imx179_frame_length_reg(reg_list+1, mode->frame_length);
+	imx179_coarse_time_reg(reg_list + 3, mode->coarse_time);
+	imx179_gain_reg(reg_list + 5, mode->gain);
+	reg_list[6].addr = 0x0104;
+	reg_list[6].val = 0x00;
+	reg_list[7].addr = IMX179_TABLE_END;
+	err = imx179_i2c_wr_table(info, reg_list);
+	if (!err)
+		err = imx179_bin_wr(info, mode->bin_en);
+	return err;
+}
+
 static int imx179_gain_wr(struct imx179_info *info, u32 gain)
 {
 	int err;
@@ -1598,6 +1618,8 @@ static int imx179_mode_wr(struct imx179_info *info,
 
 	if (!mode->res_x && !mode->res_y) {
 		if (mode->frame_length || mode->coarse_time || mode->gain) {
+			/* write exposure only */
+			err = imx179_exposure_wr(info, mode);
 			return err;
 		} else {
 			/* turn off streaming */
@@ -1609,6 +1631,12 @@ static int imx179_mode_wr(struct imx179_info *info,
 		err = imx179_mode_wr_full(info, mode_index);
 	else
 		dev_dbg(&info->i2c_client->dev, "%s short mode\n", __func__);
+	err |= imx179_exposure_wr(info, mode);
+	if (err < 0) {
+		info->mode_valid = false;
+		goto imx179_mode_wr_err;
+	}
+
 	err |= imx179_mode_able(info, true);
 	if (err < 0)
 		goto imx179_mode_wr_err;
