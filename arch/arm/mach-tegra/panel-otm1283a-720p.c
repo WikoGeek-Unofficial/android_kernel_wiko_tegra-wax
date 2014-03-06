@@ -986,9 +986,7 @@ static int dsi_otm1283a_720p_enable(struct device *dev)
 			printk("avdd_lcd regulator enable failed\n");
 			goto fail;
 		}
-		regulator_set_voltage(avdd_lcd_3v0_2v8, 2800000, 2800000);
-	  //  printk("Ivan dsi_otm1283a_720p_enable 2\n");
-		
+		regulator_set_voltage(avdd_lcd_3v0_2v8, 3000000, 3000000);
 	}
 
 	usleep_range(3000, 5000);
