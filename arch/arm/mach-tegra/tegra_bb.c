@@ -102,7 +102,8 @@
 #define MC_BBC_MEM_REGIONS_0_IPC_BASE_MASK   (0x1FF)
 #define MC_BBC_MEM_REGIONS_0_IPC_BASE_SHIFT  (19)
 
-#define BBC_CPU_MIN_FREQ	(310000) /* 310MHz */
+#define BBC_CPU_MIN_FREQ		(310000) /* 310MHz */
+#define BBC_CRASHDUMP_CPU_MIN_FREQ	(1400000) /* 1.4GHz */
 
 #define MEM_REQ_DET_HIGH	true
 #define MEM_REQ_DET_LOW		false
@@ -903,6 +904,7 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 	case BBC_SET_FLOOR:
 		spin_unlock_irqrestore(&bb->lock, flags);
 
+		bb->cpu_min_freq = BBC_CPU_MIN_FREQ;
 		pm_qos_update_request(&bb_cpufreq_min_req,
 			bb->cpu_min_freq);
 
@@ -1003,6 +1005,12 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 		}
 		tegra_emc_dsr_override(TEGRA_EMC_DSR_OVERRIDE);
 		clk_set_rate(bb->emc_clk, BBC_MC_MAX_FREQ);
+
+		/* Boost CPU freq. */
+		bb->cpu_min_freq = BBC_CRASHDUMP_CPU_MIN_FREQ;
+		pm_qos_update_request(&bb_cpufreq_min_req,
+			bb->cpu_min_freq);
+
 
 		/* request enough iso bw for crash handling */
 		tegra_bbc_proxy_bw_request(bb->proxy_dev, 0, BBC_ISO_CRASH_BW,
@@ -1154,7 +1162,6 @@ static int tegra_bb_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	bb->cpu_min_freq = BBC_CPU_MIN_FREQ;
 	pm_qos_add_request(&bb_cpufreq_min_req, PM_QOS_CPU_FREQ_MIN,
 		PM_QOS_CPU_FREQ_MIN_DEFAULT_VALUE);
 
