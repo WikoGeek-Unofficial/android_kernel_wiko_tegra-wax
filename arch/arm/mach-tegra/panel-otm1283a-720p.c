@@ -562,7 +562,7 @@ static tegra_dc_bl_output dsi_otm1283a_720p_lm3528_bl_response_curve = {
 };
 
 static tegra_dc_bl_output temp_bl_output_measured = {
-	16, 16, 16, 16, 16, 16, 16, 16,
+	0, 16, 16, 16, 16, 16, 16, 16,
 	16, 16, 16, 16, 16, 16, 16, 17,
 	18, 19, 20, 20, 21, 22, 24, 25,
 	26, 27, 28, 29, 30, 31, 33, 34,
