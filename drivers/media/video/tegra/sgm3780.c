@@ -794,6 +794,7 @@ static void tinno_flash_set_torch(struct tinno_flash_info *info, int on)
 
 void turnoff_torch(int on)
 {
+      if(info)
 	tinno_flash_set_torch(info, on);
 }
 static void tinno_flash_set_flash(struct tinno_flash_info *info, int on)
