@@ -518,7 +518,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		if (dbs_enable == 1) {
 			unsigned int latency;
 			/* policy latency is in nS. Convert it to uS first */
-			latency = policy->cpuinfo.transition_latency / 1000;
+			latency = 50;
 			if (latency == 0)
 				latency = 1;
 
