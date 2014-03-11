@@ -145,10 +145,9 @@ static __initdata struct tegra_pingroup_config ceres_pinmux_common[] = {
 	DEFAULT_PINMUX(DAP2_SCLK,     I2S1,        NORMAL,    NORMAL,   INPUT),
 
 	/* UARTA pinmux */
-//Ivan to be removed
-	DEFAULT_PINMUX(UART1_CTS_N,   UARTA,       NORMAL,    NORMAL,   INPUT),
+	DEFAULT_PINMUX(UART1_CTS_N,   UARTA,       PULL_UP,   NORMAL,   INPUT),
 	DEFAULT_PINMUX(UART1_RTS_N,   UARTA,       NORMAL,    NORMAL,   OUTPUT),
-	DEFAULT_PINMUX(UART1_RXD,     UARTA,       NORMAL,    NORMAL,   INPUT),
+	DEFAULT_PINMUX(UART1_RXD,     UARTA,       PULL_UP,   NORMAL,   INPUT),
 	DEFAULT_PINMUX(UART1_TXD,     UARTA,       NORMAL,    NORMAL,   OUTPUT),
 
 	/* UARTC pinmux */
