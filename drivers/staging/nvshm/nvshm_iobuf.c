@@ -34,7 +34,8 @@ struct nvshm_allocator {
 	struct nvshm_iobuf *free_pool_head;
 	struct nvshm_iobuf *free_pool_tail;
 	/* Freed BBC iobuf to be returned */
-	struct nvshm_iobuf *bbc_pool_free;
+	struct nvshm_iobuf *bbc_pool_head;
+	struct nvshm_iobuf *bbc_pool_tail;
 	int nbuf;
 	int free_count;
 };
@@ -67,11 +68,12 @@ static void bbc_free(struct nvshm_handle *handle, struct nvshm_iobuf *iob)
 
 	spin_lock_irqsave(&alloc.lock, f);
 	alloc.free_count++;
-	/* Queue freed iobuf in reverse order to have the last iob used */
-	/* as guard element. This avoid locking ring buffers in modem   */
-	if (alloc.bbc_pool_free)
-		iob->next = NVSHM_A2B(handle, alloc.bbc_pool_free);
-	alloc.bbc_pool_free = iob;
+	if (alloc.bbc_pool_head) {
+		alloc.bbc_pool_tail->next = NVSHM_A2B(handle, iob);
+		alloc.bbc_pool_tail = iob;
+	} else {
+		alloc.bbc_pool_head = alloc.bbc_pool_tail = iob;
+	}
 	spin_unlock_irqrestore(&alloc.lock, f);
 	if (alloc.free_count > NVSHM_MAX_FREE_PENDING)
 		nvshm_iobuf_bbc_free(handle);
@@ -84,10 +86,10 @@ void nvshm_iobuf_bbc_free(struct nvshm_handle *handle)
 	unsigned long f;
 
 	spin_lock_irqsave(&alloc.lock, f);
-	if (alloc.bbc_pool_free) {
+	if (alloc.bbc_pool_head) {
 		alloc.free_count = 0;
-		iob = alloc.bbc_pool_free;
-		alloc.bbc_pool_free = NULL;
+		iob = alloc.bbc_pool_head;
+		alloc.bbc_pool_head = alloc.bbc_pool_tail = NULL;
 	}
 	spin_unlock_irqrestore(&alloc.lock, f);
 	if (iob) {
@@ -483,7 +485,7 @@ int nvshm_iobuf_init(struct nvshm_handle *handle)
 
 	spin_lock_init(&alloc.lock);
 	/* Clear BBC free list */
-	alloc.bbc_pool_free = NULL;
+	alloc.bbc_pool_head = alloc.bbc_pool_tail = NULL;
 	alloc.free_count = 0;
 	ndesc = handle->desc_size / sizeof(struct nvshm_iobuf) ;
 	alloc.nbuf = ndesc;
