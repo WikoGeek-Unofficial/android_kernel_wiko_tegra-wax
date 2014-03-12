@@ -444,6 +444,7 @@ static int max77660_regulator_mask_unmask_ext_control(struct device *dev,
 
 	if (mask_cfg5) {
 		val = mask ? mask_cfg5: 0;
+		dev_info(dev, "GLOBAL_CFG5 Mask:val = 0x%02x:0x%02x\n", mask_cfg5, val);
 		ret = max77660_reg_update(dev->parent, MAX77660_PWR_SLAVE,
 				MAX77660_REG_GLOBAL_CFG5, val, mask_cfg5);
 		if (ret < 0) {
@@ -454,6 +455,7 @@ static int max77660_regulator_mask_unmask_ext_control(struct device *dev,
 
 	if (mask_cfg7) {
 		val = mask ? mask_cfg7: 0;
+		dev_info(dev, "GLOBAL_CFG7 Mask:val = 0x%02x:0x%02x\n", mask_cfg7, val);
 		ret = max77660_reg_update(dev->parent, MAX77660_PWR_SLAVE,
 				MAX77660_REG_GLOBAL_CFG7, val, mask_cfg7);
 		if (ret < 0) {
@@ -1285,7 +1287,7 @@ static int max77660_regulator_resume(struct device *dev)
 	struct max77660_regulator *reg;
 	struct regulator_desc *rdesc;
 	int reg_count;
-	int ret;
+	int ret, pmode;
 
 	for (reg_count = 0; reg_count < MAX77660_REGULATOR_ID_NR; ++reg_count) {
 		reg = &max_regs[reg_count];
@@ -1296,14 +1298,21 @@ static int max77660_regulator_resume(struct device *dev)
 			continue;
 
 		rdesc = &max77660_regs_info[reg_count].desc;
+		dev_info(reg->dev, "Reg ID %d and name %s\n", reg_count, rdesc->name);
 
-		max77660_regulator_mask_ext_control(reg->dev,
-						reg->external_flags);
-		ret = max77660_regulator_set_power_mode(reg,
-						reg->suspend_power_mode);
+		dev_info(reg->dev, "Changing the power mode to %d\n", pmode);
+		if (reg->power_mode == POWER_MODE_DISABLE)
+			pmode = reg->suspend_power_mode;
+		else
+			pmode = reg->power_mode;
+		ret = max77660_regulator_set_power_mode(reg, pmode);
 		if (ret < 0)
 			dev_err(reg->dev, "power mode of %s failed: %d\n",
 				rdesc->name, ret);
+
+		dev_info(reg->dev, "Changing the external control to disable\n");
+		max77660_regulator_mask_ext_control(reg->dev,
+						reg->external_flags);
 	}
 
 	return 0;
