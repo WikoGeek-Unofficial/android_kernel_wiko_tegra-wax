@@ -27,6 +27,7 @@
 #include <linux/wl12xx.h>
 #include <linux/mfd/max77660/max77660-core.h>
 #include <linux/mfd/palmas.h>
+#include <linux/dma-mapping.h>
 
 #include <asm/mach-types.h>
 #include <mach/irqs.h>
@@ -209,12 +210,16 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	.en_clock_gating = true,
 };
 
+static u64 tegra_sdhci_dmamask = DMA_BIT_MASK(32);
+
 static struct platform_device tegra_sdhci_device0 = {
 	.name		= "sdhci-tegra",
 	.id		= 0,
 	.resource	= sdhci_resource0,
 	.num_resources	= ARRAY_SIZE(sdhci_resource0),
 	.dev = {
+		.dma_mask = &tegra_sdhci_dmamask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
 		.platform_data = &tegra_sdhci_platform_data0,
 	},
 };
@@ -225,6 +230,8 @@ static struct platform_device tegra_sdhci_device2 = {
 	.resource	= sdhci_resource2,
 	.num_resources	= ARRAY_SIZE(sdhci_resource2),
 	.dev = {
+		.dma_mask = &tegra_sdhci_dmamask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
 		.platform_data = &tegra_sdhci_platform_data2,
 	},
 };
@@ -235,6 +242,8 @@ static struct platform_device tegra_sdhci_device3 = {
 	.resource	= sdhci_resource3,
 	.num_resources	= ARRAY_SIZE(sdhci_resource3),
 	.dev = {
+		.dma_mask = &tegra_sdhci_dmamask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
 		.platform_data = &tegra_sdhci_platform_data3,
 	},
 };
