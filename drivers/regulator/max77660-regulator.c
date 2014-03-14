@@ -837,6 +837,8 @@ static int max77660_regulator_preinit(struct max77660_regulator *reg)
 			if ((pdata->flags & SD_FORCED_PWM_MODE) &&
 					!(max77660_is_es_1_1_or_1_2(reg->dev)))
 				val |= MAX77660_BUCK6_7_CNFG_FPWM_MASK;
+			else
+				reg->regulator_mode = REGULATOR_MODE_FAST;
 		}
 
 		ret = max77660_reg_update(to_max77660_chip(reg),
