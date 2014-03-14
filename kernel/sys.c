@@ -386,6 +386,8 @@ static void migrate_to_reboot_cpu(void)
  */
 void kernel_restart(char *cmd)
 {
+	printk(KERN_EMERG "Restarting system dump.\n");
+	dump_stack();
 	kernel_restart_prepare(cmd);
 	migrate_to_reboot_cpu();
 	syscore_shutdown();
