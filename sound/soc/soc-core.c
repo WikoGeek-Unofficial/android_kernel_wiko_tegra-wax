@@ -41,7 +41,7 @@
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
 #include <sound/initval.h>
-
+#include <linux/wakelock.h>
 #define CREATE_TRACE_POINTS
 #include <trace/events/asoc.h>
 
@@ -1634,6 +1634,7 @@ static struct platform_driver soc_driver;
 #define CALL_RINGING 1
 #define CALL_ACTIVE 2
 int call_status=0;
+struct wake_lock call_lock;
 static ssize_t snd_soc_store_call_state(struct device_driver *ddri, const char *buf, size_t count)
 {
     //int state;
@@ -1643,24 +1644,38 @@ static ssize_t snd_soc_store_call_state(struct device_driver *ddri, const char *
 			printk("[max97236]: Invalid values\n");
 			return -EINVAL;
 		}
-
 	switch(call_status)
     {
         case CALL_IDLE :
-			printk("[max97236]accdet call: Idle state!\n");
+                  if(wake_lock_active(&call_lock)){
+			wake_unlock(&call_lock);
+                        printk("[max97236]===unlock=call=====\n");
+                    }
+		    printk("[max97236]accdet call: Idle state!\n");
      		break;
             
 		case CALL_RINGING :
-			
+                        if(0==wake_lock_active(&call_lock)){
+                                printk("[max97236]===lock=call=====\n");
+			        wake_lock(&call_lock);
+                        }
 			printk("[max97236]accdet call: ringing state!\n");
 			break;
 
 		case CALL_ACTIVE :
+                        if(0==wake_lock_active(&call_lock)){
+                            printk("[max97236]===lock=call=====\n");
+			    wake_lock(&call_lock);
+                        }
 			printk("[max97236]accdet call: active or hold state!\n");	
 			//return button_status;
 			break;
             
 		default:
+                    if(wake_lock_active(&call_lock)){
+                        printk("[max97236]===unlock=call=====\n");
+			wake_unlock(&call_lock);
+                    }
    		    printk("[max97236]accdet call : Invalid values\n");
             break;
   }
@@ -1688,6 +1703,7 @@ static int soc_probe(struct platform_device *pdev)
 	 */
 	if (!card)
 		return -EINVAL;
+	wake_lock_init(&call_lock , WAKE_LOCK_SUSPEND, "call wake lock" );
 
 	dev_warn(&pdev->dev,
 		 "ASoC machine %s should use snd_soc_register_card()\n",
@@ -1740,6 +1756,7 @@ static int soc_remove(struct platform_device *pdev)
 	struct snd_soc_card *card = platform_get_drvdata(pdev);
 
 	snd_soc_unregister_card(card);
+        wake_lock_destroy(&call_lock);
 	return 0;
 }
 

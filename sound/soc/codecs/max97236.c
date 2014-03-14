@@ -1228,7 +1228,8 @@ static int max97236_remove(struct snd_soc_codec *codec)
 	struct max97236_priv *max97236 = snd_soc_codec_get_drvdata(codec);
 
 	cancel_delayed_work_sync(&max97236->jack_work);
-
+        wake_lock_destroy(&jack_key_lock);
+        wake_lock_destroy(&wakelock);
 	return 0;
 }
 
