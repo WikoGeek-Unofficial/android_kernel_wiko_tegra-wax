@@ -1642,7 +1642,7 @@ static struct thermal_trip_info skin_trips[] = {
 	},
 	{
 		.cdev_type = "tegra-shutdown",
-		.trip_temp = 57000,
+		.trip_temp = 70000,  //57000,
 		.trip_type = THERMAL_TRIP_CRITICAL,
 		.upper = THERMAL_NO_LIMIT,
 		.lower = THERMAL_NO_LIMIT,
