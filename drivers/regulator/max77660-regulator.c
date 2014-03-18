@@ -587,6 +587,7 @@ static int max77660_regulator_set_ramp_delay(struct regulator_dev *rdev,
 		return -EINVAL;
 	}
 
+	printk("Ivan max77660_regulator_set_ramp_delay %s = %d \n", rdev->desc->name, ramp_delay);
 	switch (ramp_delay) {
 	case 1 ... 12500:
 		val = RAMP_RATE_12P5MV;
