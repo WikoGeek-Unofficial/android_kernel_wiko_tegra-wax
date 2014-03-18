@@ -73,6 +73,7 @@ static int g_soc_fifo_init = 0;
 static struct timeval g_charger_discon_time;
 static struct timeval g_previous_time;
 #endif
+extern int tegra_get_bootloader_fg_status(void);
 
 
 struct max17048_chip {
@@ -677,9 +678,12 @@ static int max17048_initialize(struct max17048_chip *chip)
 	struct max17048_battery_model *mdata = chip->pdata->model_data;
 	uint16_t status;
 	uint16_t vcell,ocv,rcomp;
+	uint16_t bl_status;
 
 //Ivan
 	do_gettimeofday(&g_previous_time);
+	bl_status = tegra_get_bootloader_fg_status();
+	printk("Ivan max17048_initialize bootloader fg status[%x]\n",bl_status );
 
 	status = max17048_read_word(client, MAX17048_STATUS);
 //Ivan 01 or 09
@@ -708,9 +712,12 @@ static int max17048_initialize(struct max17048_chip *chip)
 	
 	if ((vcell + 650) > ocv && rcomp == 151)		//around 50mV
 	{
+	  if (!(bl_status & 0x100)/* && (bl_status & 0x01)*/)	//reset and no charger
+	  {
 	    printk("max17048_initialize: rewrite OCV!\n");	
 
 	    max17048_write_word(client, MAX17048_OCV, vcell + 650);
+	  }
 	}
 
 	

@@ -264,7 +264,7 @@ static int usb_port_owner_info;
 static int pmic_rst_reason;
 //Ivan added
 static int tinno_boot_mode;
-
+static int bootloader_fg_status;
 
 /* WARNING: There is implicit client of pllp_out3 like i2c, uart, dsi
  * and so this clock (pllp_out3) should never be disabled.
@@ -1702,6 +1702,21 @@ static int __init tegra_pmic_rst_reason(char *id)
 }
 
 __setup("pmic_rst_reason=", tegra_pmic_rst_reason);
+
+
+int tegra_get_bootloader_fg_status(void)
+{
+	return bootloader_fg_status;
+}
+
+static int __init tegra_bl_fg_status(char *id)
+{
+	char *p = id;
+	bootloader_fg_status = memparse(p, &p);
+	return 1;
+}
+
+__setup("fg_status=", tegra_bl_fg_status);
 
 //Ivan added
 static int __init tegra_bootmode_id(char *id)
