@@ -7535,6 +7535,7 @@ static void tegra14_clk_resume(void)
 	struct clk *p;
 
 	/* FIXME: OSC_CTRL already restored by warm boot code? */
+
 	val = clk_readl(OSC_CTRL) & ~OSC_CTRL_MASK;
 	val |= *ctx++;
 	clk_writel(val, OSC_CTRL);
@@ -7573,6 +7574,7 @@ static void tegra14_clk_resume(void)
 	clk_writel(plld2_base | PLL_BASE_ENABLE, tegra_pll_d2.reg + PLL_BASE);
 
 	udelay(1000);
+	udelay(500);
 
 	val = PLL_OUT_CLKEN | PLL_OUT_RESET_DISABLE;
 	pll_m_out1 = *ctx++;
@@ -7614,8 +7616,11 @@ static void tegra14_clk_resume(void)
 	for (off = PERIPH_CLK_SOURCE_CILAB;
 		off <= PERIPH_CLK_SOURCE_CLK72MHZ; off += 4)
 		clk_writel(*ctx++, off);
+	
 
 	udelay(RESET_PROPAGATION_DELAY);
+	udelay(100);
+//	pr_info("Ivan tegra14_clk_resume 3!\n");
 
 	clk_writel(*ctx++, RST_DEVICES_L);
 	clk_writel(*ctx++, RST_DEVICES_H);
@@ -7641,6 +7646,7 @@ static void tegra14_clk_resume(void)
 
 	/* DFLL resume after cl_dvfs and i2c5 clocks are resumed */
 	tegra14_dfll_clk_resume(&tegra_dfll_cpu);
+	udelay(100);
 
 	/* CPU G clock restored after DFLL and PLLs */
 	clk_writel(*ctx++, tegra_clk_cclk_g.reg);
