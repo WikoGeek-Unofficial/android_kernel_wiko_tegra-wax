@@ -502,7 +502,7 @@ static struct tegra14_emc_table
 		0x52,       /* Rev 5.3.8.d */
 		"D14",      /* DVFS table version */
 		204000,     /* SDRAM frequency */
-		860,        /* min voltage */
+		850,        /* min voltage */
 		"pllp_out0", /* clock source id */
 		0x40010002, /* CLK_SOURCE_EMC */
 		129,        /* number of burst_regs */
@@ -662,7 +662,7 @@ static struct tegra14_emc_table
 		0x52,       /* Rev 5.3.8.d */
 		"D14",      /* DVFS table version */
 		326400,     /* SDRAM frequency */
-		860,        /* min voltage */
+		850,        /* min voltage */
 		"pllm_out0", /* clock source id */
 		0x00000002, /* CLK_SOURCE_EMC */
 		129,        /* number of burst_regs */
@@ -2106,7 +2106,7 @@ static struct tegra14_emc_table
 		0x52,       /* Rev 5.3.8.d */
 		"D14",      /* DVFS table version */
 		204000,     /* SDRAM frequency */
-		860,        /* min voltage */
+		850,        /* min voltage */
 		"pllp_out0", /* clock source id */
 		0x40010002, /* CLK_SOURCE_EMC */
 		129,        /* number of burst_regs */
@@ -2266,7 +2266,7 @@ static struct tegra14_emc_table
 		0x52,       /* Rev 5.3.8.d */
 		"D14",      /* DVFS table version */
 		326400,     /* SDRAM frequency */
-		860,        /* min voltage */
+		850,        /* min voltage */
 		"pllm_out0", /* clock source id */
 		0x00000002, /* CLK_SOURCE_EMC */
 		129,        /* number of burst_regs */
@@ -3710,7 +3710,7 @@ static struct tegra14_emc_table
 		0x52,       /* Rev 5.3.8.d */
 		"D14", /* DVFS table version */
 		204000,     /* SDRAM frequency */
-		860,        /* min voltage */
+		850,        /* min voltage */
 		"pllp_out0", /* clock source id */
 		0x40010002, /* CLK_SOURCE_EMC */
 		129,        /* number of burst_regs */
@@ -5314,7 +5314,7 @@ static struct tegra14_emc_table
 		0x52,       /* Rev 5.3.8.d */
 		"D14", /* DVFS table version */
 		204000,     /* SDRAM frequency */
-		860,        /* min voltage */
+		850,        /* min voltage */
 		"pllp_out0", /* clock source id */
 		0x40010002, /* CLK_SOURCE_EMC */
 		129,        /* number of burst_regs */
