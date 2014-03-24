@@ -7619,6 +7619,7 @@ static void tegra14_clk_resume(void)
 	
 
 	udelay(RESET_PROPAGATION_DELAY);
+	udelay(100);
 //	pr_info("Ivan tegra14_clk_resume 3!\n");
 
 	clk_writel(*ctx++, RST_DEVICES_L);
