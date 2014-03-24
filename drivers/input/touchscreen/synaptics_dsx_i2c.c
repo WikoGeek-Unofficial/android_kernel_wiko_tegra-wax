@@ -1273,6 +1273,8 @@ static int synaptics_rmi4_irq_acquire(struct synaptics_rmi4_data *rmi4_data,
 		if (retval < 0)
 			return retval;
 
+		dev_dbg(&rmi4_data->i2c_client->dev,
+			" irq Flag == 0x%04x\n",pdata->irq_flags);
 		retval = request_threaded_irq(rmi4_data->irq, NULL,
 			synaptics_rmi4_irq, pdata->irq_flags,
 			DRIVER_NAME, rmi4_data);

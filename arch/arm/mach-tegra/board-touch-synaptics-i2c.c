@@ -68,7 +68,7 @@ static struct synaptics_dsx_cap_button_map TM_SAMPLE1_cap_button_map = {
 };
 
 static struct synaptics_dsx_platform_data dsx_platformdata = {
-	.irq_flags = IRQF_TRIGGER_FALLING,
+	.irq_flags = IRQF_TRIGGER_LOW | IRQF_ONESHOT,//IRQF_TRIGGER_FALLING,
 	.irq_gpio = TEGRA_GPIO_PN1,//TM_SAMPLE1_ATTN,
 	.reset_gpio = TEGRA_GPIO_PN2,
  	.gpio_config = synaptics_gpio_setup,
