@@ -529,8 +529,8 @@ static struct actmon_dev actmon_dev_emc = {
 	.boost_down_coef	= 50,
 #if defined(CONFIG_ARCH_TEGRA_14x_SOC)
 	//Magnum 2014-1-16
-	.boost_up_threshold	= 39,//70,
-	.boost_down_threshold	= 39,//50,
+	.boost_up_threshold	= 29,//30,//39,//70,
+	.boost_down_threshold	= 29,//,//50,
 #else
 	.boost_up_threshold	= 60,
 	.boost_down_threshold	= 40,
