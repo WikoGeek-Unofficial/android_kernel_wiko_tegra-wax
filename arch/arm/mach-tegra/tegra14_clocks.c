@@ -7645,7 +7645,7 @@ static void tegra14_clk_resume(void)
 
 	/* DFLL resume after cl_dvfs and i2c5 clocks are resumed */
 	tegra14_dfll_clk_resume(&tegra_dfll_cpu);
-//Ivan	udelay(100);
+	udelay(100);
 
 	/* CPU G clock restored after DFLL and PLLs */
 	clk_writel(*ctx++, tegra_clk_cclk_g.reg);
