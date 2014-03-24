@@ -290,7 +290,7 @@ static int tegra_fb_blank(int blank, struct fb_info *info)
 	case FB_BLANK_UNBLANK:
 		dev_dbg(&tegra_fb->ndev->dev, "unblank\n");
 		tegra_dc_enable(tegra_fb->win->dc);
-		synaptics_tinno_resume();
+		//synaptics_tinno_resume();
 		return 0;
 
 	case FB_BLANK_NORMAL:
@@ -309,7 +309,7 @@ static int tegra_fb_blank(int blank, struct fb_info *info)
 		if (!tegra_fb->win->dc->suspended && tegra_fb->win->dc->enabled)
 			tegra_fb->curr_xoffset = -1;
 		tegra_dc_disable(tegra_fb->win->dc);
-		synaptics_tinno_suspend();
+	//	synaptics_tinno_suspend();
 		return 0;
 
 	default:
