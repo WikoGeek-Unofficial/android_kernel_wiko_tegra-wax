@@ -158,9 +158,9 @@ static void battery_charger_thermal_monitor_wq(struct work_struct *work)
 
 	if (temperature <= JETI_TEMP_COLD || temperature >= JETI_TEMP_HOT) {
 		charger_enable_state = false;
-	} else if (temperature <= JETI_TEMP_COOL ||
-				temperature >= JETI_TEMP_WARM) {
-		charger_current_half = true;
+	//} else if (temperature <= JETI_TEMP_COOL ||
+	//			temperature >= JETI_TEMP_WARM) {
+		//charger_current_half = true;   //ljs remove, bc test requirements
 		//battery_thersold_voltage = 4100;   //ljs remove, bc 4100mV not charge full
 	}
 
