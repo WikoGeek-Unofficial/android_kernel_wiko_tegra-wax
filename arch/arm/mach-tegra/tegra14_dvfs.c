@@ -223,7 +223,7 @@ static struct dvfs core_dvfs_table[] = {
 #ifndef CONFIG_TEGRA_SIMULATION_PLATFORM
 	/* Core voltages (mV):		             800,    825,    850,    900,    950,   1000,   1050,   1100,   1150,   1200,   1230 */
 	CORE_DVFS("cpu_lp",   0,  0, 1, KHZ,      249600, 249600, 364800, 460800, 556800, 633600, 691200, 729600, 729600, 729600, 729600),
-	CORE_DVFS("cpu_lp",   0,  1, 1, KHZ,      310000, 310000, 398000, 492000, 565000, 657000, 657000, 657000, 657000, 729600, 729600),
+	CORE_DVFS("cpu_lp",   0,  1, 1, KHZ,      310000, 310000, 398000, 492000, 565000, 657000, 729600, 729600, 729600, 729600, 729600),
 	CORE_DVFS("cpu_lp",   1,  1, 1, KHZ,      310000, 310000, 398000, 492000, 565000, 657000, 730000, 787200, 787200, 787200, 787200),
 
 #ifndef CONFIG_TEGRA_DUAL_CBUS
@@ -900,11 +900,6 @@ void __init tegra14x_init_dvfs(void)
 #ifndef CONFIG_TEGRA_CPU_DVFS
 	tegra_dvfs_cpu_disabled = true;
 #endif
-
-	pr_info("%s: cpu_speedo_id - %d, cpu_process_id - %d, soc_speedo_id - %d, core_process_id - %d\n",
-		__func__,
-		cpu_speedo_id, cpu_process_id, soc_speedo_id, core_process_id);
-
 	/* Setup rail bins */
 	tegra14_dvfs_rail_vdd_cpu.stats.bin_uV = tegra_get_cvb_alignment_uV();
 	tegra14_dvfs_rail_vdd_core.stats.bin_uV =
