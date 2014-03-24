@@ -7363,8 +7363,8 @@ struct tegra_cpufreq_table_data *tegra_cpufreq_table_get(void)
 	/* Set G CPU min rate at least one table step below LP maximum */
 	cpu_clk_g->min_rate = min(freq_table[i-2].frequency, g_vmin_freq)*1000;
 
-	/* Suspend index at max LP CPU */
-	freq_table_data.suspend_index = i - 1;
+	/* Suspend index at 2nd max LP CPU */
+	freq_table_data.suspend_index = i - 2;
 
 	/* Fill in "hole" (if any) between LP CPU maximum rate and G CPU dvfs
 	   ladder rate at minimum voltage */
