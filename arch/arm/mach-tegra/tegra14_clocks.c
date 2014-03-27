@@ -4422,7 +4422,7 @@ static void tegra14_clk_emc_resume(struct clk *c, const u32 *ctx)
 
 	pr_info("EMC rate change after suspend: %lu => %lu\n",
 		 old_rate, rate);
-	pr_debug("µs timerafter suspend = %d",
+	pr_info("µs timerafter suspend = %d",
 		 readl(IO_ADDRESS(TEGRA_TMRUS_BASE)));
 
 	emc_bus_set_rate(c, rate);

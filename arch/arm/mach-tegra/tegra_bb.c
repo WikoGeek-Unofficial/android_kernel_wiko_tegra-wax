@@ -932,7 +932,7 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 			pr_info("bbc setting floor latency: %ld ms (irq2entry: %ld ms) (cnt:%d)\n",
 				diff, diff0, cnt++);
 		}
-		pr_debug("bbc setting floor to %luMHz\n",
+		pr_info("bbc setting floor to %luMHz\n",
 						bb->emc_min_freq/1000000);
 
 		/* restore iso bw request*/
@@ -942,7 +942,7 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 		spin_lock_irqsave(&bb->lock, flags);
 		if (bb->send_ul_flag) {
 			tegra_bb_set_ap2bb_int0();
-			pr_debug("bbc floor applied\n");
+			pr_info("bbc floor applied\n");
 			bb->send_ul_flag = false;
 		} else {
 			/* reenable pmc_wake_det irq if mem_req_soon is high */
@@ -979,7 +979,7 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 			tegra_emc_dsr_override(TEGRA_EMC_DSR_NORMAL);
 
 		clk_disable_unprepare(bb->emc_clk);
-		pr_debug("bbc removing emc floor\n");
+		pr_info("bbc removing emc floor\n");
 
 		/* reenable mem_req_soon irq */
 		tegra_bb_enable_mem_req_soon();
@@ -1059,6 +1059,9 @@ void tegra_bb_set_emc_floor(struct device *dev, unsigned long freq, u32 flags)
 		dev_err(dev, "%s tegra_bb not found!\n", __func__);
 		return;
 	}
+	
+	pr_info("%s: old_emc_min_freq = %d, new_emc_min_freq = %d, flags = 0x%X\n",
+		__func__, (unsigned int)bb->emc_min_freq, (unsigned int)freq, (unsigned int)flags);
 
 	if (bb->emc_min_freq != freq) {
 		bb->emc_min_freq = freq;
@@ -1094,6 +1097,8 @@ static int tegra_bb_pm_notifier_event(struct notifier_block *this,
 
 	switch (event) {
 	case PM_SUSPEND_PREPARE:
+		pr_info("PM_SUSPEND_PREPARE: emc_min_freq = %d, BBC_MC_MAX_FREQ = %d\n",
+			(unsigned int)bb->emc_min_freq, BBC_MC_MAX_FREQ);	    
 		/* make sure IRQ will send a pm wake event */
 		bb->is_suspending = true;
 
@@ -1109,6 +1114,8 @@ static int tegra_bb_pm_notifier_event(struct notifier_block *this,
 		return NOTIFY_OK;
 
 	case PM_POST_SUSPEND:
+		pr_info("PM_POST_SUSPEND: emc_min_freq = %d, sts = 0x%X\n",
+			(unsigned int)bb->emc_min_freq, sts);	    
 		/* no need for IRQ to send a pm wake events anymore */
 		bb->is_suspending = false;
 
