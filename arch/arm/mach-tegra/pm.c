@@ -107,6 +107,8 @@ struct suspend_context {
 	struct tegra_twd_context twd;
 };
 
+extern void tegra_debug_writec(unsigned int c);
+
 #ifdef CONFIG_PM_SLEEP
 phys_addr_t tegra_pgd_phys;	/* pgd used by hotplug & LP2 bootup */
 static pgd_t *tegra_pgd;
