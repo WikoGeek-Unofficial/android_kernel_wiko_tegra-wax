@@ -281,13 +281,17 @@ void tegra_log_suspend_time(void)
 
 static void tegra_get_suspend_time(void)
 {
-	if (suspend_end_time)
-		return;
+	tegra_debug_writec(0x43);
+	if (suspend_end_time) {
+		tegra_debug_writec(0x44);
+ 		return;
+	}
 	suspend_end_time = readl(tmrus_reg_base + TIMERUS_CNTR_1US);
 
 	if (suspend_entry_time > suspend_end_time)
 		suspend_end_time |= 1ull<<32;
 	suspend_time = suspend_end_time - suspend_entry_time;
+	tegra_debug_writec(0x45);
 }
 
 unsigned long tegra_cpu_power_good_time(void)
@@ -648,7 +652,9 @@ static void tegra_sleep_core(enum tegra_suspend_mode mode,
 
 	trace_smc_sleep_core(NVSEC_SMC_DONE);
 #endif
+	tegra_debug_writec(0x42);	
 	tegra_get_suspend_time();
+	tegra_debug_writec(0x46);
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	cpu_suspend(v2p, tegra2_sleep_core_finish);
 #else
@@ -894,6 +900,7 @@ static int tegra_common_suspend(void)
 	struct board_info board_info;
 	void __iomem *mc = IO_ADDRESS(TEGRA_MC_BASE);
 
+	pr_info("%s: +++\n", __func__);
 	writel(0, pmc + PMC_SCRATCH21);
 	tegra_get_board_info(&board_info);
 	tegra_sctx.mc[0] = readl(mc + MC_SECURITY_START);
@@ -931,13 +938,15 @@ static int tegra_common_suspend(void)
 				(pdata->core_reg_addr);
 			writel(reg, pmc + PMC_SCRATCH21);
 		}
+		pr_info("%s: lp1_core_lowvolt = 0x%X, lp0_core_lowvolt = 0x%X\n", __func__,
+			lp1_core_lowvolt, lp0_core_lowvolt);		
 	}
 #endif
 
 	/* copy the reset vector and SDRAM shutdown code into IRAM */
 	memcpy(iram_save, iram_code, iram_save_size);
 	memcpy(iram_code, tegra_iram_start(), iram_save_size);
-
+	pr_info("%s: ---\n", __func__);
 	return 0;
 }
 
@@ -988,6 +997,7 @@ static void tegra_pm_set(enum tegra_suspend_mode mode)
 	u32 reg, boot_flag;
 	unsigned long rate = 32768;
 
+	pr_info("%s: +++\n", __func__);
 	reg = readl(pmc + PMC_CTRL);
 	reg |= TEGRA_POWER_CPU_PWRREQ_OE;
 	if (pdata->combined_req)
@@ -1055,6 +1065,7 @@ static void tegra_pm_set(enum tegra_suspend_mode mode)
 	set_power_timers(pdata->cpu_timer, pdata->cpu_off_timer, rate);
 
 	pmc_32kwritel(reg, PMC_CTRL);
+	pr_info("%s: ---\n", __func__);	
 }
 
 static const char *lp_state[TEGRA_MAX_SUSPEND_MODE] = {
@@ -1118,6 +1129,7 @@ static int tegra_suspend_enter(suspend_state_t state)
 	ktime_t delta;
 	struct timespec ts_entry, ts_exit;
 
+	pr_info("%s: +++\n", __func__);
 	if (pdata && pdata->board_suspend)
 		pdata->board_suspend(current_suspend_mode, TEGRA_SUSPEND_BEFORE_PERIPHERAL);
 
@@ -1178,10 +1190,11 @@ static int tegra_suspend_enter(suspend_state_t state)
 		delta = timespec_to_ktime(timespec_sub(ts_exit, ts_entry));
 
 		tegra_dvfs_rail_pause(tegra_cpu_rail, delta, false);
-		if (current_suspend_mode == TEGRA_SUSPEND_LP0)
-			tegra_dvfs_rail_pause(tegra_core_rail, delta, false);
-		else
-			tegra_dvfs_rail_pause(tegra_core_rail, delta, true);
+		if (current_suspend_mode == TEGRA_SUSPEND_LP0) {
+		    tegra_dvfs_rail_pause(tegra_core_rail, delta, false);
+		} else {
+		    tegra_dvfs_rail_pause(tegra_core_rail, delta, true);
+		}
 	}
 
 abort_suspend:
@@ -1264,6 +1277,7 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 #endif
 	bool tegra_suspend_vde_powergated = false;
 
+	pr_info("%s: +++\n", __func__);
 	if (WARN_ON(mode <= TEGRA_SUSPEND_NONE ||
 		mode >= TEGRA_MAX_SUSPEND_MODE)) {
 		err = -ENXIO;
@@ -1353,8 +1367,10 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 
 	if (mode == TEGRA_SUSPEND_LP2)
 		tegra_sleep_cpu(PHYS_OFFSET - PAGE_OFFSET);
-	else
+	else {
+	    	tegra_debug_writec(0x41);
 		tegra_sleep_core(mode, PHYS_OFFSET - PAGE_OFFSET);
+	}
 
 	resume_entry_time = 0;
 	if (mode != TEGRA_SUSPEND_LP0)

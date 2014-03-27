@@ -310,7 +310,16 @@ int ceres_pinmux_suspend(void)
 	struct gpio_init_pin_info *pins_info;
 	int i;
 
+	pr_info("%s: +++\n", __func__);
 	tegra_get_board_info(&board_info);
+	pr_info("%s: board_id = 0x%X, sku = 0x%X, fab = 0x%X, major_revision = 0x%X, minor_revision = 0x%X\n",
+		__func__,
+		board_info.board_id,
+		board_info.sku,
+		board_info.fab,
+		board_info.major_revision,
+		board_info.minor_revision);	
+
 	switch (board_info.board_id) {
 	case BOARD_E1680:
 	case BOARD_E1681:
@@ -335,5 +344,6 @@ int ceres_pinmux_suspend(void)
 			pins_info->is_input, pins_info->value);
 		pins_info++;
 	}
+	pr_info("%s: ---\n", __func__);	
 	return 0;
 }

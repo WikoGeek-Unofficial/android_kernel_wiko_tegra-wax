@@ -30,6 +30,7 @@
 #include <linux/of_platform.h>
 #include <linux/bluedroid_pm.h>
 #include <linux/serial_8250.h>
+#include <linux/serial_reg.h>
 #include <linux/tegra_uart.h>
 #include <linux/i2c.h>
 #include <linux/i2c-tegra.h>
@@ -1262,6 +1263,39 @@ static void __init tegra_ceres_dt_init(void)
 
 	tegra_ceres_late_init();
 }
+
+void tegra_debug_writec(unsigned int c)
+{
+        void __iomem *debug_port_base_addr;
+        unsigned int tmp = 0;
+
+#define DEBUG_PORT_BASE_ADDRESS  (0x70006000)
+
+	debug_port_base_addr = IO_ADDRESS(DEBUG_PORT_BASE_ADDRESS);
+
+        //tegra_write(t, c, UART_TX);
+        //tegra_write(t, UART_IER_RLSI | UART_IER_RDI, UART_IER);
+        //tegra_write(t, 0, UART_IIR);
+
+        __raw_writeb((UART_IER_RLSI | UART_IER_RDI), (debug_port_base_addr + UART_TX * 4));
+
+        __raw_writeb(0, debug_port_base_addr + UART_IIR * 4);
+
+        /* Clear LCR.DLAB bit */
+        tmp = __raw_readb(debug_port_base_addr + UART_LCR * 4);
+
+        tmp = tmp & 0x7f;
+        __raw_writeb(tmp, (debug_port_base_addr + UART_LCR * 4));
+
+        udelay(10);
+
+        __raw_writeb(c, debug_port_base_addr + UART_TX * 4);
+
+        udelay(1000);
+
+        iounmap(debug_port_base_addr);
+}
+EXPORT_SYMBOL_GPL(tegra_debug_writec);
 
 static void __init tegra_ceres_reserve(void)
 {

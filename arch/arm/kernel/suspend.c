@@ -7,6 +7,7 @@
 #include <asm/suspend.h>
 #include <asm/tlbflush.h>
 
+extern void tegra_debug_writec(unsigned int c);
 extern int __cpu_suspend(unsigned long, int (*)(unsigned long));
 extern void cpu_resume_mmu(void);
 
