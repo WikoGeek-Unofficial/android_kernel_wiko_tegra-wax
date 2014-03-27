@@ -54,6 +54,7 @@ module_param(extclk_freq, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(extclk_freq, "EXTCLK frequency in hertz");
 struct clk *clk_cdev1;
 struct wake_lock        wakelock;
+struct wake_lock        wakelock_h;
 
 /* Allows for sparsely populated register maps */
 static struct reg_default max97236_reg[] = {
@@ -818,14 +819,38 @@ static void max97236_translate_detected(unsigned int *status_reg,
 static void max97236_jack_event(struct max97236_priv *max97236)
 {
 	unsigned int status_reg[3];
-
+	int i;
+	int test_value = 0;
+ 
+	wake_lock(&wakelock_h);
 	regmap_read(max97236->regmap, M97236_REG_00_STATUS1, &status_reg[0]);
 	regmap_read(max97236->regmap, M97236_REG_01_STATUS2, &status_reg[1]);
+
+	/* Overwrite above code using board id */
+	if (board_info.board_id == BOARD_E1690) {
+		test_value = 0;
+	} else { /* ERS */
+		test_value = 4;
+	}
+
 	/* Key press or jack removal? */
 	/* For Key press, it need make sure it is headset connected */
-	if ((status_reg[0] & M97236_IMBH_MASK)      ||
+	for (i = 0; i < 4; i++) {
+		if ((status_reg[0] & M97236_JACKSW_MASK) == test_value) {
+			break;
+		} else {
+			msleep(20);
+			regmap_read(max97236->regmap,
+					M97236_REG_00_STATUS1, &status_reg[0]);
+			regmap_read(max97236->regmap,
+					M97236_REG_01_STATUS2, &status_reg[1]);
+		}
+	}
+	if (((status_reg[0] & M97236_IMBH_MASK)      ||
 			(status_reg[0] & M97236_IMCSW_MASK) ||
-			(status_reg[1] & M97236_IKEY_MASK)) {
+			(status_reg[1] & M97236_IKEY_MASK)) &&
+			(status_reg[0] & M97236_JACKSW_MASK) == test_value)
+	{
 /* headset detect feature   WJ  21/01/14 */
 		if (max97236_jacksw_active(max97236)){
 		    max97236_keypress(max97236, status_reg);
@@ -867,6 +892,7 @@ static void max97236_jack_event(struct max97236_priv *max97236)
 
 max97236_jack_event_10:
 	max97236_configure_for_detection(max97236, M97236_AUTO_MODE_0);
+	wake_unlock(&wakelock_h);
 	return;
 }
 
@@ -1218,6 +1244,7 @@ static int max97236_probe(struct snd_soc_codec *codec)
 	max97236_handle_pdata(codec);
 	max97236_add_widgets(codec);
 	wake_lock_init(&wakelock, WAKE_LOCK_SUSPEND, "headset detect");
+	wake_lock_init(&wakelock_h, WAKE_LOCK_SUSPEND, "headset event detect");
 
 err_access:
 	return ret;
