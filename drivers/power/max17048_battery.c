@@ -59,6 +59,9 @@ extern void max77660_power_forceoff(void);
 #define MAX17048_SOC_AVERAGE
 #define MAX17048_RECHARGER_HANDLE
 
+#define TN_BATT_HOT_STOP_TEMPERATURE		62 - 1
+#define TN_BATT_HOT_RESTART_TEMPERATURE		57
+
 #define VCELL_LEN	10
 #define VSOC_LEN	10
 
@@ -75,6 +78,7 @@ static struct timeval g_previous_time;
 #endif
 extern int tegra_get_bootloader_fg_status(void);
 
+//extern int get_tn_bat_test_count(void);
 
 struct max17048_chip {
 	struct i2c_client		*client;
@@ -261,7 +265,28 @@ static int max17048_get_property(struct power_supply *psy,
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
 		break;
 	case POWER_SUPPLY_PROP_STATUS:
-		val->intval = chip->status;
+		if ( chip->status == POWER_SUPPLY_STATUS_CHARGING)
+		{
+		    ret = battery_gauge_get_battery_temperature(chip->bg_dev,
+								    &temp);
+		    if (ret >=0)
+		    {
+//Ivan test code			
+//			if (get_tn_bat_test_count() > 50 && get_tn_bat_test_count() < 150)
+//			    temp = 65;
+//Ivan
+			if (temp >= TN_BATT_HOT_STOP_TEMPERATURE)
+			{
+			    val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+			    printk("Ivan max17048_get_property report disable!!\n");
+			}
+			else
+			    val->intval = chip->status;
+		    }
+		}
+		else
+		    val->intval = chip->status;
+		    printk("Ivan max17048_get_property status = %d !\n", val->intval);		
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = chip->vcell * 1000;

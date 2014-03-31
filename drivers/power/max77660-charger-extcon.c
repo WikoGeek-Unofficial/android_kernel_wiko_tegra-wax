@@ -57,7 +57,18 @@
 
 #define NO_LIMIT				99999
 
+#define TN_BATT_HOT_STOP_TEMPERATURE		62
+#define TN_BATT_HOT_RESTART_TEMPERATURE		57
+
+//#define TN_BATT_TEST
+
 extern void max77660_power_forceoff(void);
+
+static int tn_bat_temperature_over = 0;
+//Ivan testing
+#ifdef TN_BATT_TEST
+static int tn_bat_test_count = 0;
+#endif
 
 enum charging_states {
 	ENABLED_HALF_IBAT = 1,
@@ -134,6 +145,13 @@ enum {
 	MAX77660_CHG_DC_V,
 	MAX77660_CHG_NR_IRQS,
 };
+
+#ifdef TN_BATT_TEST
+int get_tn_bat_test_count()
+{
+    return tn_bat_test_count;
+}
+#endif
 
 static inline int fchg_current(int x)
 {
@@ -891,11 +909,24 @@ static int max77660_charger_thermal_configure(
 	u8 jeitaStatus;
 	
 	if (!chip->cable_connected)
+	{
+		tn_bat_temperature_over = 0;
+#ifdef TN_BATT_TEST
+		tn_bat_test_count = 0;
+#endif
 		return 0;
-
+	}
 	temperature = temp;
 	dev_info(chip->dev, "Battery temp %d\n", temperature);
+#ifdef TN_BATT_TEST
+	if (tn_bat_test_count > 50 && tn_bat_test_count < 150)
+	    temperature = 65;
+#endif
 	
+//Ivan added
+#ifdef TN_BATT_TEST
+	tn_bat_test_count++;
+#endif
 	if (enable_charger) {
 		ret = max77660_reg_clr_bits(chip->parent, MAX77660_CHG_SLAVE,
 			MAX77660_CHARGER_CHGCTRL1, MAX77660_CHARGER_JEITA_EN_MASK);
@@ -905,33 +936,74 @@ static int max77660_charger_thermal_configure(
 					MAX77660_CHARGER_CHGCTRL1, &jeitaStatus);
 			dev_info(chip->dev, "Battery failed write CHGCTRL1[0x%x], \n", jeitaStatus);
 		}
-		if (!enable_charg_half_current &&
-			chip->charging_state != ENABLED_FULL_IBAT) {
-			max77660_full_current_enable(chip);
-			battery_charging_status_update(chip->bc_dev,
-				BATTERY_CHARGING);
-		} else if (enable_charg_half_current &&
-			chip->charging_state != ENABLED_HALF_IBAT) {
-			max77660_half_current_enable(chip);
-			/*Set MBATREG voltage */
-			battery_threshold_voltage =
-					convert_to_reg(battery_voltage);
-			ret = max77660_reg_write(chip->parent,
-					MAX77660_CHG_SLAVE,
-					MAX77660_CHARGER_BATREGCTRL,
-					(battery_threshold_voltage << 1));
-			if (ret < 0)
-				return ret;
-			battery_charging_status_update(chip->bc_dev,
-							BATTERY_CHARGING);
+		if (temperature <= TN_BATT_HOT_RESTART_TEMPERATURE)
+		{
+		    if (!enable_charg_half_current &&
+			    chip->charging_state != ENABLED_FULL_IBAT) {
+			    max77660_full_current_enable(chip);
+			    battery_charging_status_update(chip->bc_dev,
+				    BATTERY_CHARGING);
+		    } else if (enable_charg_half_current &&
+			    chip->charging_state != ENABLED_HALF_IBAT) {
+			    max77660_half_current_enable(chip);
+			    /*Set MBATREG voltage */
+			    battery_threshold_voltage =
+					    convert_to_reg(battery_voltage);
+			    ret = max77660_reg_write(chip->parent,
+					    MAX77660_CHG_SLAVE,
+					    MAX77660_CHARGER_BATREGCTRL,
+					    (battery_threshold_voltage << 1));
+			    if (ret < 0)
+				    return ret;
+			    battery_charging_status_update(chip->bc_dev,
+							    BATTERY_CHARGING);
+		    }
 		}
+//Ivan added stop buck at high temperature
+	    if ((temperature >= TN_BATT_HOT_STOP_TEMPERATURE) && (tn_bat_temperature_over == 0))
+	    {
+//		max77660_reg_read(chip->parent,
+//				MAX77660_CHG_SLAVE,
+//				MAX77660_CHARGER_DETAILS2, &status4);
+//		if (status4 & 0x0F == 0x0B)
+		{
+		    max77660_charging_disable(chip);		    
+		    max77660_reg_clr_bits(chip->parent, MAX77660_CHG_SLAVE,
+				    MAX77660_CHARGER_CHGCTRL1,
+				    MAX77660_CHARGER_BUCK_EN_MASK);
+		  
+		    tn_bat_temperature_over = 1;
+		    battery_charging_status_update(chip->bc_dev,
+					    BATTERY_CHARGING);		    
+		    printk("Ivan Battery Charging Temperature Too High, Stop Charging!!!\n");
+		}
+	    }
+	    else if ((temperature <= TN_BATT_HOT_RESTART_TEMPERATURE) && tn_bat_temperature_over)
+	    {
+		max77660_reg_set_bits(chip->parent, MAX77660_CHG_SLAVE,
+				MAX77660_CHARGER_CHGCTRL1,
+				MAX77660_CHARGER_BUCK_EN_MASK);
+
+		max77660_full_current_enable(chip);
+		tn_bat_temperature_over = 0;
+		battery_charging_status_update(chip->bc_dev,
+					BATTERY_CHARGING);		
+		printk("Ivan Battery Charging Temperature Back To Normal, Start Charging!!!\n");
+		
+	    }
+	    
 	} else {
 		if (chip->charging_state != DISABLED) {
 			max77660_charging_disable(chip);
 			battery_charging_status_update(chip->bc_dev,
 						BATTERY_DISCHARGING);
+//Ivan
+			tn_bat_temperature_over = 0;
 		}
 	}
+#ifdef TN_BATT_TEST
+	printk("Ivan Temperature Handling: tn_bat_temperature_over[%d], tn_bat_test_count[%d]\n",tn_bat_temperature_over,tn_bat_test_count);
+#endif
 //Ivan added debug info
     ret = max77660_reg_read(chip->parent,
 		    MAX77660_CHG_SLAVE,
