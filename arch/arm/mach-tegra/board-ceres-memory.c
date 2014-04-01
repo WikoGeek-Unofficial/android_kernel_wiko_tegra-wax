@@ -11415,19 +11415,24 @@ static struct tegra14_emc_table atlantis_e1670_lpddr2_table_ll_der[] = {
 #ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
 #include "board-ceres-memory-edf8132a1mc.h"
 #include "board-ceres-memory-edf8132a3mc.h"
+#include "board-ceres-memory-k4e8e304ed.h"
 #include "board-ceres-memory-sl440-edf8132a1mc.h"
 #include "board-ceres-memory-sl440-edf8132a3mc.h"
 #include "board-ceres-memory-sl440-edb8132b3ph.h"
+#include "board-ceres-memory-sl440-k4e8e304ed.h"
 static struct tegra14_emc_multi_pdata ceres_emc_multi_pdata = {
 	.num_emc_pdata = NUM_EMC_TABLE_GROUPS,
 	.emc_pdata[EDF8132A1MC_EMC_TABLE_GROUP] = &ceres_emc_edf8132a1mc_pdata,
 	.emc_pdata[EDF8132A3MC_EMC_TABLE_GROUP] = &ceres_emc_edf8132a3mc_pdata,
+	.emc_pdata[K4E8E304ED_EMC_TABLE_GROUP]  = &ceres_emc_k4e8e304ed_pdata,
 	.emc_pdata[SL440_EDF8132A1MC_EMC_TABLE_GROUP] =
 					&ceres_emc_sl440_edf8132a1mc_pdata,
 	.emc_pdata[SL440_EDF8132A3MC_EMC_TABLE_GROUP] =
 					&ceres_emc_sl440_edf8132a3mc_pdata,
 	.emc_pdata[SL440_EDB8132B3PH_EMC_TABLE_GROUP] =
 					&ceres_emc_sl440_edb8132b3ph_pdata,
+	.emc_pdata[SL440_K4E8E304ED_EMC_TABLE_GROUP] =
+					&ceres_emc_sl440_k4e8e304ed_pdata,
 };
 #else
 #include "board-ceres-memory-edf8132a1mc.h"
