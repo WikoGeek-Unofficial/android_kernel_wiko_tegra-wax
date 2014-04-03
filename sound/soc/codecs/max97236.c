@@ -933,7 +933,7 @@ static void max97236_jack_plugged(struct max97236_priv *max97236)
 #if 1
 	/* Start debounce verifying jack presence periodically */
 	for (count = 0; count < 24; count++) {
-		msleep(20);
+		msleep(40);
 		if (!max97236_jacksw_active(max97236)) {
 			max97236_jack_event(max97236);
 			goto max97236_jack_plugged_30;
