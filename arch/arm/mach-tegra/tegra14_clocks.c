@@ -4377,7 +4377,7 @@ static int tegra14_clk_emc_suspend(struct clk *c, u32 *ctx)
 	if (tegra_bb_check_bb2ap_ipc()) {
 		/* pending BB interrupt - keep EMC rate, request max voltage */
 		mv = tegra_dvfs_rail_get_nominal_millivolts(tegra_core_rail);
-		mv = max(mv, floor_mv);
+		mv = max(mv, max(floor_mv, 900));
 		tegra_lp1bb_suspend_mv_set(mv);
 		tegra_lp0bb_suspend_mv_set(mv);
 		pr_info("EMC suspend: BB IPC pending: voltage %d rate %lu\n",
@@ -4390,14 +4390,14 @@ static int tegra14_clk_emc_suspend(struct clk *c, u32 *ctx)
 	if (IS_ERR_VALUE(lp0_rate))
 		lp0_rate = c->boot_rate;
 	mv = tegra_dvfs_predict_millivolts(c, lp0_rate);
-	mv = max(mv, floor_mv);
+	mv = max(mv, max(floor_mv, 900));
 	tegra_lp0bb_suspend_mv_set(mv);
 	pr_info("EMC lp0 voltage requested before suspend: %d\n", mv);
 
 	/* get ready lp1 entry voltage */
 	rate = tegra14_emc_clk_round_rate(c, rate);
 	mv = tegra_dvfs_predict_millivolts(c, rate);
-	mv = max(mv, floor_mv);
+	mv = max(mv, max(floor_mv, 900));
 	tegra_lp1bb_suspend_mv_set(mv);
 	pr_info("EMC lp1 voltage requested before suspend: %d\n", mv);
 
