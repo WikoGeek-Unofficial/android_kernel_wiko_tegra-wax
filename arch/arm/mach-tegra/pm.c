@@ -1202,7 +1202,6 @@ static int tegra_suspend_enter(suspend_state_t state)
 abort_suspend:
 	if (pdata && pdata->board_resume)
 		pdata->board_resume(current_suspend_mode, TEGRA_RESUME_AFTER_PERIPHERAL);
-	printk("tegra_suspend_enter exit\n");
 
 	return ret;
 }
@@ -1454,7 +1453,6 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 	local_fiq_enable();
 
 	tegra_common_resume();
-	printk("tegra_common_resume\n");
 
 	/* turn on VDE partition in LP1 */
 	if (mode == TEGRA_SUSPEND_LP1 && tegra_suspend_vde_powergated) {
@@ -1464,7 +1462,6 @@ int tegra_suspend_dram(enum tegra_suspend_mode mode, unsigned int flags)
 	}
 
 fail:
-	printk("tegra_suspend_dram exit\n");
 	return err;
 }
 
