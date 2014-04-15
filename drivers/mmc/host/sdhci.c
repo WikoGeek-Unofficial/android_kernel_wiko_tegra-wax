@@ -1587,6 +1587,9 @@ static void sdhci_dumpcmds(struct sdhci_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
 
+	if (cmd == NULL)
+	    return;
+
 	pr_err(DRIVER_NAME ": =========== COMMAND DUMP (%s)===========\n",
 		mmc_hostname(host->mmc));
 
