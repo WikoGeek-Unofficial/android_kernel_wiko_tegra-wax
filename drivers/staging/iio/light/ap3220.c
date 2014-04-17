@@ -144,8 +144,8 @@ struct alsps_cfg {
 
 static struct alsps_cfg default_cfg = {
     .ps_threshold = 2,	//3,
-    .ps_threshold_high = 0x1F,
-    .ps_threshold_low = 0x10,		//0x18
+    .ps_threshold_high = 0x22,		//0x1F
+    .ps_threshold_low = 0x14,		//0x10
     .als_threshold_high = 0xFFFF,
     .als_threshold_low = 0,
 };
