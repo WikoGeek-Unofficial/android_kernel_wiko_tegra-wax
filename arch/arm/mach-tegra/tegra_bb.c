@@ -943,7 +943,7 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 			pr_info("***** diff1: %ld ms diff2: %ld ms diff3: %ld ms diff4: %ld ms diff5: %ld ms \n",
 				diff1, diff2, diff3, diff4, diff5);			
 		}
-		pr_info("bbc setting floor to %luMHz\n",
+		pr_debug("bbc setting floor to %luMHz\n",
 						bb->emc_min_freq/1000000);
 
 		/* restore iso bw request*/
@@ -990,7 +990,7 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 			tegra_emc_dsr_override(TEGRA_EMC_DSR_NORMAL);
 
 		clk_disable_unprepare(bb->emc_clk);
-		pr_info("bbc removing emc floor\n");
+		pr_debug("bbc removing emc floor\n");
 
 		/* reenable mem_req_soon irq */
 		tegra_bb_enable_mem_req_soon();
