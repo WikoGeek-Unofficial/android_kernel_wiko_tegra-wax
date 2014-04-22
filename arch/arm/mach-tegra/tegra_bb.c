@@ -155,7 +155,7 @@ struct tegra_bb {
 	struct device *proxy_dev;
 	struct notifier_block pm_notifier;
 	bool is_suspending;
-	long t[3]; /* tracing bb emc floor latency */
+	long t[8]; /* tracing bb emc floor latency */
 	bool send_ul_flag;
 };
 
@@ -256,6 +256,7 @@ void tegra_bb_generate_ipc(struct platform_device *pdev)
 		spin_lock_irqsave(&bb->lock, irq_flags);
 		if ((bb->current_state == BBC_REMOVE_FLOOR) &&
 		    !bb->send_ul_flag) {
+			bb->t[0] = jiffies;		    
 			/* Yes => add work to kernel thread */
 			pr_debug("%s Request BBC floor", __func__);
 			bb->next_state = BBC_SET_FLOOR;
@@ -883,7 +884,7 @@ static irqreturn_t tegra_pmc_wake_intr(int irq, void *data)
 static void tegra_bb_set_emc(struct tegra_bb *bb)
 {
 	unsigned long flags;
-	static long diff0, diff;
+	static long diff0, diff,diff1,diff2,diff3,diff4,diff5;	
 	static int cnt;
 
 	if (!bb)
@@ -895,20 +896,23 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 	}
 
 	spin_lock_irqsave(&bb->lock, flags);
+	bb->t[3] = jiffies;	
 	if (bb->current_state == bb->next_state) {
 		spin_unlock_irqrestore(&bb->lock, flags);
 		return;
 	}
-
+	
+	bb->t[4] = jiffies;
 	switch (bb->next_state) {
 	case BBC_SET_FLOOR:
 		spin_unlock_irqrestore(&bb->lock, flags);
-
+		bb->t[5] = jiffies;
 		bb->cpu_min_freq = BBC_CPU_MIN_FREQ;
 		pm_qos_update_request(&bb_cpufreq_min_req,
 			bb->cpu_min_freq);
-
+		bb->t[6] = jiffies;
 		pm_runtime_get_sync(bb->dev);
+		bb->t[7] = jiffies;		
 		/* going from 0 to high */
 		clk_prepare_enable(bb->emc_clk);
 		if (bb->emc_flags & EMC_DSR)
@@ -922,6 +926,11 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 			PM_QOS_CPU_FREQ_MIN_DEFAULT_VALUE);
 
 		diff = (bb->t[2] - bb->t[0]) * 1000 / HZ;
+		diff1 = (bb->t[3] - bb->t[1]) * 1000 / HZ;
+		diff2 = (bb->t[4] - bb->t[1]) * 1000 / HZ;
+		diff3 = (bb->t[5] - bb->t[1]) * 1000 / HZ;
+		diff4 = (bb->t[6] - bb->t[1]) * 1000 / HZ;
+		diff5 = (bb->t[7] - bb->t[1]) * 1000 / HZ;		
 		if (diff >= 0) {
 			if (diff < MAX_SMALL_STAT_TIME)
 				bb_emc_set_s_stats[diff/SMALL_STAT_STEP]++;
@@ -931,6 +940,8 @@ static void tegra_bb_set_emc(struct tegra_bb *bb)
 		if (diff > SET_FLOOR_GUARD_TIME) {
 			pr_info("bbc setting floor latency: %ld ms (irq2entry: %ld ms) (cnt:%d)\n",
 				diff, diff0, cnt++);
+			pr_info("***** diff1: %ld ms diff2: %ld ms diff3: %ld ms diff4: %ld ms diff5: %ld ms \n",
+				diff1, diff2, diff3, diff4, diff5);			
 		}
 		pr_info("bbc setting floor to %luMHz\n",
 						bb->emc_min_freq/1000000);
