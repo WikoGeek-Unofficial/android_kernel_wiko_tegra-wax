@@ -201,7 +201,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 	if (chip->enabled == enable)
 		return;
 
-	mutex_lock(&chip->enable_lock);
+//Ivan	mutex_lock(&chip->enable_lock);
 	chip->enabled = enable;
 
 	if (enable) {
@@ -221,7 +221,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 			pwm_disable(chip->pwm);
 		regulator_disable(chip->regulator);
 	}
-	mutex_unlock(&chip->enable_lock);
+//Ivan	mutex_unlock(&chip->enable_lock);
 }
 
 static void max77660_haptic_throttle(unsigned int new_state, void *priv_data)
@@ -346,6 +346,7 @@ static ssize_t max77660_haptic_vibrator_ctrl(struct device *dev,
 	struct max77660_haptic *chip = dev_get_drvdata(dev);
 	int var;
 
+	mutex_lock(&chip->enable_lock);
 	sscanf(buf, "%d", &var);
 	if (var == 0) {			/* stop vibrator */
 		chip->level = 0;
@@ -354,7 +355,7 @@ static ssize_t max77660_haptic_vibrator_ctrl(struct device *dev,
 		chip->level = 100;
 		schedule_work(&chip->work);
 	}
-
+	mutex_unlock(&chip->enable_lock);
 	return count;
 }
 
