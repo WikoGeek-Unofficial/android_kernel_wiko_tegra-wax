@@ -37,7 +37,7 @@
 #define MAX77660_HAPTIC_DRIVER_MATCHED_NAME "max77660-vibrator"
 
 //Ivan add static flag
-static int haptic_enable_processing = 0;
+//static int haptic_enable_processing = 0;
 
 struct max77660_haptic {
 	struct device *dev;
@@ -204,7 +204,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 	if (chip->enabled == enable)
 		return;
 
-	mutex_lock(&chip->enable_lock);
+//	mutex_lock(&chip->enable_lock);
 	chip->enabled = enable;
 
 	if (enable) {
@@ -213,7 +213,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 		max77660_haptic_configure(chip);
 		if (chip->mode == MAX77660_EXTERNAL_MODE)
 			pwm_enable(chip->pwm);
-		haptic_enable_processing = 0;		//Ivan
+//		haptic_enable_processing = 0;		//Ivan
 	} else {
 //  printk("Ivan max77660_haptic_enable DISABLE! \n");	  
 		max77660_haptic_configure(chip);
@@ -225,7 +225,7 @@ static void max77660_haptic_enable(struct max77660_haptic *chip, bool enable)
 			pwm_disable(chip->pwm);
 		regulator_disable(chip->regulator);
 	}
-	mutex_unlock(&chip->enable_lock);
+//	mutex_unlock(&chip->enable_lock);
 }
 
 static void max77660_haptic_throttle(unsigned int new_state, void *priv_data)
@@ -254,18 +254,21 @@ static void max77660_haptic_play_effect_work(struct work_struct *work)
 				dev_err(chip->dev,
 					"E state high transition failed, error=%d, approved=%d\n",
 					ret, approved);
-				haptic_enable_processing = 0;		//Ivan
+//				haptic_enable_processing = 0;		//Ivan
+				mutex_unlock(&chip->enable_lock);
 				return;
 			}
 		}
 		ret = max77660_haptic_set_duty_cycle(chip);
 		if (ret) {
 			dev_err(chip->dev, "set_pwm_cycle failed\n");
-			haptic_enable_processing = 0;			//Ivan
+//			haptic_enable_processing = 0;			//Ivan
+			mutex_unlock(&chip->enable_lock);
 			return;
 		}
 
 		max77660_haptic_enable(chip, true);
+		mutex_unlock(&chip->enable_lock);		
 	} else {
 		/* Disable device before releasing E-state request */
 		max77660_haptic_enable(chip, false);
@@ -276,9 +279,11 @@ static void max77660_haptic_play_effect_work(struct work_struct *work)
 				dev_err(chip->dev,
 					"E state low transition failed, error=%d\n",
 					ret);
+				mutex_unlock(&chip->enable_lock);				
 				return;
 			}
 		}
+		mutex_unlock(&chip->enable_lock);
 	}
 }
 
@@ -352,18 +357,19 @@ static ssize_t max77660_haptic_vibrator_ctrl(struct device *dev,
 	struct max77660_haptic *chip = dev_get_drvdata(dev);
 	int var;
 
+	mutex_lock(&chip->enable_lock);
 	sscanf(buf, "%d", &var);
 	if (var == 0) {			/* stop vibrator */		  
-		if (haptic_enable_processing == 1)
-		  flush_scheduled_work();
+//		if (haptic_enable_processing == 1)
+//		  flush_scheduled_work();
 //		  schedule_delayed_work(&chip->work,msecs_to_jiffies(5));
 //		else
 		  chip->level = 0;
 		  schedule_work(&chip->work);
-		haptic_enable_processing = 0;
+//		haptic_enable_processing = 0;
 	} else if (var == 1) {
 		chip->level = 100;
-		haptic_enable_processing = 1;			//Ivan setup flag to indicate enable processing...
+//		haptic_enable_processing = 1;			//Ivan setup flag to indicate enable processing...
 		schedule_work(&chip->work);
 	}
 
