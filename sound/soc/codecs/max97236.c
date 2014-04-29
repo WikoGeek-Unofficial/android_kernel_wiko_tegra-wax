@@ -807,9 +807,15 @@ static void max97236_translate_detected(unsigned int *status_reg,
 		status_reg[2] = 0x01;
 		break;
 	default:
+//wj modify for default set to headphone
+     		*force = 0x12;
+		status_reg[0] = 0x84;
+		status_reg[1] = 0x30;
+		status_reg[2] = 0x03;
+        /*
 		status_reg[0] = 0x00;
 		status_reg[1] = 0xCC;
-		status_reg[2] = 0xCC;
+		status_reg[2] = 0xCC;*/
 		break;
 	}
 
