@@ -419,7 +419,7 @@ static void ceres_panel_select(void)
     //panel = &dsi_otm1283a_720p;
 
 	if (tegra_get_board_panel_id()==11) {  //LIUJ201140504RELE1315ADDO adc select lcd
-		panel = &dsi_otm1283a_720p;
+		panel = &dsi_hx8394a_720p;
 	} else {
 		panel = &dsi_otm1283a_720p;
 	}
