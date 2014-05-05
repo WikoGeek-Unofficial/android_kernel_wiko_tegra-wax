@@ -527,7 +527,6 @@ static void max97236_report_jack_state(struct max97236_priv *max97236,
 {
 	char string[MAX_STRING];
 	int state;
-
 	if ((status_reg[0] & 0x88) == 0x88) {
 		state = SND_JACK_HEADSET;
 		string_copy(string, "HEADSET", MAX_STRING);
@@ -807,15 +806,10 @@ static void max97236_translate_detected(unsigned int *status_reg,
 		status_reg[2] = 0x01;
 		break;
 	default:
-//wj modify for default set to headphone
-     		*force = 0x12;
-		status_reg[0] = 0x84;
-		status_reg[1] = 0x30;
-		status_reg[2] = 0x03;
-        /*
+		printk("==========test=========\n");
 		status_reg[0] = 0x00;
 		status_reg[1] = 0xCC;
-		status_reg[2] = 0xCC;*/
+		status_reg[2] = 0xCC;
 		break;
 	}
 
@@ -966,7 +960,12 @@ max97236_jack_plugged_10:
 	status_reg[0] = max97236_get_detect_result(max97236);
 
 	max97236_translate_detected(status_reg, &force_value);
-
+	if(retries<5 && status_reg[0]==0x00 && status_reg[1] == 0xCC && status_reg[2] == 0xCC){
+		force_value = 0x12;
+		status_reg[0] = 0x84;
+		status_reg[1] = 0x30;
+		status_reg[2] = 0x03;
+	}
 	if (status_reg[0] != 0) {
 		regmap_write(max97236->regmap, M97236_REG_20_TEST_ENABLE_2,
 			0x00);
@@ -981,7 +980,6 @@ max97236_jack_plugged_10:
 		if (--retries)
 			goto max97236_jack_plugged_10;
 	}
-
 max97236_jack_plugged_20:
 	max97236_report_jack_state(max97236, status_reg);
 	max97236_configure_for_detection(max97236, M97236_AUTO_MODE_0);
