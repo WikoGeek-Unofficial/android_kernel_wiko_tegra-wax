@@ -416,8 +416,15 @@ static void ceres_panel_select(void)
 	u8 dsi_instance = 0;
 
 //Ivan
-    panel = &dsi_otm1283a_720p;
-    dsi_instance = DSI_INSTANCE_0;	
+    //panel = &dsi_otm1283a_720p;
+
+	if (tegra_get_board_panel_id()==11) {  //LIUJ201140504RELE1315ADDO adc select lcd
+		panel = &dsi_otm1283a_720p;
+	} else {
+		panel = &dsi_otm1283a_720p;
+	}
+	dsi_instance = DSI_INSTANCE_0;	
+
 
 	if (panel->init_sd_settings)
 		panel->init_sd_settings(&sd_settings);
