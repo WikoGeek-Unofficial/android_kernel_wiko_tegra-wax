@@ -70,7 +70,7 @@ static struct regulator *ceres_hdmi_reg;
 static struct regulator *ceres_hdmi_pll;
 static struct regulator *ceres_hdmi_vddio;
 static struct regulator *ceres_hdmi_1v8;
-
+char *panel_name = "unnknow";
 static struct resource ceres_disp1_resources[] = {
 	{
 		.name	= "irq",
@@ -404,6 +404,10 @@ static struct tegra_dc_sd_settings ceres_sd_settings = {
 	.bl_device_name = "pwm-backlight",	
 };
 
+char *get_panel_name(void){
+        return panel_name;
+}
+
 void tegra_fb_data_get(struct tegra_fb_data **fb_data)
 {
 	*fb_data = &ceres_disp1_fb_data;
@@ -420,8 +424,10 @@ static void ceres_panel_select(void)
 
 	if (tegra_get_board_panel_id()==11) {  //LIUJ201140504RELE1315ADDO adc select lcd
 		panel = &dsi_hx8394a_720p;
+                panel_name = "Tcl_hx8394_HD_video_24bit\n";
 	} else {
 		panel = &dsi_otm1283a_720p;
+                panel_name = "Truly_otm1283a_HD_video_24bit\n";
 	}
 	dsi_instance = DSI_INSTANCE_0;	
 

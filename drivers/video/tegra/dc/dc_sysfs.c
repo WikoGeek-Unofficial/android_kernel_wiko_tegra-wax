@@ -29,7 +29,7 @@
 #include "dc_reg.h"
 #include "dc_priv.h"
 #include "nvsd.h"
-
+extern char*get_panel_name(void);
 static ssize_t mode_show(struct device *device,
 	struct device_attribute *attr, char *buf)
 {
@@ -430,7 +430,7 @@ static ssize_t panel_name_show(struct device *device,
 	struct device_attribute *attr, char  *buf)
 {
 	
-	return snprintf(buf, PAGE_SIZE, "Truly_otm1283a_HD_video_24bit\n");
+	return snprintf(buf, PAGE_SIZE, get_panel_name());
 }
 
 static DEVICE_ATTR(panel_name, S_IRUGO, panel_name_show, NULL);
