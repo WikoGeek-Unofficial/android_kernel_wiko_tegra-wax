@@ -23,6 +23,7 @@
 #include <linux/spinlock.h>
 #include <linux/completion.h>
 #include <asm/uaccess.h>
+#include <linux/hardirq.h>
 
 #include "internal.h"
 
@@ -354,9 +355,13 @@ static unsigned int get_inode_number(void)
 {
 	unsigned int i;
 	int error;
+	gfp_t gfp_mask = GFP_ATOMIC;
+
+	if (IS_ENABLED(CONFIG_PREEMPT))
+		gfp_mask = preemptible() ? GFP_KERNEL : GFP_ATOMIC;
 
 retry:
-	if (ida_pre_get(&proc_inum_ida, GFP_KERNEL) == 0)
+	if (ida_pre_get(&proc_inum_ida, gfp_mask) == 0)
 		return 0;
 
 	spin_lock(&proc_inum_lock);
@@ -603,6 +608,10 @@ static struct proc_dir_entry *__proc_create(struct proc_dir_entry **parent,
 	struct proc_dir_entry *ent = NULL;
 	const char *fn = name;
 	unsigned int len;
+	gfp_t gfp_mask = GFP_ATOMIC;
+
+	if (IS_ENABLED(CONFIG_PREEMPT))
+		gfp_mask = preemptible() ? GFP_KERNEL : GFP_ATOMIC;
 
 	/* make sure name is valid */
 	if (!name || !strlen(name)) goto out;
@@ -616,7 +625,7 @@ static struct proc_dir_entry *__proc_create(struct proc_dir_entry **parent,
 
 	len = strlen(fn);
 
-	ent = kmalloc(sizeof(struct proc_dir_entry) + len + 1, GFP_KERNEL);
+	ent = kmalloc(sizeof(struct proc_dir_entry) + len + 1, gfp_mask);
 	if (!ent) goto out;
 
 	memset(ent, 0, sizeof(struct proc_dir_entry));
