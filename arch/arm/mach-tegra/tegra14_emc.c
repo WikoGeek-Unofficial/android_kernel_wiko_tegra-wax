@@ -48,6 +48,11 @@
 #define EMC_MRS_K4E8E304ED	0x1B000301
 #endif
 
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
+int emc_mrs_id = 0;
+int sku_id = 0;
+#endif
+
 #ifdef CONFIG_TEGRA_EMC_SCALING_ENABLE
 static bool emc_enable = true;
 #else
@@ -1870,6 +1875,9 @@ static int __devinit tegra14_emc_probe(struct platform_device *pdev)
 	else
 		emc_table_group = EDF8132A1MC_EMC_TABLE_GROUP;
 
+	emc_mrs_id = emc_mrs;
+	sku_id = sku;
+
        pr_info("%s: emc_mrs = 0x%08X, sku = 0x%02X, emc_table_group = 0x%02X\n",
                __func__, emc_mrs, sku, emc_table_group);	emc_pdata = pdata->emc_pdata[emc_table_group];
 
@@ -2287,6 +2295,23 @@ static const struct file_operations emc_stats_fops = {
 	.release	= single_release,
 };
 
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
+static int dram_emc_mrs_get(void *data, u64 *val)
+{
+	*val = emc_mrs_id;
+	return 0;
+}
+DEFINE_SIMPLE_ATTRIBUTE(dram_emc_mrs_fops, dram_emc_mrs_get,
+			NULL, "%lld\n");
+static int sku_id_get(void *data, u64 *val)
+{
+	*val = sku_id;
+	return 0;
+}
+DEFINE_SIMPLE_ATTRIBUTE(sku_id_fops, sku_id_get,
+			NULL, "%lld\n");
+#endif
+
 static int emc_table_info_show(struct seq_file *s, void *data)
 {
 	int i;
@@ -2442,6 +2467,16 @@ static int __init tegra_emc_debug_init(void)
 	if (!debugfs_create_file("table_info", S_IRUGO | S_IWUSR,
 				 emc_debugfs_root, NULL, &emc_table_info_fops))
 		goto err_out;
+
+#ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
+	if (!debugfs_create_file("dram_emc_mrs", S_IRUGO, emc_debugfs_root,
+				 NULL, &dram_emc_mrs_fops))
+		goto err_out;
+
+	if (!debugfs_create_file("sku_id", S_IRUGO, emc_debugfs_root,
+				 NULL, &sku_id_fops))
+		goto err_out;
+#endif
 
 	if (tegra_emc_iso_usage_debugfs_init(emc_debugfs_root))
 		goto err_out;
