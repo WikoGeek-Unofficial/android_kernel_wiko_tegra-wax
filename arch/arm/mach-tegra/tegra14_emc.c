@@ -2298,14 +2298,17 @@ static const struct file_operations emc_stats_fops = {
 #ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
 static int dram_emc_name_get(void *data, char *val)
 {
-	if (emc_mrs_id == EMC_MRS_EDF8132A1MC && sku_id == 0x3)
-		*val = "Samsumg";
-	else if (emc_mrs_id == EMC_MRS_K4E8E304ED && sku_id == 0x83)
+	if (emc_mrs_id == EMC_MRS_EDF8132A1MC && sku_id == 0x7)
 		*val = "Elpida";
+	else if (emc_mrs_id == EMC_MRS_K4E8E304ED && sku_id == 0x7)
+		*val = "Samsumg";
 	else
 		*val = " ";
 	return 0;
 }
+DEFINE_SIMPLE_ATTRIBUTE(dram_emc_name_fops, dram_emc_name_get,
+			NULL, "%s\n");
+
 static int dram_emc_mrs_get(void *data, u64 *val)
 {
 	*val = emc_mrs_id;
