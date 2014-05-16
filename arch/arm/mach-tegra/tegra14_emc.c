@@ -2296,20 +2296,30 @@ static const struct file_operations emc_stats_fops = {
 };
 
 #ifdef CONFIG_TEGRA_T14x_MULTI_MEMORY
+static int dram_emc_name_get(void *data, char *val)
+{
+	if (emc_mrs_id == EMC_MRS_EDF8132A1MC && sku_id == 0x3)
+		*val = "Samsumg";
+	else if (emc_mrs_id == EMC_MRS_K4E8E304ED && sku_id == 0x83)
+		*val = "Elpida";
+	else
+		*val = " ";
+	return 0;
+}
 static int dram_emc_mrs_get(void *data, u64 *val)
 {
 	*val = emc_mrs_id;
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(dram_emc_mrs_fops, dram_emc_mrs_get,
-			NULL, "%lld\n");
+			NULL, "0x%llx\n");
 static int sku_id_get(void *data, u64 *val)
 {
 	*val = sku_id;
 	return 0;
 }
 DEFINE_SIMPLE_ATTRIBUTE(sku_id_fops, sku_id_get,
-			NULL, "%lld\n");
+			NULL, "0x%llx\n");
 #endif
 
 static int emc_table_info_show(struct seq_file *s, void *data)
@@ -2475,6 +2485,10 @@ static int __init tegra_emc_debug_init(void)
 
 	if (!debugfs_create_file("sku_id", S_IRUGO, emc_debugfs_root,
 				 NULL, &sku_id_fops))
+		goto err_out;
+
+	if (!debugfs_create_file("dram_emc_name", S_IRUGO, emc_debugfs_root,
+				 NULL, &dram_emc_name_fops))
 		goto err_out;
 #endif
 
