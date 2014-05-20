@@ -2301,7 +2301,7 @@ static int dram_emc_name_get(void *data, char *val)
 	if (emc_mrs_id == EMC_MRS_EDF8132A1MC && sku_id == 0x7)
 		*val = "Elpida";
 	else if (emc_mrs_id == EMC_MRS_K4E8E304ED && sku_id == 0x7)
-		*val = "Samsumg";
+		*val = "Samsung";
 	else
 		*val = " ";
 	return 0;
