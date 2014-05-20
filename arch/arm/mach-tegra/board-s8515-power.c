@@ -1014,6 +1014,10 @@ int __init ceres_regulator_init(void)
 	for (id = 0; id < MAX77660_REGULATOR_ID_NR; ++id)
 		max77660_pdata.regulator_pdata[id] = max77660_reg_pdata[id];
 
+	/* set ldo1 to 0.85v from 0.8v*/
+	max77660_regulator_idata_ldo1.constraints.min_uV = 850000;
+	max77660_regulator_idata_ldo1.constraints.max_uV = 850000;
+	
 	switch (board_info.board_id) {
 	case BOARD_E1680:
 	case BOARD_E1681:
