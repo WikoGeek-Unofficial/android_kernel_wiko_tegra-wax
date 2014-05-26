@@ -8026,7 +8026,15 @@ _dhdsdio_download_firmware(struct dhd_bus *bus)
 	}
 
 #ifdef NV_BCM943341_WBFGN_MULTI_MODULE_SUPPORT
+	if (dhd_bus_chip_id(bus->dhd) == BCM43340_CHIP_ID) {
+		DHD_ERROR(("%s: BCM43340_CHIP_ID\n", __func__));
+	}
 	if (dhd_bus_chip_id(bus->dhd) == BCM43341_CHIP_ID) {
+		DHD_ERROR(("%s: BCM43341_CHIP_ID\n", __func__));
+	}
+
+	//if (dhd_bus_chip_id(bus->dhd) == BCM43341_CHIP_ID) {
+	if (dhd_bus_chip_id(bus->dhd) == BCM43341_CHIP_ID || dhd_bus_chip_id(bus->dhd) == BCM43340_CHIP_ID) {  //LIUJ20140509RELE add bcm43340
 		int boardrev = dhdsdio_boardrev_bcm943341wbfgn(bus);
 		char *ptr = strstr(bus->nv_path, "nvram");
 		DHD_ERROR(("nvram path: %s\n", ptr));
