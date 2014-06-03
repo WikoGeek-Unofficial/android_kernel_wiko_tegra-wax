@@ -3589,6 +3589,28 @@ static void tegra_dsi_setup_initialized_panel(struct tegra_dc_dsi_data *dsi)
 	dsi->enabled = true;
 }
 
+
+static int tegra_dsi_set_to_lp_mode(struct tegra_dc *dc,
+			struct tegra_dc_dsi_data *dsi, u8 lp_op);
+static void tegra_dsi_send_dc_frames(struct tegra_dc *dc,
+				     struct tegra_dc_dsi_data *dsi,
+				     int no_of_frames);
+void tegra_dsi_enter_lp11(void)
+{
+	if(this_dc) {
+		struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(this_dc);
+
+		if (dsi->info.panel_send_dc_frames)
+			tegra_dsi_send_dc_frames(this_dc, dsi, 2);
+		tegra_dsi_set_to_lp_mode(this_dc, dsi, DSI_LP_OP_WRITE);
+	}
+}
+
+
+
+
+
+
 static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 {
 	struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(dc);
@@ -3605,7 +3627,7 @@ static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 		tegra_dsi_setup_initialized_panel(dsi);
 		goto fail;
 	}
-
+	printk("phil, dc_dsi_enable\n");
 	/* Stop DC stream before configuring DSI registers
 	 * to avoid visible glitches on panel during transition
 	 * from bootloader to kernel driver
@@ -3613,6 +3635,7 @@ static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 	tegra_dsi_stop_dc_stream(dc, dsi);
 
 	if (dsi->enabled) {
+		printk("phil, dc_dsi_enable, dsi is enabled\n");
 		if (dsi->ulpm) {
 			if (tegra_dsi_exit_ulpm(dsi) < 0) {
 				dev_err(&dc->ndev->dev,
@@ -3648,6 +3671,7 @@ static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 			}
 		}
 	} else {
+		printk("phil, dc_dsi_enable, dsi is not enabled\n");
 		err = tegra_dsi_init_hw(dc, dsi);
 		if (err < 0) {
 			dev_err(&dc->ndev->dev,
@@ -3684,6 +3708,11 @@ static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 				"dsi: not able to set to lp mode\n");
 			goto fail;
 		}
+
+		mdelay(1);
+		if (dc->out->enable)
+			dc->out->enable(&dc->ndev->dev, 1);
+		mdelay(7);
 
 		err = tegra_dsi_send_panel_cmd(dc, dsi, dsi->info.dsi_init_cmd,
 						dsi->info.n_init_cmd);

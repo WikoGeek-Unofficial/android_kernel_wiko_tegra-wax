@@ -90,9 +90,76 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
         {REGFLAG_DELAY,50,{}},
 
 #endif
+
+#if 0 //p4
+        {0xB9, 3, {0xFF,0x83,0x94}},
+        {0xBA, 16,{0x13,0x82,0x00,0x16,0xC5,0x00,
+                    0x10,0xFF,0x0F,0x24,0x03,0x21,
+                    0x24,0x25,0x20,0x08}},
+        {0xB1, 15,{0x01,0x00,0x04,0x86,0x01,0x11,
+                    0x11,0x36,0x3D,0x3F,0x3F,0x47,
+                    0x12,0x01,0xE6}},
+        {0xB2, 6, {0x00,0xC8,0x08,0x04,0x00,0x22}},
+        
+        {0xB4, 22,{0x80,0x06,0x32,0x10,0x03,0x32,
+                    0x15,0x08,0x32,0x10,0x08,0x33,
+                    0x04,0x43,0x05,0x37,0x04,0x43,
+                    0x06,0x61,0x61,0x06}},
+        {0xBF, 4, {0x06,0x02,0x10,0x04}},
+       // {0xC0, 2, {0x0C,0x17}},
+        {0xB6, 1, {0x02}},
+        {0xD5, 54,{0x00,0x00,0x00,0x00,0x0A,0x00,
+                    0x01,0x00,0xCC,0x00,0x00,0x00,
+                    0x88,0x88,0x88,0x88,0x99,0x88,
+                    0x88,0x88,0xAA,0xBB,0x23,0x01,
+                    0x67,0x45,0x01,0x23,0x88,0x88,
+                    0x88,0x88,0x88,0x88,0x88,0x88,
+                    0x88,0x99,0x88,0x88,0xBB,0xAA,
+                    0x54,0x76,0x10,0x32,0x32,0x10,
+                    0x88,0x88,0x88,0x88,0x3C,0x01}},
+                    
+        {0xCC, 1, {0x09}},
+        {0xC7, 4, {0x00,0x10,0x00,0x10}},
+        
+        {0xE0, 42,{0x00,0x03,0x06,0x21,0x28,0x3F,
+                    0x13,0x35,0x06,0x0C,0x0E,0x11,
+                    0x13,0x12,0x13,0x11,0x19,0x00,
+                    0x03,0x06,0x21,0x28,0x3F,0x13,
+                    0x35,0x06,0x0C,0x0E,0x11,0x13,
+                    0x12,0x13,0x11,0x19,0x0A,0x16,
+                    0x0C,0x15,0x0A,0x16,0x0C,0x15}},
+                    
+        {0xD4, 1, {0x32}},
+        {0x35, 1, {0x00}},
+
+        {0x11,	0,{0x00}},
+        {REGFLAG_DELAY,130,{}},
+        {0x29,	0,{0x00}},
+        {REGFLAG_DELAY,50,{}},
+
+#endif
+
+
 };
 
+#if 0
+static struct LCM_setting_table lcm_suspend_setting[] = {
+		{0x28, 0, {0x0}},
+		{REGFLAG_DELAY,50,{}},
+		{0x10, 0, {0x0}},
+		{REGFLAG_DELAY,120,{}},
+};
 
+static struct LCM_setting_table lcm_resume_setting[] = {
+		{0x11, 0, {0x0}},
+		{REGFLAG_DELAY,120,{}},
+		{0x29, 0, {0x0}},
+		{REGFLAG_DELAY,50,{}},
+		{0x36,	1,{0x82}},
+		//{0x20,	1,{0x00}},
+		
+};
+#endif
 
 #ifdef CONFIG_TEGRA_DC_CMU
 static struct tegra_dc_cmu dsi_hx8394a_720p_cmu = {
@@ -699,32 +766,19 @@ static int dsi_hx8394a_720p_gpio_get(void)
 *	turn off backlight before lcm_init when boot on
 *	excute just one time;
 *******************************************************/
-static void  turn_off_bl(void)
-{
-	static bool tobl = false;
-	//printk("Magnum %s()... \n",__func__);
-	if(tobl == true){
-		//printk("Magnum no more turn off bl... \n");
-		return;
-	}
-	if (gpio_is_valid(panel_of.panel_gpio[TEGRA_GPIO_BL_ENABLE]))
-	{
-		gpio_direction_output(
-			panel_of.panel_gpio[TEGRA_GPIO_BL_ENABLE], 0);
-	   	// printk("Ivan dsi_hx8394a_720p_disable 1 \n");	
-	}
-	else
-	{
-		gpio_direction_output(
-			dsi_hx8394a_720p_pdata.dsi_panel_bl_en_gpio, 0);
-	    	//printk("Ivan dsi_hx8394a_720p_disable 2 \n");	
-	}
-	tobl = true;
-}
-
-static int dsi_hx8394a_720p_enable(struct device *dev)
+extern void tegra_dsi_enter_lp11(void);
+static int dsi_hx8394a_720p_enable(struct device *dev, int reset)
 {
 	int err = 0;
+
+	if(reset) {
+#ifdef DSI_PANEL_RESET
+	gpio_direction_output(
+		dsi_hx8394a_720p_pdata.dsi_panel_rst_gpio, 1);
+	msleep(20);
+#endif
+	return err;
+	} else {
 
 	//printk("Ivan dsi_hx8394a_720p_enable\n");
 
@@ -740,8 +794,6 @@ static int dsi_hx8394a_720p_enable(struct device *dev)
 		goto fail;
 	}
 
-	//turn_off_bl();
-	
 	if (gpio_is_valid(panel_of.panel_gpio[TEGRA_GPIO_RESET]))
 		gpio_direction_output(
 			panel_of.panel_gpio[TEGRA_GPIO_RESET], 0);
@@ -751,7 +803,10 @@ static int dsi_hx8394a_720p_enable(struct device *dev)
 			gpio_direction_output(dsi_hx8394a_720p_pdata.dsi_panel_rst_gpio, 0);
 	    
 	}
+
 	
+	//tegra_dsi_enter_lp11();
+
 	if (avdd_lcd_3v0_2v8) {
 		err = regulator_enable(avdd_lcd_3v0_2v8);
 		if (err < 0) {
@@ -793,7 +848,7 @@ static int dsi_hx8394a_720p_enable(struct device *dev)
 
 	*/
 	
-#ifdef DSI_PANEL_RESET
+#if 0 //def DSI_PANEL_RESET
 	gpio_direction_output(
 		dsi_hx8394a_720p_pdata.dsi_panel_rst_gpio, 1);	
 	msleep(20);
@@ -807,6 +862,7 @@ static int dsi_hx8394a_720p_enable(struct device *dev)
 	return 0;
 fail:
 	return err;
+	}
 }
 
 
@@ -885,7 +941,12 @@ static void dsi_hx8394a_720p_dc_out_init(struct tegra_dc_out *dc)
 	//edit by Magnum 2013-11-14
 	u16 init_count = sizeof(lcm_initialization_setting)/sizeof(struct LCM_setting_table);
 	rebuild_tegra_lcm(lcm_initialization_setting, &dsi_hx8394a_720p_pdata,init_count);
-	
+#if 0
+	init_count = sizeof(lcm_suspend_setting)/sizeof(struct LCM_setting_table);
+	rebuild_tegra_lcm_suspend(lcm_suspend_setting, &dsi_hx8394a_720p_pdata,init_count);
+	init_count = sizeof(lcm_resume_setting)/sizeof(struct LCM_setting_table);
+	rebuild_tegra_lcm_resume(lcm_resume_setting, &dsi_hx8394a_720p_pdata,init_count);
+#endif
 	dc->dsi = &dsi_hx8394a_720p_pdata;
 	dc->parent_clk = "pll_d_out0";
 	dc->modes = dsi_hx8394a_720p_modes;

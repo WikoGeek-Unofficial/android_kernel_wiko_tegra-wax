@@ -950,9 +950,12 @@ static void  turn_off_bl(void)
 	tobl = true;
 }
 
-static int dsi_otm1283a_720p_enable(struct device *dev)
+static int dsi_otm1283a_720p_enable(struct device *dev, int reset)
 {
 	int err = 0;
+
+	if(reset)
+	   return 0;
 
 	//printk("Ivan dsi_otm1283a_720p_enable\n");
 

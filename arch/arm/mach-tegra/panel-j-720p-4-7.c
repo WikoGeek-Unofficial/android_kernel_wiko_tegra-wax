@@ -240,9 +240,11 @@ fail:
 	return err;
 }
 
-static int dsi_j_720p_4_7_enable(struct device *dev)
+static int dsi_j_720p_4_7_enable(struct device *dev, int reset)
 {
 	int err = 0;
+	 if(reset)
+              return 0;
 
 	err = dsi_j_720p_4_7_reg_get();
 	if (err < 0) {

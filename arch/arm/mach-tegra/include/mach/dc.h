@@ -522,7 +522,8 @@ struct tegra_dc_out {
 	struct completion	user_vblank_comp;
 	unsigned		refresh_rate;
 
-	int	(*enable)(struct device *);
+	//int	(*enable)(struct device *);
+        int	(*enable)(struct device *, int reset);
 	int	(*postpoweron)(void);
 	int	(*prepoweroff)(void);
 	int	(*disable)(void);
@@ -836,5 +837,7 @@ struct LCM_setting_table {
 struct tegra_dsi_cmd *  create_tegra_dsi_cmd(struct LCM_setting_table *table,unsigned int count);
 void check(struct tegra_dsi_cmd * init_cmd,unsigned int count);
 void rebuild_tegra_lcm(struct LCM_setting_table *init_table,struct tegra_dsi_out * pdata ,u16 init_count);
+extern void rebuild_tegra_lcm_suspend(struct LCM_setting_table *init_table,struct tegra_dsi_out * pdata ,u16 init_count);
+extern void rebuild_tegra_lcm_resume(struct LCM_setting_table *init_table,struct tegra_dsi_out * pdata ,u16 init_count);
 
 #endif
