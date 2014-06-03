@@ -3589,7 +3589,7 @@ static void tegra_dsi_setup_initialized_panel(struct tegra_dc_dsi_data *dsi)
 	dsi->enabled = true;
 }
 
-
+/*
 static int tegra_dsi_set_to_lp_mode(struct tegra_dc *dc,
 			struct tegra_dc_dsi_data *dsi, u8 lp_op);
 static void tegra_dsi_send_dc_frames(struct tegra_dc *dc,
@@ -3607,7 +3607,7 @@ void tegra_dsi_enter_lp11(void)
 }
 
 
-
+*/
 
 
 
