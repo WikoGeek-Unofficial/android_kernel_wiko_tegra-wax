@@ -522,8 +522,8 @@ struct tegra_dc_out {
 	struct completion	user_vblank_comp;
 	unsigned		refresh_rate;
 
-	//int	(*enable)(struct device *);
-        int	(*enable)(struct device *, int reset);
+	int	(*enable)(struct device *);
+        int	(*hw_reset)(struct device *);
 	int	(*postpoweron)(void);
 	int	(*prepoweroff)(void);
 	int	(*disable)(void);

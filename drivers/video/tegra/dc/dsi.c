@@ -3589,28 +3589,6 @@ static void tegra_dsi_setup_initialized_panel(struct tegra_dc_dsi_data *dsi)
 	dsi->enabled = true;
 }
 
-/*
-static int tegra_dsi_set_to_lp_mode(struct tegra_dc *dc,
-			struct tegra_dc_dsi_data *dsi, u8 lp_op);
-static void tegra_dsi_send_dc_frames(struct tegra_dc *dc,
-				     struct tegra_dc_dsi_data *dsi,
-				     int no_of_frames);
-void tegra_dsi_enter_lp11(void)
-{
-	if(this_dc) {
-		struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(this_dc);
-
-		if (dsi->info.panel_send_dc_frames)
-			tegra_dsi_send_dc_frames(this_dc, dsi, 2);
-		tegra_dsi_set_to_lp_mode(this_dc, dsi, DSI_LP_OP_WRITE);
-	}
-}
-
-
-*/
-
-
-
 static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 {
 	struct tegra_dc_dsi_data *dsi = tegra_dc_get_outdata(dc);
@@ -3709,10 +3687,11 @@ static void _tegra_dc_dsi_enable(struct tegra_dc *dc)
 			goto fail;
 		}
 
-		mdelay(1);
-		if (dc->out->enable)
-			dc->out->enable(&dc->ndev->dev, 1);
-		mdelay(7);
+		if (dc->out->hw_reset) {
+			mdelay(1);
+			dc->out->hw_reset(&dc->ndev->dev);
+			mdelay(7);
+		}
 
 		err = tegra_dsi_send_panel_cmd(dc, dsi, dsi->info.dsi_init_cmd,
 						dsi->info.n_init_cmd);

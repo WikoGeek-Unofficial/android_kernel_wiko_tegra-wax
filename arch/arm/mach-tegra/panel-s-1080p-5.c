@@ -518,12 +518,11 @@ fail:
 	return err;
 }
 
-static int dsi_s_1080p_5_enable(struct device *dev, int reset)
+static int dsi_s_1080p_5_enable(struct device *dev)
 {
 	int err = 0;
 
-	if(reset)
-              return 0;	
+	
 
 	err = dsi_s_1080p_5_reg_get();
 	if (err < 0) {

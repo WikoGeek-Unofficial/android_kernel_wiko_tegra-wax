@@ -2238,8 +2238,8 @@ static bool _tegra_dc_controller_enable(struct tegra_dc *dc)
 	tegra_dc_unpowergate_locked(dc);
 
 	if (dc->out->enable)
-		//dc->out->enable(&dc->ndev->dev);
-		dc->out->enable(&dc->ndev->dev, 0);
+		dc->out->enable(&dc->ndev->dev);
+		
 
 	tegra_dc_setup_clk(dc, dc->clk);
 	tegra_dc_clk_enable(dc);
