@@ -138,12 +138,10 @@ static struct tegra_dc_out ceres_disp1_out = {
 	.sd_settings	= &sd_settings,
 };
 
-static int ceres_hdmi_enable(struct device *dev, int reset)
+static int ceres_hdmi_enable(struct device *dev)
 {
 	int ret;
 
-         if(reset)
-	    return 0;
 
 	if (!ceres_hdmi_reg) {
 			ceres_hdmi_reg = regulator_get(dev, "avdd_hdmi");
