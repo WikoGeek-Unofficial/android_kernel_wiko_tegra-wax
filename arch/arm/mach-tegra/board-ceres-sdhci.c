@@ -206,7 +206,7 @@ static struct tegra_sdhci_platform_data tegra_sdhci_platform_data3 = {
 	},
 	.edp_support = true,
 	.edp_states = {855, 0},
-	.en_freq_scaling = true,
+	//.en_freq_scaling = true,
 	.en_clock_gating = true,
 };
 
@@ -378,7 +378,7 @@ int __init ceres_sdhci_init(void)
 		tegra_sdhci_platform_data2.cd_gpio = PALMAS_SD_CD;
 	else {
 		tegra_sdhci_platform_data2.max_clk_limit = 204000000;
-		tegra_sdhci_platform_data2.en_freq_scaling = true;
+		//tegra_sdhci_platform_data2.en_freq_scaling = true;
 		tegra_sdhci_platform_data0.max_clk_limit = 136000000;
 	}
 
