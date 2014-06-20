@@ -191,14 +191,14 @@ static struct core_edp_entry core_edp_table[] = {
 			},
 			/* balanced profile */
 			{	/* sdmmc edp limit cap is Off */
-				{{ 788, 749 },
+				{{ 788, 711 },				
 				 { 788, 711 },
 				 { 788, 711 },
 				 { 788, 672 },
 				 { 788, 596 },
 				},
 				/* sdmmc edp limit cap is On */
-				{{ 788, 749 },
+				{{ 788, 711 },				
 				 { 788, 653 },
 				 { 788, 653 },
 				 { 788, 653 },
@@ -207,14 +207,14 @@ static struct core_edp_entry core_edp_table[] = {
 			},
 			/* favor gpu */
 			{	/* sdmmc edp limit cap is Off */
-				{{ 653, 749 },
-				 { 653, 749 },
+				{{ 653, 711 },
+				 { 653, 711 },				 
 				 { 653, 711 },
 				 { 653, 672 },
 				 { 653, 672 },
 				},
 				/* sdmmc edp limit cap is On */
-				{{ 653, 749 },
+				{{ 653, 711 },				
 				 { 653, 692 },
 				 { 653, 692 },
 				 { 653, 672 },
@@ -230,15 +230,15 @@ static struct core_edp_entry core_edp_table[] = {
 		.cap_cpu	= {
 			/* favor emc */
 			{	/* sdmmc edp limit cap is Off */
-				{{ 922, 749 },
-				 { 922, 749 },
+				{{ 922, 711 },
+				 { 922, 711 },				 
 				 { 922, 711 },
 				 { 922, 672 },
 				 { 922, 672 },
 				},
 				/* sdmmc edp limit cap is On */
-				{{ 922, 749 },
-				 { 922, 749 },
+				{{ 922, 711 },
+				 { 922, 711 },				 
 				 { 922, 711 },
 				 { 922, 672 },
 				 { 922, 672 },
@@ -246,15 +246,15 @@ static struct core_edp_entry core_edp_table[] = {
 			},
 			/* balanced profile */
 			{	/* sdmmc edp limit cap is Off */
-				{{ 922, 749 },
-				 { 922, 749 },
+				{{ 922, 711 },
+				 { 922, 711 },				 
 				 { 922, 711 },
 				 { 922, 672 },
 				 { 922, 672 },
 				},
 				/* sdmmc edp limit cap is On */
-				{{ 922, 749 },
-				 { 922, 749 },
+				{{ 922, 711 },
+				 { 922, 711 },				 
 				 { 922, 711 },
 				 { 922, 672 },
 				 { 922, 672 },
@@ -262,15 +262,15 @@ static struct core_edp_entry core_edp_table[] = {
 			},
 			/* favor gpu */
 			{	/* sdmmc edp limit cap is Off */
-				{{ 922, 749 },
-				 { 922, 749 },
+				{{ 922, 711 },
+				 { 922, 711 },				 
 				 { 922, 711 },
 				 { 922, 672 },
 				 { 922, 672 },
 				},
 				/* sdmmc edp limit cap is On */
-				{{ 922, 749 },
-				 { 922, 749 },
+				{{ 922, 711 },
+				 { 922, 711 },				 
 				 { 922, 711 },
 				 { 922, 672 },
 				 { 922, 672 },

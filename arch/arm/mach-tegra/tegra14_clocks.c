@@ -5812,7 +5812,7 @@ static struct clk tegra_dfll_cpu = {
 	.flags     = DFLL,
 	.ops       = &tegra_dfll_ops,
 	.reg	   = 0x2f4,
-	.max_rate  = 2116500000UL,
+	.max_rate  = 2014500000UL,
 };
 
 /* Audio sync clocks */
@@ -6060,7 +6060,7 @@ static struct clk tegra_clk_cclk_g = {
 	.inputs	= mux_cclk_g,
 	.reg	= 0x368,
 	.ops	= &tegra_super_ops,
-	.max_rate = 2116500000UL,
+	.max_rate = 2014500000UL,
 };
 
 static struct clk tegra_clk_cclk_lp = {
@@ -6085,7 +6085,7 @@ static struct clk tegra_clk_virtual_cpu_g = {
 	.name      = "cpu_g",
 	.parent    = &tegra_clk_cclk_g,
 	.ops       = &tegra_cpu_ops,
-	.max_rate  = 2116500000UL,
+	.max_rate  = 2014500000UL,
 	.u.cpu = {
 		.main      = &tegra_pll_x,
 		.backup    = &tegra_pll_p_out4,
@@ -6119,7 +6119,7 @@ static struct clk tegra_clk_cpu_cmplx = {
 	.name      = "cpu",
 	.inputs    = mux_cpu_cmplx,
 	.ops       = &tegra_cpu_cmplx_ops,
-	.max_rate  = 2116500000UL,
+	.max_rate  = 2014500000UL,
 };
 
 static struct clk tegra_clk_cop = {
