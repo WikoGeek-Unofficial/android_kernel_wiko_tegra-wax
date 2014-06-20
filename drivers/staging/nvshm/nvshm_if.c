@@ -32,7 +32,7 @@ struct nvshm_channel *nvshm_open_channel(int chan,
 	pr_debug("%s(%d)\n", __func__, chan);
 	spin_lock(&handle->lock);
 	if (handle->chan[chan].ops) {
-		spin_unlock_irqrestore(&handle->lock, f);
+		spin_unlock(&handle->lock);
 		pr_err("%s: already registered on chan %d\n", __func__, chan);
 		return NULL;
 	}
