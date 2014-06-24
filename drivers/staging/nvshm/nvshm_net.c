@@ -147,7 +147,7 @@ void nvshm_netif_rx_event(struct nvshm_channel *chan,
 		skb->ip_summed = CHECKSUM_UNNECESSARY;
 		priv->stats.rx_packets++;
 		priv->stats.rx_bytes += datagram_len;
-		if (netif_rx_ni(skb) == NET_RX_DROP)
+		if (netif_rx(skb) == NET_RX_DROP)
 			pr_debug("%s() : dropped packet\n", __func__);
 	}
 }
