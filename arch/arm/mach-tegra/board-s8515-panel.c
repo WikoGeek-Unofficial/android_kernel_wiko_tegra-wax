@@ -142,7 +142,6 @@ static int ceres_hdmi_enable(struct device *dev)
 {
 	int ret;
 
-
 	if (!ceres_hdmi_reg) {
 			ceres_hdmi_reg = regulator_get(dev, "avdd_hdmi");
 			if (IS_ERR_OR_NULL(ceres_hdmi_reg)) {
@@ -423,11 +422,14 @@ static void ceres_panel_select(void)
 
 //Ivan
     //panel = &dsi_otm1283a_720p;
-
 	if (tegra_get_board_panel_id()==11) {  //LIUJ201140504RELE1315ADDO adc select lcd
 		panel = &dsi_hx8394a_720p;
-                panel_name = "Tcl_hx8394_HD_video_24bit\n";
-	} else {
+                panel_name = "Tcl_hx8394_p3_HD_video_24bit\n";
+	}else if(tegra_get_board_panel_id()==12) {
+
+                panel = &dsi_hx8394a_720p_p4;
+                panel_name = "Tcl_hx8394_p4_HD_video_24bit\n";
+        }else {
 		panel = &dsi_otm1283a_720p;
                 panel_name = "Truly_otm1283a_HD_video_24bit\n";
 	}
