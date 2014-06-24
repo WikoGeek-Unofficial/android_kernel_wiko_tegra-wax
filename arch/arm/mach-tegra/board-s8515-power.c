@@ -388,7 +388,7 @@ MAX77660_PDATA_INIT(LDO3, ldo3, 2800, 2800, NULL, 0,
 		0, 0, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO4, ldo4, 3000, 3000, NULL, 0,
-		0, 1, 1, FPS_SRC_DEF, -1, -1, 0);
+		1, 1, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(LDO5, ldo5, 1800, 1800, NULL, 0,
 		1, 0, 1, FPS_SRC_DEF, -1, -1, 0);
@@ -433,7 +433,7 @@ MAX77660_PDATA_INIT(LDO18, ldo18, 2700, 2700, NULL, 0,
 		1, 0, 1, FPS_SRC_DEF, -1, -1, 0);
 
 MAX77660_PDATA_INIT(SW1, sw1, 1800, 1800, max77660_rails(buck5), 0,
-		0, 1, 0, FPS_SRC_DEF, -1, -1, 0);
+		1, 1, 0, FPS_SRC_DEF, -1, -1, 0);
 
 //Ivan MAX77660_PDATA_INIT(SW2, sw2, 1800, 1800, max77660_rails(buck5), 0,
 //Ivan        0, 0, 0, FPS_SRC_DEF, -1, -1, 0);
