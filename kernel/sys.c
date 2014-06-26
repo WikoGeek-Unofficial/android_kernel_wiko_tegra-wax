@@ -395,6 +395,10 @@ void kernel_restart(char *cmd)
 		printk(KERN_EMERG "Restarting system.\n");
 	else
 		printk(KERN_EMERG "Restarting system with command '%s'.\n", cmd);
+	printk("restart thread: %s, pid: %d, parent: %s, parent_pid: %d\n",
+			current->comm, current->pid,
+			current->parent->comm, current->parent->pid);
+	dump_stack();	
 	kmsg_dump(KMSG_DUMP_RESTART);
 	machine_restart(cmd);
 }
