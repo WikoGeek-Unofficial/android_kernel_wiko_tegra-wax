@@ -222,6 +222,7 @@ tegra_throttle_set_cur_state(struct thermal_cooling_device *cdev,
 		bthrot_speed = clip_to_table(bthrot_speed);
 
 	cpu_cap_freq = bthrot_speed;
+        printk(KERN_INFO "wayne add, cpu_cap_freq throttle freq:%ld\n", cpu_cap_freq);
 	tegra_cpu_set_speed_cap(NULL);
 	mutex_unlock(&bthrot_list_lock);
 

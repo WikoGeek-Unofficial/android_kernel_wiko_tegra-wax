@@ -231,6 +231,7 @@ static void edp_update_limit(void)
 	}
 	BUG_ON(i == 0);	/* min freq above the limit or table empty */
 	edp_limit = freq_table[i-1].frequency;
+        printk(KERN_INFO "wayne add, edp_limit:%d\n", edp_limit);
 #endif
 }
 
