@@ -1,7 +1,7 @@
 /*
  * arch/arm/mach-tegra/tegra14_emc.c
  *
- * Copyright (c) 2013, NVIDIA Corporation. All rights reserved.
+ * Copyright (c) 2013-2014, NVIDIA CORPORATION.  All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -2003,17 +2003,18 @@ int tegra_emc_get_dram_temperature(void)
 	int mr4 = 0, mr4_prev, i = 0;
 	unsigned long flags;
 
-	spin_lock_irqsave(&emc_access_lock, flags);
 
 	/* Once we hit two consecutive reads that return the same value we
 	 * assume things are good. */
 	do {
 		mr4_prev = mr4;
+		spin_lock_irqsave(&emc_access_lock, flags);
 		mr4 = emc_read_mrr(0, 4);
 		if (IS_ERR_VALUE(mr4)) {
 			spin_unlock_irqrestore(&emc_access_lock, flags);
 			return mr4;
 		}
+		spin_unlock_irqrestore(&emc_access_lock, flags);
 
 		i++;
 	} while ((i < 2 || mr4 != mr4_prev) && i < 10);
@@ -2026,8 +2027,6 @@ int tegra_emc_get_dram_temperature(void)
 		pr_err("emc: Failed to read MR4!\n");
 		return -ENODATA;
 	}
-
-	spin_unlock_irqrestore(&emc_access_lock, flags);
 
 	return (mr4 & LPDDR2_MR4_TEMP_MASK) >> LPDDR2_MR4_TEMP_SHIFT;
 }
