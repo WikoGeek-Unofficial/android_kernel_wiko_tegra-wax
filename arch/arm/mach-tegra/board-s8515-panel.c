@@ -427,8 +427,8 @@ static void ceres_panel_select(void)
                 panel_name = "Tcl_hx8394_p3_HD_video_24bit\n";
 	}else if(tegra_get_board_panel_id()==12) {
 
-                panel = &dsi_hx8394a_720p_p4;
-                panel_name = "Tcl_hx8394_p4_HD_video_24bit\n";
+                panel = &dsi_otm1283a_otp_720p;
+                panel_name = "Truly_otm1283a_otp_HD_video_24bit\n";
         }else {
 		panel = &dsi_otm1283a_720p;
                 panel_name = "Truly_otm1283a_HD_video_24bit\n";

@@ -393,7 +393,7 @@ obj-${CONFIG_MACH_S8515}                += panel-s-1080p-5.o
 obj-${CONFIG_MACH_S8515}                += panel-j-720p-4-7.o
 obj-${CONFIG_MACH_S8515}                += board-touch-synaptics-i2c.o
 obj-${CONFIG_MACH_S8515}                += panel-hx8394a-720p.o
-obj-${CONFIG_MACH_S8515}                += panel-hx8394a-720p-p4.o
+obj-${CONFIG_MACH_S8515}                += panel-otm1283a-otp-720p.o
 obj-${CONFIG_MACH_S8515}                += panel-otm1283a-720p.o
 
 obj-${CONFIG_TEGRA_BB_XMM_POWER}        += baseband-xmm-power.o
